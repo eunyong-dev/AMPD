@@ -3,8 +3,9 @@
 ## 🔍 **Supabase 대시보드에서 확인해야 할 설정들**
 
 ### 1. **프로젝트 기본 정보**
-- **프로젝트 URL**: `https://dtkcnifwhhzcknfumpdr.supabase.co`
-- **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0a2NuaWZ3aGh6Y2tuZnVtcGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NjU5NjMsImV4cCI6MjA3NjQ0MTk2M30.67bw320dIXcO7Fusi2DANavI-tFF2Kr16tg6e3ptgCc`
+- **프로젝트 URL**: Supabase 대시보드에서 확인 (Settings > API)
+- **Anon Key**: 환경 변수 `NEXT_PUBLIC_SUPABASE_ANON_KEY`에 설정되어 있음
+  - ⚠️ **절대 코드나 문서에 직접 작성하지 마세요!**
 
 ### 2. **Authentication > Settings**
 다음 설정들을 확인하세요:
@@ -29,7 +30,8 @@
 
 #### **Authorized redirect URIs (Google Cloud Console)**
 Google Cloud Console에서 다음 URI들이 추가되어 있는지 확인:
-- `https://dtkcnifwhhzcknfumpdr.supabase.co/auth/v1/callback`
+- `https://[YOUR_PROJECT_REF].supabase.co/auth/v1/callback`
+  - ⚠️ `[YOUR_PROJECT_REF]`를 실제 Supabase 프로젝트 참조 ID로 교체하세요
 
 ### 4. **Database > Tables**
 다음 테이블들이 존재하는지 확인:
@@ -57,7 +59,7 @@ Google Cloud Console에서 다음 URI들이 추가되어 있는지 확인:
 ## 🔧 **해결 방법**
 
 1. **Supabase 대시보드 접속**: https://supabase.com/dashboard
-2. **프로젝트 선택**: `dtkcnifwhhzcknfumpdr`
+2. **프로젝트 선택**: 본인의 프로젝트 선택
 3. **Authentication > Settings** 이동
 4. **Site URL 확인**: `http://localhost:3000`
 5. **Redirect URLs 확인**: `http://localhost:3000/auth/callback` 추가
