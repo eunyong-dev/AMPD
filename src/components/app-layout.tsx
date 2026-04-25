@@ -21,7 +21,7 @@ import {
   getErrorIcon,
   getErrorColorClass,
   ParsedError,
-} from '@/lib/error-handler';
+} from '@/lib/utils/error-handler';
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, loading: authLoading, signOut } = useAuth();

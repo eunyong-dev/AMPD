@@ -27,7 +27,8 @@ export function isSunday(value: any): boolean {
   if (value === null || value === undefined || value === '') return false;
 
   const dateStr = String(value);
-  const match = dateStr.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  // 구분자: . - / 모두 지원
+  const match = dateStr.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
   if (!match) return false;
 
   const [, year, month, day] = match;
@@ -53,8 +54,9 @@ export function parseSheetDate(
   if (!dateStr) return null;
 
   const str = String(dateStr);
-  // "2025.11.1" 또는 "2025.11.1 (토)" 형식 파싱
-  const match = str.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  // 구분자: . - / 모두 지원
+  // 예: "2025.11.1", "2025-11-12", "2025/11/01", "2026-04-09 (목)"
+  const match = str.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
   if (!match) return null;
 
   const [, year, month, day] = match;

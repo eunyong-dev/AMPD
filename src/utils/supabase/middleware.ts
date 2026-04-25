@@ -20,14 +20,12 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
+          cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
-            supabaseResponse.cookies.set(name, value, {
-              ...options,
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax' as const,
-            });
+          });
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, options);
           });
         },
       },
@@ -35,9 +33,21 @@ export async function updateSession(request: NextRequest) {
   );
 
   // 세션 갱신 (만료된 토큰 자동 갱신)
-  // 중요: getSession() 대신 getUser()를 사용하여 토큰을 재검증합니다
-  await supabase.auth.getUser();
+  // getUser()는 Supabase 서버에 토큰을 재검증합니다.
+  // refresh token이 만료된 경우 AuthApiError가 발생하며,
+  // Supabase SSR 라이브러리가 내부적으로 쿠키를 정리합니다.
+  const { error } = await supabase.auth.getUser();
+
+  // refresh token 만료 시 남아있을 수 있는 쿠키를 명시적으로 제거하여
+  // 클라이언트가 "좀비 세션" 상태에 빠지지 않도록 합니다.
+  if (error) {
+    const authCookies = request.cookies
+      .getAll()
+      .filter(({ name }) => name.startsWith('sb-'));
+    authCookies.forEach(({ name }) => {
+      supabaseResponse.cookies.delete(name);
+    });
+  }
 
   return supabaseResponse;
 }
-

@@ -21,6 +21,9 @@ import { AccountGamesTable } from '@/components/games/account-games-table';
 import { CampaignsTable } from '@/components/campaigns/campaigns-table';
 import { CreateCampaignForm } from '@/components/campaigns/create-campaign-form';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
+import { CreateSettlementForm } from '@/components/settlements/create-settlement-form';
+import { SettlementsTable } from '@/components/settlements/settlements-table';
+import { useSettlementManagement } from '@/hooks/use-settlement-management';
 import {
   Tooltip,
   TooltipContent,
@@ -31,23 +34,32 @@ import {
 export default function AccountDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const accountId = params.id as string;
+  // URL slug = decodeURIComponent된 회사명 (UUID 노출 방지)
+  const companyParam = decodeURIComponent(params.id as string);
 
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [showCreateGameForm, setShowCreateGameForm] = useState(false);
   const [showCreateCampaignForm, setShowCreateCampaignForm] = useState(false);
   const [showEditCampaignForm, setShowEditCampaignForm] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
+
+  // Settlements
+  const [showCreateSettlementForm, setShowCreateSettlementForm] = useState(false);
   
   // URL 파라미터에서 탭 정보 가져오기
   const tabFromUrl = searchParams.get('tab');
-  const initialTab = tabFromUrl === 'campaigns' ? 'campaigns' : 'games';
+  const initialTab =
+    tabFromUrl === 'games'
+      ? 'games'
+      : tabFromUrl === 'settlements'
+      ? 'settlements'
+      : 'campaigns';
   const [activeTab, setActiveTab] = useState(initialTab);
-  
+
   // URL 파라미터가 변경되면 탭도 업데이트
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'campaigns' || tab === 'games') {
+    if (tab === 'campaigns' || tab === 'games' || tab === 'settlements') {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -64,6 +76,12 @@ export default function AccountDetailPage() {
     addGame,
     removeGame,
   } = useGameManagement();
+  // 현재 계정 정보 — slug(=company)로 매칭
+  const currentAccount = accounts.find(
+    (account) => account.company === companyParam
+  );
+  const accountId = currentAccount?.id ?? '';
+
   const {
     campaigns,
     loading: campaignsLoading,
@@ -71,11 +89,14 @@ export default function AccountDetailPage() {
     updateCampaign,
     removeCampaign,
   } = useCampaignManagement(accountId);
+  const {
+    settlements,
+    loading: settlementsLoading,
+    creating: settlementCreating,
+    createSettlement,
+  } = useSettlementManagement(accountId);
   const { users: activeUsers } = useUserManagement();
   const { profile: currentUserProfile } = useUserContext();
-
-  // 현재 계정 정보
-  const currentAccount = accounts.find((account) => account.id === accountId);
 
   // 현재 계정의 게임들
   const accountGames = games.filter((game) => game.account_id === accountId);
@@ -218,142 +239,146 @@ export default function AccountDetailPage() {
           </div>
         </div>
 
-        {/* Account Overview Card */}
-        <Card>
-          <CardHeader className='pb-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <CardTitle className='text-xl font-bold'>
-                  {currentAccount.company}
-                </CardTitle>
-                <div className='flex items-center gap-3 mt-0.5'>
-                  <p className='text-sm text-muted-foreground'>
-                    {(() => {
-                      const countryEmojiMap: Record<string, string> = {
-                        KR: '🇰🇷',
-                        JP: '🇯🇵',
-                        TW: '🇹🇼',
-                        US: '🇺🇸',
-                        CN: '🇨🇳',
-                      };
-                      const emoji = countryEmojiMap[currentAccount.country] || '';
-                      return emoji ? `${emoji} ${currentAccount.country}` : currentAccount.country;
-                    })()}
-                  </p>
-                  <span className='text-sm text-muted-foreground'>•</span>
-                  <div className='flex items-center gap-2'>
-                    <Avatar className='h-4 w-4'>
-                      {(() => {
-                        const assignedUser = activeUsers.find(
-                          (u) => u.id === currentAccount.assigned_user_id
-                        );
-                        return assignedUser?.avatar_url ? (
-                          <AvatarImage
-                            src={assignedUser.avatar_url}
-                            alt={currentAccount.assigned_user_name}
-                          />
-                        ) : null;
-                      })()}
-                      <AvatarFallback className='text-xs'>
-                        {currentAccount.assigned_user_name
-                          ? currentAccount.assigned_user_name
-                              .charAt(0)
-                              .toUpperCase()
-                          : 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className='text-sm text-muted-foreground'>
-                      {currentAccount.assigned_user_name || 'Unassigned'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className='flex items-center gap-6'>
-                <div className='text-right'>
-                  <p className='text-xs text-muted-foreground mb-1'>Games</p>
-                  <p className='text-2xl font-bold'>{accountGames.length}</p>
-                </div>
-                <div className='text-right'>
-                  <p className='text-xs text-muted-foreground mb-1'>Total Campaigns</p>
-                  <p className='text-2xl font-bold'>
-                    {campaignStatsByStatus.total}
-                  </p>
-                </div>
+        {/* Account Overview (카드 없이 인라인) */}
+        <div className='flex items-center justify-between'>
+          <div>
+            <h2 className='text-xl font-bold'>{currentAccount.company}</h2>
+            <div className='flex items-center gap-3 mt-0.5'>
+              <p className='text-sm text-muted-foreground'>
+                {(() => {
+                  const countryEmojiMap: Record<string, string> = {
+                    KR: '🇰🇷',
+                    JP: '🇯🇵',
+                    TW: '🇹🇼',
+                    US: '🇺🇸',
+                    CN: '🇨🇳',
+                  };
+                  const emoji = countryEmojiMap[currentAccount.country] || '';
+                  return emoji
+                    ? `${emoji} ${currentAccount.country}`
+                    : currentAccount.country;
+                })()}
+              </p>
+              <span className='text-sm text-muted-foreground'>•</span>
+              <div className='flex items-center gap-2'>
+                <Avatar className='h-4 w-4'>
+                  {(() => {
+                    const assignedUser = activeUsers.find(
+                      (u) => u.id === currentAccount.assigned_user_id
+                    );
+                    return assignedUser?.avatar_url ? (
+                      <AvatarImage
+                        src={assignedUser.avatar_url}
+                        alt={currentAccount.assigned_user_name}
+                      />
+                    ) : null;
+                  })()}
+                  <AvatarFallback className='text-xs'>
+                    {currentAccount.assigned_user_name
+                      ? currentAccount.assigned_user_name.charAt(0).toUpperCase()
+                      : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <span className='text-sm text-muted-foreground'>
+                  {currentAccount.assigned_user_name || 'Unassigned'}
+                </span>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className='grid gap-6 md:grid-cols-2 border-t pt-6'>
-              {/* Campaigns by Status */}
-              <div>
-                <div className='flex items-center gap-2 mb-4'>
-                  <TargetIcon className='h-4 w-4 text-muted-foreground' />
-                  <h3 className='text-sm font-semibold'>Campaigns by Status</h3>
-                </div>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div className='p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900'>
-                    <p className='text-xs text-muted-foreground mb-1'>Planning</p>
-                    <p className='text-2xl font-bold text-yellow-600 dark:text-yellow-500'>
-                      {campaignStatsByStatus.planning}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900'>
-                    <p className='text-xs text-muted-foreground mb-1'>Ongoing</p>
-                    <p className='text-2xl font-bold text-green-600 dark:text-green-500'>
-                      {campaignStatsByStatus.ongoing}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900'>
-                    <p className='text-xs text-muted-foreground mb-1'>Holding</p>
-                    <p className='text-2xl font-bold text-red-600 dark:text-red-500'>
-                      {campaignStatsByStatus.holding}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-gray-50 dark:bg-gray-950/20 border border-gray-200 dark:border-gray-800'>
-                    <p className='text-xs text-muted-foreground mb-1'>End</p>
-                    <p className='text-2xl font-bold text-gray-600 dark:text-gray-400'>
-                      {campaignStatsByStatus.end}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          </div>
+          <div className='flex items-center gap-6'>
+            <div className='text-right'>
+              <p className='text-xs text-muted-foreground mb-1'>Games</p>
+              <p className='text-2xl font-bold'>{accountGames.length}</p>
+            </div>
+            <div className='text-right'>
+              <p className='text-xs text-muted-foreground mb-1'>Total Campaigns</p>
+              <p className='text-2xl font-bold'>
+                {campaignStatsByStatus.total}
+              </p>
+            </div>
+          </div>
+        </div>
 
-              {/* Campaigns by Region */}
-              <div>
-                <div className='flex items-center gap-2 mb-4'>
-                  <MapPinIcon className='h-4 w-4 text-muted-foreground' />
-                  <h3 className='text-sm font-semibold'>Campaigns by Region</h3>
-                </div>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇰🇷 KR</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.KR}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇯🇵 JP</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.JP}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇹🇼 TW</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.TW}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇺🇸 US</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.US}
-                    </p>
-                  </div>
-                </div>
-              </div>
+        {/* Campaign Statistics */}
+        <div className='space-y-6'>
+          {/* By Status */}
+          <div>
+            <div className='flex items-center gap-2 mb-3'>
+              <TargetIcon className='h-4 w-4 text-muted-foreground' />
+              <h3 className='text-sm font-semibold'>Campaigns by Status</h3>
             </div>
-          </CardContent>
-        </Card>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+              {(
+                [
+                  {
+                    label: 'Planning',
+                    value: campaignStatsByStatus.planning,
+                    color: '#eab308',
+                  },
+                  {
+                    label: 'Ongoing',
+                    value: campaignStatsByStatus.ongoing,
+                    color: '#22c55e',
+                  },
+                  {
+                    label: 'Holding',
+                    value: campaignStatsByStatus.holding,
+                    color: '#ef4444',
+                  },
+                  {
+                    label: 'End',
+                    value: campaignStatsByStatus.end,
+                    color: '#94a3b8',
+                  },
+                ] as const
+              ).map((s) => (
+                <Card key={s.label}>
+                  <CardContent className='p-4'>
+                    <div className='flex items-center gap-1.5 text-xs text-muted-foreground mb-1'>
+                      <span
+                        className='h-2 w-2 rounded-full'
+                        style={{ backgroundColor: s.color }}
+                      />
+                      {s.label}
+                    </div>
+                    <div className='text-2xl font-semibold tabular-nums'>
+                      {s.value}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* By Region */}
+          <div>
+            <div className='flex items-center gap-2 mb-3'>
+              <MapPinIcon className='h-4 w-4 text-muted-foreground' />
+              <h3 className='text-sm font-semibold'>Campaigns by Region</h3>
+            </div>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+              {(
+                [
+                  { label: '🇰🇷 KR', value: campaignStatsByRegion.KR },
+                  { label: '🇯🇵 JP', value: campaignStatsByRegion.JP },
+                  { label: '🇹🇼 TW', value: campaignStatsByRegion.TW },
+                  { label: '🇺🇸 US', value: campaignStatsByRegion.US },
+                ] as const
+              ).map((r) => (
+                <Card key={r.label}>
+                  <CardContent className='p-4'>
+                    <div className='text-xs text-muted-foreground mb-1'>
+                      {r.label}
+                    </div>
+                    <div className='text-2xl font-semibold tabular-nums'>
+                      {r.value}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Create Game Form */}
         <CreateGameForm
@@ -394,6 +419,15 @@ export default function AccountDetailPage() {
           <div className='flex items-center justify-between'>
             <TabsList className='rounded-xl h-9'>
               <TabsTrigger
+                value='campaigns'
+                className='rounded-lg text-sm px-3 py-1 flex items-center gap-2'
+              >
+                Campaigns
+                <span className='bg-muted text-muted-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center'>
+                  {campaignStatsByStatus.total}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
                 value='games'
                 className='rounded-lg text-sm px-3 py-1 flex items-center gap-2'
               >
@@ -403,13 +437,10 @@ export default function AccountDetailPage() {
                 </span>
               </TabsTrigger>
               <TabsTrigger
-                value='campaigns'
-                className='rounded-lg text-sm px-3 py-1 flex items-center gap-2'
+                value='settlements'
+                className='rounded-lg text-sm px-3 py-1'
               >
-                Campaigns
-                <span className='bg-muted text-muted-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center'>
-                  {campaignStatsByStatus.total}
-                </span>
+                Settlements
               </TabsTrigger>
             </TabsList>
 
@@ -455,12 +486,18 @@ export default function AccountDetailPage() {
                       return;
                     }
                     setShowCreateCampaignForm(true);
+                  } else if (activeTab === 'settlements') {
+                    setShowCreateSettlementForm(true);
                   }
                 }}
                 size='sm'
               >
                 <PlusIcon className='h-4 w-4' />
-                {activeTab === 'games' ? 'Add Game' : 'Add Campaign'}
+                {activeTab === 'games'
+                  ? 'Add Game'
+                  : activeTab === 'campaigns'
+                  ? 'Add Campaign'
+                  : 'Add Settlement'}
               </Button>
             )}
           </div>
@@ -582,7 +619,65 @@ export default function AccountDetailPage() {
               </div>
             )}
           </TabsContent>
+
+          <TabsContent
+            value='settlements'
+            className='space-y-4 w-full overflow-hidden'
+          >
+            <SettlementsTable
+              settlements={settlements}
+              accountCompany={currentAccount?.company ?? ''}
+              loading={settlementsLoading}
+            />
+          </TabsContent>
         </Tabs>
+
+        <CreateSettlementForm
+          isOpen={showCreateSettlementForm}
+          onClose={() => setShowCreateSettlementForm(false)}
+          submitting={settlementCreating}
+          campaigns={campaigns.map((c) => ({
+            id: c.id,
+            name: c.name,
+            game_store_url: c.game_store_url,
+            region: c.region,
+            campaign_type: c.campaign_type,
+            daily_report_url: c.daily_report_url,
+            game_package_identifier: c.game_package_identifier,
+          }))}
+          onCreate={async (data) => {
+            const selected = campaigns.filter((c) =>
+              data.campaign_ids.includes(c.id)
+            );
+            try {
+              const created = await createSettlement({
+                account_id: accountId,
+                title: data.title,
+                period_from: data.period_from,
+                period_to: data.period_to,
+                campaigns: selected.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  region: c.region ?? null,
+                  campaign_type: c.campaign_type ?? null,
+                  daily_report_url: c.daily_report_url ?? null,
+                  game_package_identifier:
+                    c.game_package_identifier ?? null,
+                })),
+              });
+              toast.success(
+                `Settlement created with ${created.lines.length} line${
+                  created.lines.length !== 1 ? 's' : ''
+                }.`
+              );
+            } catch (err) {
+              const msg =
+                err instanceof Error ? err.message : 'Unknown error';
+              toast.error(`Failed to create settlement: ${msg}`);
+              throw err;
+            }
+          }}
+        />
       </div>
       <Toaster position='top-center' />
     </AccessControl>

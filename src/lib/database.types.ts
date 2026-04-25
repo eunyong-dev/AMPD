@@ -66,7 +66,7 @@ export type Database = {
           created_by: string | null
           daily_report_url: string | null
           description: string | null
-          end_date: string
+          end_date: string | null
           game_id: string | null
           id: string
           jira_url: string | null
@@ -84,7 +84,7 @@ export type Database = {
           created_by?: string | null
           daily_report_url?: string | null
           description?: string | null
-          end_date: string
+          end_date?: string | null
           game_id?: string | null
           id?: string
           jira_url?: string | null
@@ -102,7 +102,7 @@ export type Database = {
           created_by?: string | null
           daily_report_url?: string | null
           description?: string | null
-          end_date?: string
+          end_date?: string | null
           game_id?: string | null
           id?: string
           jira_url?: string | null
@@ -114,6 +114,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_game_id_fkey"
             columns: ["game_id"]
@@ -161,6 +168,150 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_campaigns: {
+        Row: {
+          campaign_id: string
+          settlement_id: string
+        }
+        Insert: {
+          campaign_id: string
+          settlement_id: string
+        }
+        Update: {
+          campaign_id?: string
+          settlement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_campaigns_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_campaigns_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_lines: {
+        Row: {
+          amount: number
+          campaign_id: string
+          created_at: string
+          description: string | null
+          duration_from: string
+          duration_to: string
+          geo: string | null
+          id: string
+          model: string | null
+          quantity: number
+          rate: number
+          settlement_id: string
+          sort_order: number
+        }
+        Insert: {
+          amount?: number
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          duration_from: string
+          duration_to: string
+          geo?: string | null
+          id?: string
+          model?: string | null
+          quantity?: number
+          rate?: number
+          settlement_id: string
+          sort_order?: number
+        }
+        Update: {
+          amount?: number
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          duration_from?: string
+          duration_to?: string
+          geo?: string | null
+          id?: string
+          model?: string | null
+          quantity?: number
+          rate?: number
+          settlement_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_lines_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_lines_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlements: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          period_from: string
+          period_to: string
+          title: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_from: string
+          period_to: string
+          title: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_from?: string
+          period_to?: string
+          title?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }

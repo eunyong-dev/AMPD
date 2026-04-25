@@ -37,7 +37,6 @@ export function useSidebarState() {
   return useMemo(
     () => ({
       currentPath: pathname,
-      isDashboard: pathname === '/dashboard',
       isHome: pathname === '/',
     }),
     [pathname]

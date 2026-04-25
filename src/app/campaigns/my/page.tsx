@@ -281,96 +281,86 @@ export default function MyCampaignsPage() {
           </div>
         </div>
 
-        {/* Campaign Statistics Card */}
-        <Card>
-          <CardHeader className='pb-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <CardTitle className='text-xl font-bold'>My Campaign Statistics</CardTitle>
-                <p className='text-sm text-muted-foreground mt-0.5'>
-                  Overview of your campaigns
-                </p>
-              </div>
-              <div className='flex items-center gap-6'>
-                <div className='text-right'>
-                  <p className='text-xs text-muted-foreground mb-1'>Total</p>
-                  <p className='text-2xl font-bold'>{stats.total}</p>
-                </div>
-              </div>
+        {/* Campaign Statistics */}
+        <div className='space-y-6'>
+          {/* By Status */}
+          <div>
+            <div className='flex items-center gap-2 mb-3'>
+              <TargetIcon className='h-4 w-4 text-muted-foreground' />
+              <h3 className='text-sm font-semibold'>Campaigns by Status</h3>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className='grid gap-6 md:grid-cols-2 border-t pt-6'>
-              {/* Campaigns by Status */}
-              <div>
-                <div className='flex items-center gap-2 mb-4'>
-                  <TargetIcon className='h-4 w-4 text-muted-foreground' />
-                  <h3 className='text-sm font-semibold'>Campaigns by Status</h3>
-                </div>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div className='p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900'>
-                    <p className='text-xs text-muted-foreground mb-1'>Planning</p>
-                    <p className='text-2xl font-bold text-yellow-600 dark:text-yellow-500'>
-                      {stats.planning}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900'>
-                    <p className='text-xs text-muted-foreground mb-1'>Ongoing</p>
-                    <p className='text-2xl font-bold text-green-600 dark:text-green-500'>
-                      {stats.ongoing}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900'>
-                    <p className='text-xs text-muted-foreground mb-1'>Holding</p>
-                    <p className='text-2xl font-bold text-red-600 dark:text-red-500'>
-                      {stats.holding}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-gray-50 dark:bg-gray-950/20 border border-gray-200 dark:border-gray-800'>
-                    <p className='text-xs text-muted-foreground mb-1'>End</p>
-                    <p className='text-2xl font-bold text-gray-600 dark:text-gray-400'>
-                      {stats.end}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+              {(
+                [
+                  {
+                    label: 'Planning',
+                    value: stats.planning,
+                    color: '#eab308',
+                  },
+                  {
+                    label: 'Ongoing',
+                    value: stats.ongoing,
+                    color: '#22c55e',
+                  },
+                  {
+                    label: 'Holding',
+                    value: stats.holding,
+                    color: '#ef4444',
+                  },
+                  {
+                    label: 'End',
+                    value: stats.end,
+                    color: '#94a3b8',
+                  },
+                ] as const
+              ).map((s) => (
+                <Card key={s.label}>
+                  <CardContent className='p-4'>
+                    <div className='flex items-center gap-1.5 text-xs text-muted-foreground mb-1'>
+                      <span
+                        className='h-2 w-2 rounded-full'
+                        style={{ backgroundColor: s.color }}
+                      />
+                      {s.label}
+                    </div>
+                    <div className='text-2xl font-semibold tabular-nums'>
+                      {s.value}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
 
-              {/* Campaigns by Region */}
-              <div>
-                <div className='flex items-center gap-2 mb-4'>
-                  <MapPinIcon className='h-4 w-4 text-muted-foreground' />
-                  <h3 className='text-sm font-semibold'>Campaigns by Region</h3>
-                </div>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇰🇷 KR</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.KR}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇯🇵 JP</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.JP}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇹🇼 TW</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.TW}
-                    </p>
-                  </div>
-                  <div className='p-3 rounded-lg bg-muted/50 border'>
-                    <p className='text-xs text-muted-foreground mb-1'>🇺🇸 US</p>
-                    <p className='text-2xl font-bold'>
-                      {campaignStatsByRegion.US}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          {/* By Region */}
+          <div>
+            <div className='flex items-center gap-2 mb-3'>
+              <MapPinIcon className='h-4 w-4 text-muted-foreground' />
+              <h3 className='text-sm font-semibold'>Campaigns by Region</h3>
             </div>
-          </CardContent>
-        </Card>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+              {(
+                [
+                  { label: '🇰🇷 KR', value: campaignStatsByRegion.KR },
+                  { label: '🇯🇵 JP', value: campaignStatsByRegion.JP },
+                  { label: '🇹🇼 TW', value: campaignStatsByRegion.TW },
+                  { label: '🇺🇸 US', value: campaignStatsByRegion.US },
+                ] as const
+              ).map((r) => (
+                <Card key={r.label}>
+                  <CardContent className='p-4'>
+                    <div className='text-xs text-muted-foreground mb-1'>
+                      {r.label}
+                    </div>
+                    <div className='text-2xl font-semibold tabular-nums'>
+                      {r.value}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Search - 1450px 이하일 때 위쪽에 표시 */}
         <div className='search-break:hidden'>

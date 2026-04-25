@@ -26,15 +26,24 @@ export const NavCampaigns = memo(function NavCampaigns({
 }: ExtendedNavCampaignsProps) {
   const pathname = usePathname();
 
-  // 액티브 상태 확인 함수
+  // 액티브 상태: pathname과 가장 길게 매칭되는 시블링 url 1개만 활성화.
+  // (예: /campaigns/my 일 때 /campaigns 와 /campaigns/my 둘 다 활성되는 버그 방지)
+  const bestMatchUrl = useCallback(() => {
+    const candidates = items
+      .map((it) => it.url)
+      .filter(
+        (url) => pathname === url || pathname.startsWith(url + '/')
+      )
+      .sort((a, b) => b.length - a.length);
+    return candidates[0] ?? null;
+  }, [items, pathname]);
+
   const isActive = useCallback(
     (itemUrl: string) => {
       if (pendingUrl) return pendingUrl === itemUrl;
-      if (itemUrl === pathname) return true;
-      if (pathname.startsWith(itemUrl + '/')) return true;
-      return false;
+      return bestMatchUrl() === itemUrl;
     },
-    [pathname, pendingUrl]
+    [bestMatchUrl, pendingUrl]
   );
 
   return (

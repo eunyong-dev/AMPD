@@ -1,22 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Field,
-  FieldDescription,
   FieldGroup,
-  FieldLabel,
   FieldSeparator,
 } from '@/components/ui/field';
 import {
   signInWithGoogle,
   clearAllSessions,
-  testLoginFlow,
 } from '@/lib/supabase';
 import { createClient } from '@/utils/supabase/client';
-import { testConnection } from '@/lib/test-supabase';
 
 export function LoginForm({
   className,
@@ -82,33 +78,6 @@ export function LoginForm({
     }
   };
 
-  const handleDebugInfo = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      await testLoginFlow();
-      setError('디버그 정보가 수집되었습니다.');
-    } catch (err) {
-      setError('디버그 정보를 가져오는 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTestSupabase = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      await testConnection();
-      setError('Supabase 연결 테스트가 완료되었습니다.');
-    } catch (err) {
-      setError('Supabase 연결 테스트 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <form className={cn('flex flex-col gap-6', className)} {...props}>
@@ -189,30 +158,6 @@ export function LoginForm({
             className='w-full text-sm'
           >
             🔄 세션 초기화
-          </Button>
-        </Field>
-
-        <Field>
-          <Button
-            variant='ghost'
-            type='button'
-            onClick={handleDebugInfo}
-            disabled={isLoading}
-            className='w-full text-sm'
-          >
-            🔍 디버그 정보 출력
-          </Button>
-        </Field>
-
-        <Field>
-          <Button
-            variant='ghost'
-            type='button'
-            onClick={handleTestSupabase}
-            disabled={isLoading}
-            className='w-full text-sm'
-          >
-            🔧 Supabase 연결 테스트
           </Button>
         </Field>
       </FieldGroup>

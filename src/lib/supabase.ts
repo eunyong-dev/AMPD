@@ -28,6 +28,7 @@ export const signInWithGoogle = async () => {
       redirectTo: redirectUrl,
       queryParams: {
         prompt: 'select_account',
+        hd: 'gna.company',
       },
     },
   });
@@ -170,6 +171,35 @@ const getSupabaseStorageKeys = (storage: Storage): string[] => {
   return keys;
 };
 
+// Supabase 쿠키 제거 (@supabase/ssr는 sb-*, supabase-* 이름의 쿠키에 토큰 저장)
+// 만료 토큰으로 인한 "좀비 세션" 복구에 필수.
+const clearSupabaseCookies = () => {
+  if (typeof document === 'undefined') return;
+
+  const cookies = document.cookie.split(';');
+  const hostname = window.location.hostname;
+  const domainVariants = [
+    '',
+    `; domain=${hostname}`,
+    `; domain=.${hostname}`,
+  ];
+
+  for (const cookie of cookies) {
+    const eqIdx = cookie.indexOf('=');
+    const name = (eqIdx > -1 ? cookie.slice(0, eqIdx) : cookie).trim();
+    if (!name) continue;
+    if (
+      name.startsWith('sb-') ||
+      name.startsWith('supabase-') ||
+      name.includes('supabase')
+    ) {
+      for (const domain of domainVariants) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domain}`;
+      }
+    }
+  }
+};
+
 // 세션 완전 초기화 (클라이언트 사이드)
 export const clearAllSessions = async () => {
   if (typeof window === 'undefined') {
@@ -178,17 +208,21 @@ export const clearAllSessions = async () => {
 
   try {
     const supabase = createBrowserClient();
-    // Supabase 세션 종료
-    await supabase.auth.signOut();
+    // Supabase 세션 종료 (서버/클라이언트 양쪽 쿠키 정리 시도)
+    // scope: 'local'을 쓰면 만료 토큰이어도 API 에러 없이 로컬 상태만 정리함.
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {
+      // 이미 세션이 없거나 만료된 경우 무시
+    });
 
-    // localStorage 및 sessionStorage 정리 (이전 세션 데이터 제거)
-    if (typeof window !== 'undefined') {
-      const localKeys = getSupabaseStorageKeys(localStorage);
-      clearStorageKeys(localStorage, localKeys);
+    // 쿠키 정리 (@supabase/ssr의 기본 저장소)
+    clearSupabaseCookies();
 
-      const sessionKeys = getSupabaseStorageKeys(sessionStorage);
-      clearStorageKeys(sessionStorage, sessionKeys);
-    }
+    // localStorage 및 sessionStorage 정리 (레거시 저장소)
+    const localKeys = getSupabaseStorageKeys(localStorage);
+    clearStorageKeys(localStorage, localKeys);
+
+    const sessionKeys = getSupabaseStorageKeys(sessionStorage);
+    clearStorageKeys(sessionStorage, sessionKeys);
 
     return { success: true };
   } catch (error) {

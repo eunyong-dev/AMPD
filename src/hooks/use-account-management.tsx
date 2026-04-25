@@ -47,7 +47,7 @@ export function useAccountManagement() {
     }
   }, []);
 
-  // 새 계정 추가
+  // 새 계정 추가 — 회사명 중복(대소문자/공백 차이 무시) 차단
   const createAccount = useCallback(
     async (accountData: {
       company: string;
@@ -55,17 +55,35 @@ export function useAccountManagement() {
       assigned_user_id: string;
     }) => {
       try {
+        const normalized = accountData.company.trim().toLowerCase();
+        if (!normalized) {
+          throw new Error('Company name is required.');
+        }
+        // 클라이언트 사전 체크 (DB unique constraint도 서버측 보호)
+        const duplicate = accounts.some(
+          (a) => a.company.trim().toLowerCase() === normalized
+        );
+        if (duplicate) {
+          throw new Error(
+            `An account with the company name "${accountData.company}" already exists.`
+          );
+        }
+
         const newAccount = await addAccount(accountData);
         setAccounts((prevAccounts) => [newAccount, ...prevAccounts]);
         return newAccount;
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : '계정을 생성할 수 없습니다.'
-        );
-        throw err;
+        // Postgres unique violation (23505) 친화적 메시지
+        const raw = err instanceof Error ? err.message : '';
+        const friendly =
+          /duplicate key|unique constraint|already exists/i.test(raw)
+            ? `An account with the company name "${accountData.company}" already exists.`
+            : raw || '계정을 생성할 수 없습니다.';
+        setError(friendly);
+        throw new Error(friendly);
       }
     },
-    []
+    [accounts]
   );
 
   // 계정 업데이트

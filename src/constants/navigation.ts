@@ -12,7 +12,6 @@ import {
   FileTextIcon,
   FolderIcon,
   HelpCircleIcon,
-  LayoutDashboardIcon,
   ListIcon,
   SearchIcon,
   SettingsIcon,
@@ -32,11 +31,6 @@ export const NAVIGATION_DATA = {
 
   navMain: [
     {
-      title: 'Dashboard',
-      url: '/dashboard',
-      icon: LayoutDashboardIcon,
-    },
-    {
       title: 'Accounts',
       url: '/accounts',
       icon: BuildingIcon,
@@ -46,7 +40,7 @@ export const NAVIGATION_DATA = {
   navCampaigns: [
     {
       title: 'All Campaigns',
-      url: '/campaigns/all',
+      url: '/campaigns',
       icon: ClipboardListIcon,
     },
     {

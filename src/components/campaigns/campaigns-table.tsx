@@ -50,6 +50,7 @@ import {
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
+import { accountUrl } from '@/lib/utils/account-url';
 import Link from 'next/link';
 
 // 상수 정의
@@ -430,12 +431,12 @@ function CampaignTableRow({
       )}
       {columnVisibility.account && (
         <TableCell style={{ width: COLUMN_WIDTHS.account }}>
-          {campaign.account_id ? (
+          {campaign.account_id && campaign.account_company ? (
             <Link
-              href={`/accounts/${campaign.account_id}`}
+              href={accountUrl(campaign.account_company)}
               className='text-sm font-medium text-primary hover:underline truncate block'
             >
-              {campaign.account_company || 'Unknown Account'}
+              {campaign.account_company}
             </Link>
           ) : (
             <span className='text-sm text-muted-foreground'>Unknown</span>

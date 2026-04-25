@@ -8,7 +8,6 @@ import {
   RefreshCw,
   ExternalLink,
   ExternalLinkIcon,
-  CalendarIcon,
   MoreHorizontalIcon,
   EditIcon,
   TrashIcon,
@@ -35,13 +34,46 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  DateRangePicker,
+  type DateRangePreset,
+} from '@/components/common/date-range-picker';
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ReferenceLine,
+} from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/ui/toggle-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +105,7 @@ import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { getAllGames } from '@/hooks/use-game-management';
 import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
+import { accountUrl } from '@/lib/utils/account-url';
 import { formatDateYYYYMMDD } from '@/lib/utils/date';
 import {
   Tooltip,
@@ -108,6 +141,65 @@ function extractSheetParams(
   }
 }
 
+// ROAS 계열 컬럼 판별 (ROAS, D0 ROAS, D7 ROAS ...)
+const isRoasColumn = (header: string) =>
+  header.toLowerCase().includes('roas');
+
+// "130.20%" / "0.6502" 같은 문자열을 0.0~∞ 비율로 파싱
+const parseRoasPercent = (val: unknown): number | null => {
+  if (val === null || val === undefined) return null;
+  const str = String(val).trim();
+  if (!str || str === '-') return null;
+  const hasPercent = str.endsWith('%');
+  const cleaned = str.replace(/[$,\s]/g, '').replace(/%$/, '');
+  const n = parseFloat(cleaned);
+  if (isNaN(n)) return null;
+  return hasPercent ? n / 100 : n;
+};
+
+// ROAS 값에 따른 배경색: 0% → 투명, 100% 이상 → 가장 진한 녹색
+const roasBgStyle = (val: unknown): React.CSSProperties | undefined => {
+  const num = parseRoasPercent(val);
+  if (num === null || num <= 0) return undefined;
+  const opacity = Math.min(num, 1) * 0.6; // 최대 0.6으로 가독성 확보
+  return { backgroundColor: `rgba(34, 197, 94, ${opacity})` };
+};
+
+// ROAS 코호트 정의 — shadcn Area Chart - Gradient 톤 차용
+// 단일 blue hue, 옅은 sky → 짙은 indigo로 코호트 진행을 표현
+// Overall은 가장 어두운 톤으로 강조
+const ROAS_COHORTS = [
+  { key: 'ROAS', label: 'Overall', color: 'hsl(224 76% 28%)' },
+  { key: 'D0 ROAS', label: 'D0', color: 'hsl(214 95% 87%)' },
+  { key: 'D1 ROAS', label: 'D1', color: 'hsl(213 94% 78%)' },
+  { key: 'D7 ROAS', label: 'D7', color: 'hsl(217 91% 65%)' },
+  { key: 'D14 ROAS', label: 'D14', color: 'hsl(221 83% 53%)' },
+  { key: 'D30 ROAS', label: 'D30', color: 'hsl(224 76% 40%)' },
+] as const;
+
+const ROAS_CHART_CONFIG: ChartConfig = ROAS_COHORTS.reduce(
+  (acc, c) => ({ ...acc, [c.key]: { label: c.label, color: c.color } }),
+  {}
+);
+
+// Monthly 차트도 동일 blue family로 통일 (light=Cost, dark=Revenue)
+const MONTHLY_CHART_CONFIG: ChartConfig = {
+  Cost: { label: 'Cost', color: 'hsl(213 94% 78%)' },
+  Revenue: { label: 'Revenue', color: 'hsl(221 83% 53%)' },
+};
+
+// Volume 차트의 메트릭들
+const VOLUME_METRICS = [
+  { key: 'Install', label: 'Install', color: 'hsl(217 91% 65%)' },
+  { key: 'Cost', label: 'Cost', color: 'hsl(213 94% 78%)' },
+  { key: 'Revenue', label: 'Revenue', color: 'hsl(221 83% 53%)' },
+] as const;
+
+const VOLUME_CHART_CONFIG: ChartConfig = VOLUME_METRICS.reduce(
+  (acc, m) => ({ ...acc, [m.key]: { label: m.label, color: m.color } }),
+  {}
+);
+
 export default function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -115,7 +207,7 @@ export default function CampaignDetailPage() {
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<SheetData[] | null>(null);
+  const [allData, setAllData] = useState<SheetData[] | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [showEditCampaignForm, setShowEditCampaignForm] = useState(false);
@@ -128,14 +220,16 @@ export default function CampaignDetailPage() {
       }
     | undefined
   >(undefined);
-  const [tempDateRange, setTempDateRange] = useState<
-    | {
-        from: Date | undefined;
-        to: Date | undefined;
-      }
-    | undefined
-  >(undefined); // 임시 날짜 범위 (OK 버튼 클릭 전)
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  // 한 번에 하나의 코호트만 표시 (single-select)
+  const [visibleCohort, setVisibleCohort] = useState<string>('ROAS');
+  // 차트 단위 — daily / weekly / monthly
+  const [granularity, setGranularity] = useState<'daily' | 'weekly' | 'monthly'>(
+    'daily'
+  );
+  // 활성 탭 (controlled) — Charts 탭일 때만 granularity 드롭다운 표시
+  const [activeTab, setActiveTab] = useState<string>('daily');
+  // Volume 차트의 메트릭 (단일 선택)
+  const [visibleMetric, setVisibleMetric] = useState<string>('Install');
   const [lastDate, setLastDate] = useState<Date | null>(null); // 마지막 날짜 저장
 
   const { users: activeUsers } = useUserManagement();
@@ -207,7 +301,7 @@ export default function CampaignDetailPage() {
     try {
       await deleteCampaign(campaign.id);
       toast.success('Campaign deleted successfully');
-      router.push('/campaigns/all');
+      router.push('/campaigns');
     } catch (err) {
       toast.error(
         `Failed to delete campaign: ${
@@ -274,16 +368,16 @@ export default function CampaignDetailPage() {
           setCampaign(campaignData);
           // Report URL이 있으면 자동으로 데이터 가져오기 (초기 로드: 마지막 날짜 기준 30일)
           if (campaignData.daily_report_url) {
-            fetchSheetData(campaignData.daily_report_url, undefined);
+            fetchSheetData(campaignData.daily_report_url);
           }
         } else {
           toast.error('캠페인을 찾을 수 없습니다.');
-          router.push('/campaigns/all');
+          router.push('/campaigns');
         }
       } catch (err) {
         console.error('캠페인 로드 오류:', err);
         toast.error('캠페인을 불러올 수 없습니다.');
-        router.push('/campaigns/all');
+        router.push('/campaigns');
       } finally {
         setLoading(false);
       }
@@ -302,124 +396,44 @@ export default function CampaignDetailPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // 마지막 날짜 가져오기 (전체 데이터에서)
-  const fetchLastDate = async (reportUrl: string): Promise<Date | null> => {
-    try {
-      const params = extractSheetParams(reportUrl);
-      if (!params) {
-        return null;
-      }
-
-      // 날짜 필터 없이 전체 데이터 가져오기 (마지막 날짜 확인용)
-      const url = `/api/google-sheets?gid=${encodeURIComponent(
-        params.gid
-      )}&sheetId=${encodeURIComponent(params.sheetId)}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success || !Array.isArray(result.data)) {
-        return null;
-      }
-
-      // 날짜 컬럼 찾기
-      const dateHeader = Object.keys(result.data[0] || {}).find(
+  // 날짜 컬럼 이름 찾기
+  const findDateHeader = (row: SheetData | undefined): string | null => {
+    if (!row) return null;
+    return (
+      Object.keys(row).find(
         (h) => h === '날짜' || h === 'date' || h.toLowerCase() === 'date'
-      );
-
-      if (!dateHeader) return null;
-
-      // 모든 날짜 파싱 및 정렬
-      const dates = result.data
-        .map((row: SheetData) => parseSheetDate(row[dateHeader]))
-        .filter((date: Date | null) => date !== null)
-        .sort((a: Date, b: Date) => b.getTime() - a.getTime());
-
-      return dates.length > 0 ? dates[0] : null;
-    } catch (err) {
-      console.error('마지막 날짜 가져오기 오류:', err);
-      return null;
-    }
+      ) ?? null
+    );
   };
 
-  // Google Sheets 데이터 가져오기
-  const fetchSheetData = async (
-    reportUrl: string,
-    customDateRange?: { from: Date | undefined; to: Date | undefined }
-  ) => {
+  // Google Sheets 데이터 가져오기 (전체를 한 번에 로드, 필터는 클라이언트에서)
+  const fetchSheetData = async (reportUrl: string) => {
     setDataLoading(true);
     setDataError(null);
 
     try {
       const params = extractSheetParams(reportUrl);
       if (!params) {
-        throw new Error('유효하지 않은 Google Sheets URL입니다.');
+        throw new Error('Invalid Google Sheets URL.');
       }
 
-      // 날짜 범위 결정
-      let fromDate: string | undefined;
-      let toDate: string | undefined;
-
-      if (customDateRange && (customDateRange.from || customDateRange.to)) {
-        // 사용자가 선택한 날짜 범위
-        if (customDateRange.from) {
-          fromDate = formatDateForAPI(customDateRange.from);
-        }
-        if (customDateRange.to) {
-          toDate = formatDateForAPI(customDateRange.to);
-        }
-      } else {
-        // 초기 로드: 마지막 날짜 기준 30일 전
-        if (!lastDate) {
-          // 마지막 날짜가 없으면 먼저 가져오기
-          const fetchedLastDate = await fetchLastDate(reportUrl);
-          if (fetchedLastDate) {
-            setLastDate(fetchedLastDate);
-            const thirtyDaysAgo = new Date(fetchedLastDate);
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            fromDate = formatDateForAPI(thirtyDaysAgo);
-            toDate = formatDateForAPI(fetchedLastDate);
-          }
-        } else {
-          // 마지막 날짜가 있으면 바로 계산
-          const thirtyDaysAgo = new Date(lastDate);
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          fromDate = formatDateForAPI(thirtyDaysAgo);
-          toDate = formatDateForAPI(lastDate);
-        }
-      }
-
-      // API URL 구성
       const urlParams = new URLSearchParams({
         gid: params.gid,
         sheetId: params.sheetId,
       });
-      if (fromDate) {
-        urlParams.append('fromDate', fromDate);
-      }
-      if (toDate) {
-        urlParams.append('toDate', toDate);
-      }
 
-      const url = `/api/google-sheets?${urlParams.toString()}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `/api/google-sheets?${urlParams.toString()}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        const errorMessage =
-          result.error || `API 호출 실패: ${response.status}`;
-        throw new Error(errorMessage);
+        throw new Error(result.error || `API 호출 실패: ${response.status}`);
       }
 
       let fetchedData: SheetData[] = [];
@@ -429,10 +443,8 @@ export default function CampaignDetailPage() {
         fetchedData = [result.data];
       }
 
-      // 날짜 순서대로 정렬 (오래된 날짜부터)
-      const dateHeader = Object.keys(fetchedData[0] || {}).find(
-        (h) => h === '날짜' || h === 'date' || h.toLowerCase() === 'date'
-      );
+      // 오래된 날짜부터 정렬
+      const dateHeader = findDateHeader(fetchedData[0]);
       if (dateHeader) {
         fetchedData = fetchedData.sort((a, b) => {
           const dateA = parseSheetDate(a[dateHeader]);
@@ -440,46 +452,535 @@ export default function CampaignDetailPage() {
           if (!dateA || !dateB) return 0;
           return dateA.getTime() - dateB.getTime();
         });
-      }
 
-      setData(fetchedData);
-
-      // 마지막 날짜 업데이트 (없는 경우)
-      if (!lastDate && fetchedData.length > 0 && dateHeader) {
-        const dates = fetchedData
+        // 최신 날짜 저장 (날짜 필터 기본값 계산용)
+        const maxDate = fetchedData
           .map((row) => parseSheetDate(row[dateHeader]))
-          .filter((date) => date !== null)
-          .sort((a, b) => b!.getTime() - a!.getTime());
-        if (dates.length > 0) {
-          setLastDate(dates[0]!);
-        }
+          .filter((d): d is Date => d !== null)
+          .sort((a, b) => b.getTime() - a.getTime())[0];
+        if (maxDate) setLastDate(maxDate);
       }
 
-      toast.success('데이터를 성공적으로 가져왔습니다.');
+      setAllData(fetchedData);
+      toast.success('Data loaded successfully.');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+        err instanceof Error ? err.message : 'An unknown error occurred.';
       setDataError(errorMessage);
-      toast.error(`데이터 가져오기 실패: ${errorMessage}`);
+      toast.error(`Failed to load data: ${errorMessage}`);
       console.error('Google Sheets 데이터 가져오기 오류:', err);
     } finally {
       setDataLoading(false);
     }
   };
 
-  // 날짜 필터 변경 시 데이터 다시 가져오기 (초기 로드 제외)
-  useEffect(() => {
-    if (campaign?.daily_report_url && dateRange !== undefined) {
-      // dateRange가 명시적으로 설정된 경우에만 다시 가져오기
-      fetchSheetData(campaign.daily_report_url, dateRange);
+  // DateRangePicker presets:
+  //  - last-N-days / all: 시트 데이터 기준 (lastDate, allData의 min/max)
+  //  - last-week / last-month: 실제 달력 기준 (오늘)
+  const datePickerPresets = useMemo<DateRangePreset[]>(() => {
+    const nDays = (n: number) => {
+      if (!lastDate) return null;
+      const to = new Date(lastDate);
+      const from = new Date(lastDate);
+      from.setDate(from.getDate() - (n - 1));
+      return { from, to };
+    };
+
+    return [
+      {
+        id: 'last-7',
+        label: 'Last 7 days',
+        getRange: () => nDays(7),
+      },
+      {
+        id: 'last-14',
+        label: 'Last 14 days',
+        getRange: () => nDays(14),
+      },
+      {
+        id: 'last-30',
+        label: 'Last 30 days',
+        getRange: () => nDays(30),
+      },
+      {
+        id: 'last-90',
+        label: 'Last 90 days',
+        getRange: () => nDays(90),
+      },
+      { id: '---', label: '', getRange: () => null },
+      {
+        id: 'last-week',
+        label: 'Last week',
+        getRange: () => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const day = today.getDay();
+          const lastMonday = new Date(today);
+          lastMonday.setDate(today.getDate() - ((day + 6) % 7) - 7);
+          const lastSunday = new Date(lastMonday);
+          lastSunday.setDate(lastMonday.getDate() + 6);
+          return { from: lastMonday, to: lastSunday };
+        },
+      },
+      {
+        id: 'last-month',
+        label: 'Last month',
+        getRange: () => {
+          const today = new Date();
+          const thisMonthFirst = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
+          );
+          const lastMonthFirst = new Date(
+            today.getFullYear(),
+            today.getMonth() - 1,
+            1
+          );
+          const lastMonthLast = new Date(thisMonthFirst);
+          lastMonthLast.setDate(0);
+          return { from: lastMonthFirst, to: lastMonthLast };
+        },
+      },
+      { id: '---', label: '', getRange: () => null },
+      {
+        id: 'all',
+        label: 'All time',
+        getRange: () => {
+          if (!allData || allData.length === 0) return null;
+          const dateHeader = findDateHeader(allData[0]);
+          if (!dateHeader) return null;
+          const dates = allData
+            .map((r) => parseSheetDate(r[dateHeader]))
+            .filter((d): d is Date => d !== null);
+          if (dates.length === 0) return null;
+          const min = new Date(Math.min(...dates.map((d) => d.getTime())));
+          const max = new Date(Math.max(...dates.map((d) => d.getTime())));
+          return { from: min, to: max };
+        },
+      },
+    ];
+  }, [lastDate, allData]);
+
+  // 전체 데이터 + 날짜 범위 조합으로 화면에 표시할 데이터를 도출
+  // dateRange 미설정 시: 최신 날짜 기준 30일
+  // dateRange 설정 시: 해당 범위 (부분 설정도 허용)
+  // 날짜가 비어있는 행(시트에 미리 만들어 둔 빈 행)은 항상 제외
+  const data = useMemo<SheetData[] | null>(() => {
+    if (!allData) return null;
+
+    const dateHeader = findDateHeader(allData[0]);
+    if (!dateHeader) return allData;
+
+    // 날짜가 파싱되지 않는 행은 표시에서 제외
+    const rowsWithDate = allData.filter(
+      (row) => parseSheetDate(row[dateHeader]) !== null
+    );
+
+    let from: Date | undefined;
+    let to: Date | undefined;
+
+    if (dateRange) {
+      from = dateRange.from;
+      to = dateRange.to;
+    } else if (lastDate) {
+      to = lastDate;
+      from = new Date(lastDate);
+      from.setDate(from.getDate() - 30);
     }
-  }, [dateRange]);
+
+    if (!from && !to) return rowsWithDate;
+
+    const fromStr = from ? formatDateForAPI(from) : null;
+    const toStr = to ? formatDateForAPI(to) : null;
+
+    return rowsWithDate.filter((row) => {
+      const d = parseSheetDate(row[dateHeader])!;
+      const s = formatDateForAPI(d);
+      if (fromStr && s < fromStr) return false;
+      if (toStr && s > toStr) return false;
+      return true;
+    });
+  }, [allData, dateRange, lastDate]);
 
   // 테이블 헤더 생성
   const headers = useMemo(() => {
     if (!data || data.length === 0) return [];
     return Object.keys(data[0]);
   }, [data]);
+
+  // 월간 집계. Date Range 필터와 무관하게 전체 데이터(allData) 기준.
+  // ROAS / CPI / CVR 같은 비율 컬럼은 단순 합산이 아니라 재계산.
+  const monthlySummary = useMemo(() => {
+    if (!allData || allData.length === 0) return null;
+    const dateHeader = findDateHeader(allData[0]);
+    if (!dateHeader) return null;
+
+    const parseNumeric = (val: unknown): number | null => {
+      if (val === null || val === undefined) return null;
+      const str = String(val).trim();
+      if (!str || str === '-') return null;
+      const hasPercent = str.endsWith('%');
+      const cleaned = str.replace(/[$,\s]/g, '').replace(/%$/, '');
+      const n = parseFloat(cleaned);
+      if (isNaN(n)) return null;
+      return hasPercent ? n / 100 : n;
+    };
+
+    // 비율 컬럼 재계산 규칙 (컬럼명 정확 매칭)
+    const recalc: Record<
+      string,
+      (s: Record<string, number>) => number | null
+    > = {
+      CPI: (s) => (s['Install'] > 0 ? s['Cost'] / s['Install'] : null),
+      ROAS: (s) => (s['Cost'] > 0 ? s['Revenue'] / s['Cost'] : null),
+      CVR: (s) => (s['Clicks'] > 0 ? s['Install'] / s['Clicks'] : null),
+      'D0 ROAS': (s) => (s['Cost'] > 0 ? s['D0 Revenue'] / s['Cost'] : null),
+      'D1 ROAS': (s) => (s['Cost'] > 0 ? s['D1 Revenue'] / s['Cost'] : null),
+      'D7 ROAS': (s) => (s['Cost'] > 0 ? s['D7 Revenue'] / s['Cost'] : null),
+      'D14 ROAS': (s) => (s['Cost'] > 0 ? s['D14 Revenue'] / s['Cost'] : null),
+      'D30 ROAS': (s) => (s['Cost'] > 0 ? s['D30 Revenue'] / s['Cost'] : null),
+    };
+
+    const dataColumns = Object.keys(allData[0]).filter(
+      (h) => h !== dateHeader
+    );
+
+    // 컬럼별 표시 형식 감지 (첫 유효 값 기준)
+    const columnFormats: Record<string, 'dollar' | 'percent' | 'number'> = {};
+    for (const col of dataColumns) {
+      columnFormats[col] = 'number';
+      for (const row of allData) {
+        const val = String(row[col] ?? '').trim();
+        if (!val || val === '-') continue;
+        if (val.startsWith('$')) columnFormats[col] = 'dollar';
+        else if (val.endsWith('%')) columnFormats[col] = 'percent';
+        else columnFormats[col] = 'number';
+        break;
+      }
+    }
+
+    // 월별 그룹화
+    const groups: Record<string, SheetData[]> = {};
+    for (const row of allData) {
+      const d = parseSheetDate(row[dateHeader]);
+      if (!d) continue;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    }
+
+    // 월별 합계 + 재계산 + 포맷
+    const format = (
+      num: number | null,
+      fmt: 'dollar' | 'percent' | 'number'
+    ) => {
+      if (num === null || !isFinite(num)) return '-';
+      if (fmt === 'dollar') return `$ ${num.toFixed(2)}`;
+      if (fmt === 'percent') return `${(num * 100).toFixed(2)}%`;
+      return Number.isInteger(num) ? num.toLocaleString() : num.toFixed(2);
+    };
+
+    return Object.keys(groups)
+      .sort()
+      .map((month) => {
+        const rows = groups[month];
+        const sums: Record<string, number> = {};
+        for (const col of dataColumns) {
+          sums[col] = 0;
+          for (const row of rows) {
+            const n = parseNumeric(row[col]);
+            if (n !== null) sums[col] += n;
+          }
+        }
+
+        const out: Record<string, string> = { Month: month };
+        for (const col of dataColumns) {
+          const value = recalc[col] ? recalc[col](sums) : sums[col];
+          out[col] = format(value, columnFormats[col]);
+        }
+        return out;
+      });
+  }, [allData]);
+
+  // 차트: 일별 데이터 (Date Range 필터 반영된 data 기준)
+  // - ROAS 계열은 %단위 값으로 변환 (130.20 형태)
+  // - Install/Cost/Revenue 등은 숫자 원본
+  const dailyChartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    const dateHeader = findDateHeader(data[0]);
+    if (!dateHeader) return [];
+
+    return data
+      .map((row) => {
+        const d = parseSheetDate(row[dateHeader]);
+        if (!d) return null;
+        const label = `${d.getMonth() + 1}/${d.getDate()}`;
+        const entry: Record<string, string | number> = { date: label };
+        for (const [key, raw] of Object.entries(row)) {
+          if (key === dateHeader) continue;
+          // 비고/note 컬럼은 텍스트 그대로 보존 (차트 marker / 툴팁 표시용)
+          if (
+            key === '비고' ||
+            key.toLowerCase() === 'note' ||
+            key.toLowerCase() === 'memo' ||
+            key.toLowerCase() === 'remark'
+          ) {
+            const text = raw == null ? '' : String(raw).trim();
+            if (text) entry['note'] = text;
+            continue;
+          }
+          const n = parseRoasPercent(raw);
+          if (n === null) continue;
+          entry[key] = isRoasColumn(key) ? +(n * 100).toFixed(2) : n;
+        }
+        return entry;
+      })
+      .filter((v): v is Record<string, string | number> => v !== null);
+  }, [data]);
+
+  // 주 시작일(월요일) 구하기
+  const getMondayOfWeek = (d: Date): Date => {
+    const day = d.getDay(); // 0=일, 1=월, ... 6=토
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((day + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  };
+
+  // 차트: 주별 데이터 (절대값 합산 + ROAS 재계산)
+  const weeklyChartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    const dateHeader = findDateHeader(data[0]);
+    if (!dateHeader) return [];
+
+    // 합산 대상 절대값 컬럼
+    const numCols = [
+      'Install',
+      'Cost',
+      'Revenue',
+      'Clicks',
+      'D0 Revenue',
+      'D1 Revenue',
+      'D7 Revenue',
+      'D14 Revenue',
+      'D30 Revenue',
+    ];
+
+    // 주별 그룹화 (월요일 키)
+    const groups = new Map<string, SheetData[]>();
+    for (const row of data) {
+      const d = parseSheetDate(row[dateHeader]);
+      if (!d) continue;
+      const monday = getMondayOfWeek(d);
+      const key = formatDateForAPI(monday);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    return Array.from(groups.keys())
+      .sort()
+      .map((key) => {
+        const rows = groups.get(key)!;
+        const monday = new Date(`${key}T00:00:00`);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        // 같은 달이면 "3/16-22", 다른 달이면 "3/30-4/5"
+        const label =
+          monday.getMonth() === sunday.getMonth()
+            ? `${monday.getMonth() + 1}/${monday.getDate()}-${sunday.getDate()}`
+            : `${monday.getMonth() + 1}/${monday.getDate()}-${
+                sunday.getMonth() + 1
+              }/${sunday.getDate()}`;
+
+        // 절대값 합산
+        const sums: Record<string, number> = {};
+        for (const col of numCols) {
+          sums[col] = 0;
+          for (const row of rows) {
+            const n = parseRoasPercent(row[col]);
+            if (n !== null) sums[col] += n;
+          }
+        }
+
+        const out: Record<string, string | number> = {
+          date: label,
+          ...sums,
+        };
+
+        // 그 주의 비고들을 모아 결합
+        const notes = rows
+          .map((r) => String(r['비고'] ?? '').trim())
+          .filter((n) => n);
+        if (notes.length > 0) out['note'] = notes.join(' / ');
+
+        // ROAS 재계산 (% 단위)
+        if (sums['Cost'] > 0) {
+          out['ROAS'] = +((sums['Revenue'] / sums['Cost']) * 100).toFixed(2);
+          out['D0 ROAS'] = +(
+            (sums['D0 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D1 ROAS'] = +(
+            (sums['D1 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D7 ROAS'] = +(
+            (sums['D7 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D14 ROAS'] = +(
+            (sums['D14 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D30 ROAS'] = +(
+            (sums['D30 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+        }
+
+        return out;
+      });
+  }, [data]);
+
+  // 차트: 월별 데이터 (data 기준, weekly와 동일한 패턴)
+  const monthlyChartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    const dateHeader = findDateHeader(data[0]);
+    if (!dateHeader) return [];
+
+    const numCols = [
+      'Install',
+      'Cost',
+      'Revenue',
+      'Clicks',
+      'D0 Revenue',
+      'D1 Revenue',
+      'D7 Revenue',
+      'D14 Revenue',
+      'D30 Revenue',
+    ];
+
+    // 월별 그룹화 (YYYY-MM 키)
+    const groups = new Map<string, SheetData[]>();
+    for (const row of data) {
+      const d = parseSheetDate(row[dateHeader]);
+      if (!d) continue;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    return Array.from(groups.keys())
+      .sort()
+      .map((key) => {
+        const rows = groups.get(key)!;
+
+        const sums: Record<string, number> = {};
+        for (const col of numCols) {
+          sums[col] = 0;
+          for (const row of rows) {
+            const n = parseRoasPercent(row[col]);
+            if (n !== null) sums[col] += n;
+          }
+        }
+
+        const out: Record<string, string | number> = {
+          date: key, // chartData 키 통일
+          ...sums,
+        };
+
+        // 그 달의 비고들을 모아 결합
+        const notes = rows
+          .map((r) => String(r['비고'] ?? '').trim())
+          .filter((n) => n);
+        if (notes.length > 0) out['note'] = notes.join(' / ');
+
+        if (sums['Cost'] > 0) {
+          out['ROAS'] = +((sums['Revenue'] / sums['Cost']) * 100).toFixed(2);
+          out['D0 ROAS'] = +(
+            (sums['D0 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D1 ROAS'] = +(
+            (sums['D1 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D7 ROAS'] = +(
+            (sums['D7 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D14 ROAS'] = +(
+            (sums['D14 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+          out['D30 ROAS'] = +(
+            (sums['D30 Revenue'] / sums['Cost']) *
+            100
+          ).toFixed(2);
+        }
+
+        return out;
+      });
+  }, [data]);
+
+  // ROAS / Volume / Cost-Revenue 차트가 공유하는 데이터 (granularity 적용)
+  const chartData =
+    granularity === 'monthly'
+      ? monthlyChartData
+      : granularity === 'weekly'
+      ? weeklyChartData
+      : dailyChartData;
+
+  // 비고 마커 — 비고 있는 포인트만 노란 점, 나머지는 안 보임
+  const renderNoteDot = (props: any) => {
+    const { cx, cy, payload, key, index } = props;
+    const hasNote = Boolean(payload?.note);
+    return (
+      <circle
+        key={key ?? `dot-${index}`}
+        cx={cx}
+        cy={cy}
+        r={hasNote ? 5 : 0}
+        fill={hasNote ? '#f59e0b' : 'transparent'}
+        stroke={hasNote ? '#fff' : 'transparent'}
+        strokeWidth={hasNote ? 2 : 0}
+      />
+    );
+  };
+
+  // 툴팁 — 기본 ChartTooltipContent + 비고 있으면 하단에 메모 박스 추가
+  const renderTooltipWithNote = (
+    props: any,
+    formatter: (value: any, name: any) => [string, string]
+  ) => {
+    const { active, payload, label } = props;
+    if (!active || !payload || payload.length === 0) return null;
+    const note = payload[0]?.payload?.note as string | undefined;
+    return (
+      <div className='overflow-hidden rounded-lg border bg-background shadow-xl'>
+        <ChartTooltipContent
+          active={active}
+          payload={payload}
+          label={label}
+          indicator='dot'
+          formatter={formatter}
+          className='border-0 shadow-none'
+        />
+        {note ? (
+          <div className='border-t bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-200'>
+            📝 {note}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   // 상태 표시용 함수 (다른 페이지와 동일한 스타일)
   const getStatusDisplay = (status: string | null) => {
@@ -681,7 +1182,7 @@ export default function CampaignDetailPage() {
                     <TableCell>
                       {campaign.account_id && campaign.account_company ? (
                         <Link
-                          href={`/accounts/${campaign.account_id}`}
+                          href={accountUrl(campaign.account_company)}
                           className='text-sm font-medium text-primary hover:underline truncate block'
                         >
                           {campaign.account_company}
@@ -957,133 +1458,499 @@ export default function CampaignDetailPage() {
           </TableWrapper>
         </div>
 
-        {/* Report Data */}
+        {/* Charts / Monthly / Daily tabs */}
         {campaign.daily_report_url ? (
-          <div>
-            <div className='mb-4'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <h3 className='text-lg font-semibold'>Report Data</h3>
-                  <p className='text-sm text-muted-foreground'>
-                    Data fetched from Google Sheets
-                  </p>
-                </div>
-                <div className='flex items-center gap-2'>
-                  {/* 날짜 필터 */}
-                  <Popover
-                    open={isDatePickerOpen}
-                    onOpenChange={(open) => {
-                      setIsDatePickerOpen(open);
-                      // Popover가 열릴 때 현재 dateRange를 tempDateRange로 복사
-                      if (open) {
-                        setTempDateRange(dateRange);
-                      }
-                    }}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        className='w-auto justify-start text-left font-normal flex-shrink-0 max-[1100px]:justify-center'
-                      >
-                        <CalendarIcon className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
-                        <span className='max-[1100px]:hidden'>
-                          {dateRange?.from !== undefined &&
-                          dateRange?.to !== undefined
-                            ? `${dateRange.from.toLocaleDateString(
-                                'ko-KR'
-                              )} - ${dateRange.to.toLocaleDateString('ko-KR')}`
-                            : dateRange?.from !== undefined
-                            ? `${dateRange.from.toLocaleDateString(
-                                'ko-KR'
-                              )} - ...`
-                            : 'Select Date Range'}
-                        </span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className='w-auto p-0' align='start'>
-                      <Calendar
-                        mode='range'
-                        selected={tempDateRange}
-                        onSelect={(range) => {
-                          const newRange = range as
-                            | {
-                                from: Date | undefined;
-                                to: Date | undefined;
-                              }
-                            | undefined;
-                          setTempDateRange(newRange);
-                        }}
-                        numberOfMonths={2}
-                        initialFocus
-                        showOutsideDays={false}
-                      />
-                      <div className='p-3 border-t flex items-center justify-between gap-2'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='flex-1'
-                          onClick={() => {
-                            setTempDateRange(undefined);
-                            setDateRange(undefined);
-                            setIsDatePickerOpen(false);
-                          }}
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          variant='default'
-                          size='sm'
-                          className='flex-1'
-                          onClick={() => {
-                            // 시작 날짜와 끝 날짜가 모두 선택되었을 때만 적용
-                            if (
-                              tempDateRange?.from !== undefined &&
-                              tempDateRange?.to !== undefined
-                            ) {
-                              setDateRange(tempDateRange);
-                              setIsDatePickerOpen(false);
-                            }
-                          }}
-                          disabled={!tempDateRange?.from || !tempDateRange?.to}
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='flex-shrink-0'
-                    onClick={() => {
-                      const url = campaign.daily_report_url!;
-                      window.open(url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
-                    <span className='max-[1100px]:hidden'>View Sheet</span>
-                  </Button>
-                  <Button
-                    variant='default'
-                    size='sm'
-                    className='bg-black text-white hover:bg-black/90 flex-shrink-0'
-                    onClick={() =>
-                      fetchSheetData(campaign.daily_report_url!, dateRange)
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className='flex items-center justify-between mb-4 gap-2 flex-wrap'>
+              <TabsList className='rounded-xl h-9'>
+                <TabsTrigger
+                  value='daily'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  Daily
+                </TabsTrigger>
+                <TabsTrigger
+                  value='monthly'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  Monthly
+                </TabsTrigger>
+                <TabsTrigger
+                  value='charts'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  Charts
+                </TabsTrigger>
+              </TabsList>
+              <div className='flex items-center gap-2'>
+                {activeTab !== 'monthly' && (
+                  <DateRangePicker
+                    value={dateRange}
+                    onChange={setDateRange}
+                    presets={datePickerPresets}
+                    placeholder={
+                      lastDate ? 'Last 30 days' : 'Select Date Range'
                     }
-                    disabled={dataLoading}
+                    triggerClassName='max-[1100px]:justify-center'
+                    hideLabelClassName='max-[1100px]:hidden'
+                  />
+                )}
+                {activeTab === 'charts' && (
+                  <Select
+                    value={granularity}
+                    onValueChange={(v) =>
+                      setGranularity(v as 'daily' | 'weekly' | 'monthly')
+                    }
                   >
-                    <RefreshCw
-                      className={`h-4 w-4 max-[1100px]:mr-0 mr-2 ${
-                        dataLoading ? 'animate-spin' : ''
-                      }`}
-                    />
-                    <span className='max-[1100px]:hidden'>Refresh</span>
-                  </Button>
-                </div>
+                    <SelectTrigger className='h-9 w-auto gap-2 flex-shrink-0'>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='daily'>Daily</SelectItem>
+                      <SelectItem value='weekly'>Weekly</SelectItem>
+                      <SelectItem value='monthly'>Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='flex-shrink-0'
+                  onClick={() => {
+                    const url = campaign.daily_report_url!;
+                    window.open(url, '_blank');
+                  }}
+                >
+                  <ExternalLink className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
+                  <span className='max-[1100px]:hidden'>View Sheet</span>
+                </Button>
+                <Button
+                  variant='default'
+                  size='sm'
+                  className='bg-black text-white hover:bg-black/90 flex-shrink-0'
+                  onClick={() => fetchSheetData(campaign.daily_report_url!)}
+                  disabled={dataLoading}
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 max-[1100px]:mr-0 mr-2 ${
+                      dataLoading ? 'animate-spin' : ''
+                    }`}
+                  />
+                  <span className='max-[1100px]:hidden'>Refresh</span>
+                </Button>
               </div>
             </div>
-            <div>
+
+            {/* Charts */}
+            <TabsContent value='charts' className='space-y-4'>
+              {dataLoading ? (
+                <div className='space-y-4'>
+                  <Skeleton className='h-[360px] w-full' />
+                  <Skeleton className='h-[300px] w-full' />
+                </div>
+              ) : dataError ? (
+                <div className='text-center py-8'>
+                  <p className='text-destructive mb-2'>{dataError}</p>
+                  <Button
+                    variant='outline'
+                    onClick={() => fetchSheetData(campaign.daily_report_url!)}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : !data || data.length === 0 ? (
+                <div className='text-center py-8 text-muted-foreground'>
+                  No data available.
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  <Card>
+                    <CardHeader className='flex flex-row items-start justify-between gap-4 flex-wrap'>
+                      <div>
+                        <CardTitle>ROAS Trend</CardTitle>
+                        <CardDescription>
+                          {granularity === 'monthly'
+                            ? 'Monthly'
+                            : granularity === 'weekly'
+                            ? 'Weekly'
+                            : 'Daily'}{' '}
+                          ROAS by cohort. Red dashed line = 100% BEP.
+                        </CardDescription>
+                      </div>
+                      <ToggleGroup
+                        type='single'
+                        size='sm'
+                        variant='outline'
+                        value={visibleCohort}
+                        onValueChange={(v) => {
+                          if (v) setVisibleCohort(v);
+                        }}
+                        className='flex-wrap justify-end'
+                      >
+                        {ROAS_COHORTS.map((c) => (
+                          <ToggleGroupItem
+                            key={c.key}
+                            value={c.key}
+                            className='h-8 px-3 text-xs'
+                          >
+                            <span
+                              className='mr-1.5 inline-block h-2 w-2 rounded-full'
+                              style={{ backgroundColor: c.color }}
+                            />
+                            {c.label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </CardHeader>
+                    <CardContent>
+                      <ChartContainer
+                        config={ROAS_CHART_CONFIG}
+                        className='h-[320px] w-full'
+                      >
+                        <AreaChart
+                          data={chartData}
+                          margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                        >
+                          <defs>
+                            {ROAS_COHORTS.map((c) => (
+                              <linearGradient
+                                key={c.key}
+                                id={`fill-${c.key.replace(/\s+/g, '_')}`}
+                                x1='0'
+                                y1='0'
+                                x2='0'
+                                y2='1'
+                              >
+                                <stop
+                                  offset='5%'
+                                  stopColor={c.color}
+                                  stopOpacity={0.45}
+                                />
+                                <stop
+                                  offset='95%'
+                                  stopColor={c.color}
+                                  stopOpacity={0}
+                                />
+                              </linearGradient>
+                            ))}
+                          </defs>
+                          <CartesianGrid vertical={false} strokeDasharray='3 3' />
+                          <XAxis
+                            dataKey='date'
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                          />
+                          <YAxis
+                            tickFormatter={(v) => `${v}%`}
+                            tickLine={false}
+                            axisLine={false}
+                            width={48}
+                          />
+                          <ChartTooltip
+                            cursor={{
+                              stroke: '#94a3b8',
+                              strokeWidth: 1,
+                              strokeDasharray: '4 4',
+                            }}
+                            content={(p) =>
+                              renderTooltipWithNote(p, (v, name) => [
+                                `${Number(v).toFixed(2)}%`,
+                                ` ${String(name)}`,
+                              ])
+                            }
+                          />
+                          <ChartLegend content={<ChartLegendContent />} />
+                          <ReferenceLine
+                            y={100}
+                            stroke='#ef4444'
+                            strokeDasharray='5 5'
+                            label={{
+                              value: 'BEP 100%',
+                              position: 'right',
+                              fill: '#ef4444',
+                              fontSize: 11,
+                            }}
+                          />
+                          {ROAS_COHORTS.filter(
+                            (c) => c.key === visibleCohort
+                          ).map((c) => (
+                            <Area
+                              key={c.key}
+                              type='monotone'
+                              dataKey={c.key}
+                              stroke={c.color}
+                              strokeWidth={2.5}
+                              fill={`url(#fill-${c.key.replace(
+                                /\s+/g,
+                                '_'
+                              )})`}
+                              fillOpacity={1}
+                              dot={renderNoteDot}
+                              activeDot={{ r: 4, strokeWidth: 0 }}
+                              isAnimationActive={false}
+                            />
+                          ))}
+                        </AreaChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Volume Trend (Install / Cost / Revenue) */}
+                  <Card>
+                    <CardHeader className='flex flex-row items-start justify-between gap-4 flex-wrap'>
+                      <div>
+                        <CardTitle>Volume Trend</CardTitle>
+                        <CardDescription>
+                          {granularity === 'monthly'
+                            ? 'Monthly'
+                            : granularity === 'weekly'
+                            ? 'Weekly'
+                            : 'Daily'}{' '}
+                          volume by metric
+                        </CardDescription>
+                      </div>
+                      <ToggleGroup
+                        type='single'
+                        size='sm'
+                        variant='outline'
+                        value={visibleMetric}
+                        onValueChange={(v) => {
+                          if (v) setVisibleMetric(v);
+                        }}
+                        className='flex-wrap justify-end'
+                      >
+                        {VOLUME_METRICS.map((m) => (
+                          <ToggleGroupItem
+                            key={m.key}
+                            value={m.key}
+                            className='h-8 px-3 text-xs'
+                          >
+                            <span
+                              className='mr-1.5 inline-block h-2 w-2 rounded-full'
+                              style={{ backgroundColor: m.color }}
+                            />
+                            {m.label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </CardHeader>
+                    <CardContent>
+                      <ChartContainer
+                        config={VOLUME_CHART_CONFIG}
+                        className='h-[280px] w-full'
+                      >
+                        <AreaChart
+                          data={chartData}
+                          margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                        >
+                          <defs>
+                            {VOLUME_METRICS.map((m) => (
+                              <linearGradient
+                                key={m.key}
+                                id={`vol-fill-${m.key}`}
+                                x1='0'
+                                y1='0'
+                                x2='0'
+                                y2='1'
+                              >
+                                <stop
+                                  offset='5%'
+                                  stopColor={m.color}
+                                  stopOpacity={0.45}
+                                />
+                                <stop
+                                  offset='95%'
+                                  stopColor={m.color}
+                                  stopOpacity={0}
+                                />
+                              </linearGradient>
+                            ))}
+                          </defs>
+                          <CartesianGrid
+                            vertical={false}
+                            strokeDasharray='3 3'
+                          />
+                          <XAxis
+                            dataKey='date'
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                          />
+                          <YAxis
+                            tickFormatter={(v) =>
+                              visibleMetric === 'Install'
+                                ? `${v}`
+                                : `$${v}`
+                            }
+                            tickLine={false}
+                            axisLine={false}
+                            width={56}
+                          />
+                          <ChartTooltip
+                            cursor={{
+                              stroke: '#94a3b8',
+                              strokeWidth: 1,
+                              strokeDasharray: '4 4',
+                            }}
+                            content={(p) =>
+                              renderTooltipWithNote(p, (v, name) => [
+                                visibleMetric === 'Install'
+                                  ? Number(v).toLocaleString()
+                                  : `$ ${Number(v).toFixed(2)}`,
+                                ` ${String(name)}`,
+                              ])
+                            }
+                          />
+                          {VOLUME_METRICS.filter(
+                            (m) => m.key === visibleMetric
+                          ).map((m) => (
+                            <Area
+                              key={m.key}
+                              type='monotone'
+                              dataKey={m.key}
+                              stroke={m.color}
+                              strokeWidth={2.5}
+                              fill={`url(#vol-fill-${m.key})`}
+                              fillOpacity={1}
+                              dot={renderNoteDot}
+                              activeDot={{ r: 4, strokeWidth: 0 }}
+                              isAnimationActive={false}
+                            />
+                          ))}
+                        </AreaChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Cost vs Revenue</CardTitle>
+                      <CardDescription>
+                        {granularity === 'monthly'
+                          ? 'Monthly'
+                          : granularity === 'weekly'
+                          ? 'Weekly'
+                          : 'Daily'}{' '}
+                        cost vs revenue comparison
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ChartContainer
+                        config={MONTHLY_CHART_CONFIG}
+                        className='h-[280px] w-full'
+                      >
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                        >
+                          <CartesianGrid vertical={false} strokeDasharray='3 3' />
+                          <XAxis
+                            dataKey='date'
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                          />
+                          <YAxis
+                            tickFormatter={(v) => `$${v}`}
+                            tickLine={false}
+                            axisLine={false}
+                            width={56}
+                          />
+                          <ChartTooltip
+                            content={(p) =>
+                              renderTooltipWithNote(p, (v, name) => [
+                                `$ ${Number(v).toFixed(2)}`,
+                                ` ${String(name)}`,
+                              ])
+                            }
+                          />
+                          <ChartLegend content={<ChartLegendContent />} />
+                          <Bar
+                            dataKey='Cost'
+                            fill='hsl(213 94% 78%)'
+                            radius={4}
+                          />
+                          <Bar
+                            dataKey='Revenue'
+                            fill='hsl(221 83% 53%)'
+                            radius={4}
+                          />
+                        </BarChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Monthly Summary (전체 데이터 기준) */}
+            <TabsContent value='monthly'>
+              {!monthlySummary || monthlySummary.length === 0 ? (
+                <div className='text-center py-8 text-muted-foreground'>
+                  No monthly data available.
+                </div>
+              ) : (
+                <TableWrapper>
+                  <Table style={{ width: 'max-content', minWidth: '100%' }}>
+                    <TableHeader className={TABLE_STYLES.header}>
+                      <TableRow>
+                        <TableHead
+                          className='whitespace-nowrap'
+                          style={{ minWidth: '128px' }}
+                        >
+                          Month
+                        </TableHead>
+                        {Object.keys(monthlySummary[0])
+                          .filter((k) => k !== 'Month')
+                          .map((h, idx) => (
+                            <TableHead
+                              key={h}
+                              className={`whitespace-nowrap ${
+                                idx >= 0 && idx <= 3 ? 'text-center' : ''
+                              }`}
+                            >
+                              {h}
+                            </TableHead>
+                          ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className={TABLE_STYLES.body}>
+                      {monthlySummary.map((row) => {
+                        const cols = Object.keys(row).filter(
+                          (k) => k !== 'Month'
+                        );
+                        return (
+                          <TableRow key={row.Month}>
+                            <TableCell className='whitespace-nowrap font-medium'>
+                              {row.Month}
+                            </TableCell>
+                            {cols.map((col, idx) => (
+                              <TableCell
+                                key={col}
+                                className={`whitespace-nowrap ${
+                                  idx >= 0 && idx <= 3 ? 'text-center' : ''
+                                }`}
+                                style={
+                                  isRoasColumn(col)
+                                    ? roasBgStyle(row[col])
+                                    : undefined
+                                }
+                              >
+                                {row[col]}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableWrapper>
+              )}
+            </TabsContent>
+
+            {/* Daily Report Data */}
+            <TabsContent value='daily'>
               {dataLoading ? (
                 <div className='space-y-2'>
                   <Skeleton className='h-10 w-full' />
@@ -1095,38 +1962,49 @@ export default function CampaignDetailPage() {
                   <p className='text-destructive mb-2'>{dataError}</p>
                   <Button
                     variant='outline'
-                    onClick={() =>
-                      fetchSheetData(campaign.daily_report_url!, dateRange)
-                    }
+                    onClick={() => fetchSheetData(campaign.daily_report_url!)}
                   >
-                    다시 시도
+                    Retry
                   </Button>
                 </div>
               ) : !data || data.length === 0 ? (
                 <div className='text-center py-8 text-muted-foreground'>
-                  데이터가 없습니다.
+                  No data available.
                 </div>
               ) : (
                 <TableWrapper>
-                  <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+                  <Table style={{ width: 'max-content', minWidth: '100%' }}>
                     <TableHeader className={TABLE_STYLES.header}>
                       <TableRow>
-                        {headers.map((header, index) => (
-                          <TableHead
-                            key={header}
-                            className={`whitespace-nowrap ${
-                              index >= 1 && index <= 4 ? 'text-center' : ''
-                            }`}
-                            style={index === 0 ? { width: '128px' } : undefined}
-                          >
-                            {header}
-                          </TableHead>
-                        ))}
+                        {headers.map((header, index) => {
+                          const isDate =
+                            header === '날짜' ||
+                            header === 'date' ||
+                            header.toLowerCase() === 'date';
+                          return (
+                            <TableHead
+                              key={header}
+                              className={`whitespace-nowrap ${
+                                isDate
+                                  ? 'sticky left-0 z-30 bg-muted'
+                                  : ''
+                              } ${
+                                index >= 1 && index <= 4 ? 'text-center' : ''
+                              }`}
+                              style={
+                                index === 0
+                                  ? { minWidth: '128px' }
+                                  : undefined
+                              }
+                            >
+                              {header}
+                            </TableHead>
+                          );
+                        })}
                       </TableRow>
                     </TableHeader>
                     <TableBody className={TABLE_STYLES.body}>
                       {data.map((row, rowIndex) => {
-                        // 날짜 컬럼 찾기
                         const dateHeader = headers.find(
                           (h) =>
                             h === '날짜' ||
@@ -1148,20 +2026,22 @@ export default function CampaignDetailPage() {
                           >
                             {headers.map((header, cellIndex) => {
                               const cellValue = row[header];
-                              let displayValue: string;
-                              let cellClassName = 'whitespace-nowrap';
-
-                              // 날짜 컬럼 처리
-                              if (
+                              const isDateCol =
                                 header === '날짜' ||
                                 header === 'date' ||
-                                header.toLowerCase() === 'date'
-                              ) {
-                                // 날짜와 요일을 분리하여 표시
-                                const formatted =
-                                  formatDateWithWeekday(cellValue);
-                                const dateMatch =
-                                  formatted.match(/^(.+?)\s+\((.+?)\)$/);
+                                header.toLowerCase() === 'date';
+                              let displayValue: string;
+                              let cellClassName = 'whitespace-nowrap';
+                              if (isDateCol) {
+                                cellClassName +=
+                                  ' sticky left-0 z-10 bg-muted font-medium';
+                              }
+
+                              if (isDateCol) {
+                                const formatted = formatDateWithWeekday(cellValue);
+                                const dateMatch = formatted.match(
+                                  /^(.+?)\s+\((.+?)\)$/
+                                );
                                 if (dateMatch) {
                                   const [, datePart, weekdayPart] = dateMatch;
                                   return (
@@ -1179,25 +2059,20 @@ export default function CampaignDetailPage() {
                                   );
                                 }
                                 displayValue = formatted;
-                              }
-                              // 매출(누적) 컬럼 처리
-                              else if (
+                              } else if (
                                 header === '매출(누적)' ||
                                 header === '매출' ||
                                 header.toLowerCase().includes('매출') ||
                                 header.toLowerCase().includes('sales')
                               ) {
                                 displayValue = formatSales(cellValue);
-                              }
-                              // 기본 처리
-                              else {
+                              } else {
                                 displayValue =
                                   cellValue !== null && cellValue !== undefined
                                     ? String(cellValue)
                                     : '-';
                               }
 
-                              // 중앙 정렬 설정
                               if (cellIndex >= 1 && cellIndex <= 4) {
                                 cellClassName += ' text-center';
                               }
@@ -1206,6 +2081,11 @@ export default function CampaignDetailPage() {
                                 <TableCell
                                   key={header}
                                   className={cellClassName}
+                                  style={
+                                    isRoasColumn(header)
+                                      ? roasBgStyle(cellValue)
+                                      : undefined
+                                  }
                                 >
                                   {displayValue}
                                 </TableCell>
@@ -1218,13 +2098,13 @@ export default function CampaignDetailPage() {
                   </Table>
                 </TableWrapper>
               )}
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         ) : (
           <Card>
             <CardContent className='pt-6'>
               <p className='text-center text-muted-foreground'>
-                Report URL이 설정되지 않았습니다.
+                Report URL is not set.
               </p>
             </CardContent>
           </Card>

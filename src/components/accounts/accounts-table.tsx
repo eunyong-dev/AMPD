@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { accountUrl } from '@/lib/utils/account-url';
 import {
   Table,
   TableBody,
@@ -151,7 +152,7 @@ export function AccountsTable({
               <TableRow key={account.id}>
                 <TableCell style={{ width: '200px' }} className='p-0'>
                   <Link
-                    href={`/accounts/${account.id}`}
+                    href={accountUrl(account.company)}
                     className='block w-full px-2 py-2 font-medium truncate text-sm hover:text-primary hover:underline'
                   >
                     {account.company}
@@ -176,14 +177,14 @@ export function AccountsTable({
                 </TableCell>
                 <TableCell style={{ width: '100px' }} className='text-center'>
                   <Link
-                    href={`/accounts/${account.id}?tab=games`}
+                    href={`${accountUrl(account.company)}?tab=games`}
                     className='text-sm font-medium hover:text-primary cursor-pointer inline-block'
                   >
                     {account.active_games || 0}
                   </Link>
                 </TableCell>
                 <TableCell style={{ width: '100px' }}>
-                  <Link href={`/accounts/${account.id}?tab=campaigns`}>
+                  <Link href={`${accountUrl(account.company)}?tab=campaigns`}>
                     <Badge
                       variant='outline'
                       className='inline-flex gap-1 px-1.5 py-0.5 text-xs text-muted-foreground [&_svg]:size-3 text-green-600 w-fit hover:text-green-700 cursor-pointer'

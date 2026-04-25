@@ -188,6 +188,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
     let isCheckingUserRef = false; // checkUserAndFetch 실행 중 여부 추적
+    let lastUserId: string | null = null;
 
     // 초기 사용자 확인 및 프로필 가져오기
     const checkUserAndFetch = async () => {
@@ -211,6 +212,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (session?.user) {
+          lastUserId = session.user.id;
           // fetchUserProfile 내부에서 setLoading(false)를 호출합니다
           await fetchUserProfile();
         } else {
@@ -230,62 +232,45 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     checkUserAndFetch();
 
     // onAuthStateChange로 인증 상태 변경 감지
+    // 이전 구현은 초기 로드 완료 후 대부분의 이벤트를 무시하여
+    // 토큰 만료 시 SIGNED_OUT 신호까지 놓쳤습니다.
+    // 필요한 이벤트만 명시적으로 처리합니다.
     const supabase = createClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
-      // 초기 로드가 완료된 후에는 개발자 도구 열 때 발생하는 이벤트들을 완전히 무시
-      // 이렇게 하면 개발자 도구를 열고 닫을 때 loading 상태가 변경되지 않습니다
-      if (hasInitiallyLoadedRef.current) {
-        // 초기 로드 완료 후에는 TOKEN_REFRESHED, USER_UPDATED, INITIAL_SESSION, SIGNED_IN 등 무시
-        if (
-          event === 'TOKEN_REFRESHED' ||
-          event === 'USER_UPDATED' ||
-          event === 'INITIAL_SESSION' ||
-          event === 'SIGNED_IN'
-        ) {
-          return;
-        }
+      // INITIAL_SESSION은 checkUserAndFetch가 이미 처리
+      if (event === 'INITIAL_SESSION') return;
 
-        // 초기 로드 완료 후에는 다른 이벤트도 loading 상태를 변경하지 않음
-        return;
-      }
-
-      // 초기 로드 중에는 이벤트 처리
-      // TOKEN_REFRESHED, USER_UPDATED 이벤트 무시
-      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        return;
-      }
-
-      // INITIAL_SESSION 이벤트 처리 (토큰이 localStorage에 있을 때 발생)
-      // checkUserAndFetch가 이미 초기 로드를 처리하므로, INITIAL_SESSION 이벤트는 완전히 무시
-      // 배포 환경에서 타이밍 이슈를 방지하기 위해 항상 무시함
-      // checkUserAndFetch가 supabase.auth.getSession()을 호출하여 localStorage에서 세션을 직접 읽어옴
-      if (event === 'INITIAL_SESSION') {
-        // checkUserAndFetch가 이미 초기 로드를 처리하므로 이 이벤트는 무시
-        // 이렇게 하면 배포 환경에서 타이밍 경쟁 조건을 완전히 방지할 수 있음
-        return;
-      }
-
-      // SIGNED_IN 이벤트 처리 (초기 로드 중에만)
-      if (event === 'SIGNED_IN' && session?.user) {
-        // checkUserAndFetch가 실행 중이면 무시
-        if (isCheckingUserRef) {
-          return;
-        }
-        await fetchUserProfile();
-        return;
-      }
-
-      // SIGNED_OUT 이벤트 처리
+      // SIGNED_OUT: 토큰 만료 / 수동 로그아웃 모두 이 이벤트로 옴
       if (event === 'SIGNED_OUT') {
         setProfile(null);
+        setError(null);
         setLoading(false);
         setIsInitialLoad(false);
         isInitialLoadRef.current = false;
-        hasInitiallyLoadedRef.current = false; // 로그아웃 시 초기화
+        hasInitiallyLoadedRef.current = false;
+        lastUserId = null;
+        return;
+      }
+
+      const currentUserId = session?.user?.id ?? null;
+
+      // SIGNED_IN: 동일 유저면 무시(중복 호출 방지), 다른 유저일 때만 프로필 재조회
+      if (event === 'SIGNED_IN') {
+        if (!currentUserId || currentUserId === lastUserId) return;
+        if (isCheckingUserRef) return;
+        lastUserId = currentUserId;
+        await fetchUserProfile(hasInitiallyLoadedRef.current);
+        return;
+      }
+
+      // TOKEN_REFRESHED / USER_UPDATED: 유저 객체만 갱신이므로
+      // 프로필 재조회 없이 lastUserId만 동기화
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        lastUserId = currentUserId;
         return;
       }
     });

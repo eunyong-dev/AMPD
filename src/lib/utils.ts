@@ -69,3 +69,17 @@ export {
   measureExecutionTime,
   measureAsyncExecutionTime,
 } from './utils/performance';
+
+// 에러 처리 관련 유틸리티
+export {
+  extractErrorMessage,
+  parseSupabaseError,
+  getErrorIcon,
+  getErrorColorClass,
+  handleError,
+  showSuccess,
+  isError,
+  isSupabaseError,
+  type SupabaseError,
+  type ParsedError,
+} from './utils/error-handler';

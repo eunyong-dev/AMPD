@@ -13,7 +13,6 @@ export const NAVIGATION_CONFIG = {
 
 export const ROUTES = {
   HOME: '/',
-  DASHBOARD: '/dashboard',
   ANALYTICS: '/analytics',
   CAMPAIGNS: '/campaigns',
   TEAM: '/team',

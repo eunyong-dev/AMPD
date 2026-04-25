@@ -16,7 +16,6 @@ import { getCampaignById } from '@/hooks/use-campaign-management';
 // 페이지 경로와 표시 이름 매핑
 const pathMap: Record<string, string> = {
   '/': 'Home',
-  '/dashboard': 'Dashboard',
   '/accounts': 'Accounts',
   '/analytics': 'Analytics',
   '/campaigns': 'Campaigns',

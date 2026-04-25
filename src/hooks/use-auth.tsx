@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/client';
 import { signOut as supabaseSignOut } from '@/lib/supabase';
@@ -17,15 +17,14 @@ export function useAuth() {
     loading: true,
     error: null,
   });
-  const hasInitiallyLoadedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
+    const supabase = createClient();
 
     // 초기 인증 상태 확인
     const checkAuth = async () => {
       try {
-        const supabase = createClient();
         const {
           data: { session },
           error,
@@ -48,7 +47,6 @@ export function useAuth() {
           loading: false,
           error: null,
         });
-        hasInitiallyLoadedRef.current = true; // 초기 로드 완료 표시
       } catch (error) {
         console.error('[useAuth] 인증 확인 오류:', error);
         if (isMounted) {
@@ -57,7 +55,6 @@ export function useAuth() {
             loading: false,
             error: '인증 확인 중 오류가 발생했습니다.',
           });
-          hasInitiallyLoadedRef.current = true; // 초기 로드 완료 표시 (에러여도 완료로 간주)
         }
       }
     };
@@ -65,58 +62,28 @@ export function useAuth() {
     checkAuth();
 
     // onAuthStateChange로 인증 상태 변경 감지
-    const supabase = createClient();
+    // 이전 구현은 초기 로드 이후 모든 이벤트를 무시하여 토큰 만료·로그아웃
+    // 신호를 놓쳤습니다. 유저 ID 비교로 불필요한 리렌더링만 차단합니다.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
 
-      // 초기 로드가 완료된 후에는 개발자 도구 열 때 발생하는 이벤트들을 완전히 무시
-      // 이렇게 하면 개발자 도구를 열고 닫을 때 loading 상태가 변경되지 않습니다
-      if (hasInitiallyLoadedRef.current) {
-        // 초기 로드 완료 후에는 모든 이벤트를 무시
-        if (
-          event === 'TOKEN_REFRESHED' ||
-          event === 'USER_UPDATED' ||
-          event === 'INITIAL_SESSION' ||
-          event === 'SIGNED_IN'
-        ) {
-          return;
-        }
+      // INITIAL_SESSION은 checkAuth와 중복되므로 무시
+      if (event === 'INITIAL_SESSION') return;
 
-        // 초기 로드 완료 후에는 다른 이벤트도 loading 상태를 변경하지 않음
-        return;
-      }
-
-      // 초기 로드 중에는 이벤트 처리
-      // TOKEN_REFRESHED, USER_UPDATED, INITIAL_SESSION 이벤트 무시
-      if (
-        event === 'TOKEN_REFRESHED' ||
-        event === 'USER_UPDATED' ||
-        event === 'INITIAL_SESSION'
-      ) {
-        return;
-      }
+      const nextUser = session?.user || null;
 
       setAuthState((prev) => {
-        const user = session?.user || null;
-
-        // 사용자 상태가 변경되었을 때만 업데이트
-        const userChanged =
-          prev.user?.id !== user?.id ||
-          (prev.user === null && user !== null) ||
-          (prev.user !== null && user === null);
-
-        if (userChanged) {
-          return {
-            user,
-            loading: false,
-            error: null,
-          };
+        const sameUser = prev.user?.id === nextUser?.id;
+        if (sameUser && !prev.loading && !prev.error) {
+          return prev;
         }
-
-        // 사용자가 같으면 상태 유지 (불필요한 리렌더링 방지)
-        return prev;
+        return {
+          user: nextUser,
+          loading: false,
+          error: null,
+        };
       });
     });
 
