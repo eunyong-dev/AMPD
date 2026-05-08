@@ -139,9 +139,7 @@ export function AccountsTable({
                 <TableHead style={{ width: '200px' }}>광고주</TableHead>
                 <TableHead style={{ width: '120px' }}>국가</TableHead>
                 <TableHead style={{ width: '160px' }}>담당자</TableHead>
-                <TableHead style={{ width: '80px' }} className='text-center'>
-                  게임
-                </TableHead>
+                <TableHead style={{ width: '140px' }}>게임</TableHead>
                 <TableHead style={{ width: '110px' }}>캠페인</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -175,12 +173,32 @@ export function AccountsTable({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell style={{ width: '100px' }} className='text-center'>
+                <TableCell style={{ width: '140px' }}>
                   <Link
                     href={`${accountUrl(account.company)}?tab=games`}
-                    className='text-sm font-medium hover:text-primary cursor-pointer inline-block'
+                    className='inline-flex items-center hover:opacity-80 cursor-pointer'
                   >
-                    {account.active_games || 0}
+                    <div className='flex -space-x-2'>
+                      {account.game_logos?.slice(0, 3).map((g) => (
+                        <Avatar
+                          key={g.id}
+                          className='h-6 w-6 ring-2 ring-background'
+                        >
+                          {g.logo_url ? (
+                            <AvatarImage
+                              src={g.logo_url}
+                              alt={g.game_name ?? ''}
+                            />
+                          ) : null}
+                          <AvatarFallback className='text-[10px]'>
+                            {g.game_name?.charAt(0).toUpperCase() ?? 'G'}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      <div className='relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-300 dark:bg-zinc-700 ring-2 ring-background text-[10px] font-semibold text-foreground'>
+                        {account.active_games || 0}
+                      </div>
+                    </div>
                   </Link>
                 </TableCell>
                 <TableCell style={{ width: '100px' }}>

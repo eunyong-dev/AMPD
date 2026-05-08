@@ -1,14 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { Download } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
+import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { createClient } from '@/utils/supabase/client';
 import {
   compareByDescriptionAndGeo,
@@ -44,11 +45,15 @@ const formatRate = (n: number) =>
 
 export default function InvoiceViewPage() {
   const params = useParams();
+  const router = useRouter();
+  const accountId = params.id as string;
   const settlementId = params.settlementId as string;
   const invoiceId = params.invoiceId as string;
 
   const [data, setData] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,6 +143,26 @@ export default function InvoiceViewPage() {
     }, 50);
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoiceId);
+      if (error) throw error;
+      toast.success('인보이스가 삭제되었습니다.');
+      // 정산서 상세 페이지로 이동
+      router.push(`/accounts/${accountId}/settlements/${settlementId}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`인보이스 삭제 실패: ${msg}`);
+      setDeleting(false);
+      setConfirmDeleteOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <AccessControl>
@@ -203,11 +228,20 @@ export default function InvoiceViewPage() {
       `}</style>
 
       <div className='relative'>
-        {/* PDF Download Button */}
-        <div className='no-print fixed top-20 right-6 z-30'>
+        {/* PDF Download + Delete Buttons */}
+        <div className='no-print fixed top-20 right-6 z-30 flex gap-2'>
           <Button onClick={handleDownloadPdf} size='sm'>
             <Download className='h-4 w-4 mr-1.5' />
             PDF 다운로드
+          </Button>
+          <Button
+            onClick={() => setConfirmDeleteOpen(true)}
+            size='sm'
+            variant='outline'
+            className='text-destructive hover:bg-destructive/10 hover:text-destructive'
+          >
+            <Trash2 className='h-4 w-4 mr-1.5' />
+            삭제
           </Button>
         </div>
 
@@ -413,6 +447,16 @@ export default function InvoiceViewPage() {
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => !deleting && setConfirmDeleteOpen(false)}
+        onConfirm={handleDelete}
+        title='인보이스 삭제'
+        description={`인보이스 "${data.invoice.invoice_no}" 를 삭제합니다. 정산서는 삭제되지 않습니다.`}
+        confirmLabel={deleting ? '삭제 중...' : '삭제'}
+        cancelLabel='취소'
+      />
 
       <Toaster position='top-center' />
     </AccessControl>

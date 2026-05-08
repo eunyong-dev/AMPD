@@ -9,6 +9,12 @@ import { createClient } from '@/utils/supabase/client';
 import { UserProfile } from '@/lib/permissions';
 import { logSupabaseError } from '@/lib/utils/error-handler';
 
+export interface AccountGameLogo {
+  id: string;
+  game_name: string | null;
+  logo_url: string | null;
+}
+
 export interface AccountProfile {
   id: string;
   company: string;
@@ -18,6 +24,7 @@ export interface AccountProfile {
   total_campaigns: number;
   active_campaigns: number;
   active_games: number;
+  game_logos: AccountGameLogo[];
   created_at: string;
   updated_at: string;
   last_campaign_date?: string;
@@ -116,6 +123,7 @@ export async function addAccount(
     total_campaigns: data.total_campaigns || 0,
     active_campaigns: data.active_campaigns || 0,
     active_games: data.active_games || 0,
+    game_logos: [],
     created_at: data.created_at || new Date().toISOString(),
     updated_at: data.updated_at || new Date().toISOString(),
     bill_to_name: data.bill_to_name ?? null,
@@ -154,10 +162,11 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     return [];
   }
 
-  // 모든 게임 가져오기 (카운트용)
+  // 모든 게임 가져오기 (카운트 + 로고)
   const { data: gamesData, error: gamesError } = await supabase
     .from('games')
-    .select('account_id');
+    .select('id, account_id, game_name, logo_url')
+    .order('created_at', { ascending: true });
 
   if (gamesError) {
     console.error('게임 조회 오류:', gamesError);
@@ -182,13 +191,24 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     // 캠페인 조회 실패해도 계정은 반환하되, 캠페인 수는 0으로 설정
   }
 
-  // 게임 카운트 계산 (account_id별로 그룹핑)
+  // 게임 카운트 + 로고 그룹핑 (account_id별)
   const gamesCountByAccount: Record<string, number> = {};
+  const gameLogosByAccount: Record<string, AccountGameLogo[]> = {};
   if (gamesData) {
     gamesData.forEach((game) => {
       if (game.account_id) {
         gamesCountByAccount[game.account_id] =
           (gamesCountByAccount[game.account_id] || 0) + 1;
+        const list = gameLogosByAccount[game.account_id] ?? [];
+        // 최대 3개까지만 저장
+        if (list.length < 3) {
+          list.push({
+            id: game.id,
+            game_name: game.game_name ?? null,
+            logo_url: game.logo_url ?? null,
+          });
+          gameLogosByAccount[game.account_id] = list;
+        }
       }
     });
   }
@@ -223,6 +243,7 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     total_campaigns: totalCampaignsCountByAccount[account.id] || 0,
     active_campaigns: activeCampaignsCountByAccount[account.id] || 0,
     active_games: gamesCountByAccount[account.id] || 0,
+    game_logos: gameLogosByAccount[account.id] || [],
     created_at: account.created_at || new Date().toISOString(),
     updated_at: account.updated_at || new Date().toISOString(),
     bill_to_name: account.bill_to_name ?? null,
@@ -284,6 +305,7 @@ export async function updateAccount(
     total_campaigns: data.total_campaigns || 0,
     active_campaigns: data.active_campaigns || 0,
     active_games: data.active_games || 0,
+    game_logos: [],
     created_at: data.created_at || new Date().toISOString(),
     updated_at: data.updated_at || new Date().toISOString(),
     bill_to_name: data.bill_to_name ?? null,
