@@ -12,6 +12,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { getCampaignById } from '@/hooks/use-campaign-management';
+import { createClient } from '@/utils/supabase/client';
 
 // 정적 경로 → 한국어 표시 이름 매핑
 const pathMap: Record<string, string> = {
@@ -28,6 +29,7 @@ const pathMap: Record<string, string> = {
 export function AppBreadcrumb() {
   const pathname = usePathname();
   const [campaignName, setCampaignName] = useState<string | null>(null);
+  const [invoiceNo, setInvoiceNo] = useState<string | null>(null);
 
   // 경로를 분할하여 breadcrumb 항목 생성
   const pathSegments = pathname.split('/').filter(Boolean);
@@ -53,6 +55,31 @@ export function AppBreadcrumb() {
         });
     } else {
       setCampaignName(null);
+    }
+  }, [pathname, pathSegments]);
+
+  // /accounts/[id]/settlements/[settlementId]/invoice/[invoiceId] 인 경우 invoice_no 가져오기
+  useEffect(() => {
+    if (
+      pathSegments[0] === 'accounts' &&
+      pathSegments[2] === 'settlements' &&
+      pathSegments[4] === 'invoice' &&
+      pathSegments[5]
+    ) {
+      const invoiceId = pathSegments[5];
+      const supabase = createClient();
+      supabase
+        .from('invoices')
+        .select('invoice_no')
+        .eq('id', invoiceId)
+        .single()
+        .then(({ data }) => {
+          if (data?.invoice_no) {
+            setInvoiceNo(data.invoice_no);
+          }
+        });
+    } else {
+      setInvoiceNo(null);
     }
   }, [pathname, pathSegments]);
 
@@ -98,6 +125,20 @@ export function AppBreadcrumb() {
             else if (isAccountsRoute && index === 3) {
               displayName = '정산서 상세';
             }
+            // /accounts/[id]/settlements/[settlementId]/invoice — index 4
+            // (인보이스 목록 페이지는 없으므로 정산서 상세로 링크)
+            else if (
+              isAccountsRoute &&
+              index === 4 &&
+              segment === 'invoice'
+            ) {
+              displayName = '인보이스';
+              href = `/accounts/${pathSegments[1]}/settlements/${pathSegments[3]}`;
+            }
+            // /accounts/[id]/settlements/[settlementId]/invoice/[invoiceId] — index 5
+            else if (isAccountsRoute && index === 5 && isLast) {
+              displayName = invoiceNo || segment;
+            }
             // /campaigns/[id] — index 1: 캠페인 이름
             else if (isCampaignsRoute && index === 1 && isLast) {
               displayName = campaignName || segment;
@@ -112,7 +153,7 @@ export function AppBreadcrumb() {
           }
 
           return (
-            <div key={href} className='flex items-center'>
+            <div key={`${index}-${segment}`} className='flex items-center'>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {isLast ? (
