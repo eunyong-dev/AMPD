@@ -243,7 +243,7 @@ export async function getAllCampaigns(): Promise<Campaign[]> {
   }));
 }
 
-// 내가 만든 캠페인 조회
+// 내가 담당자인 캠페인 조회 (광고주의 담당자 기준)
 export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -270,7 +270,6 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
       )
     `
     )
-    .eq('created_by', userId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -281,20 +280,22 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
     );
   }
 
-  return data.map((campaign: any) => ({
-    ...campaign,
-    account_id: campaign.games?.account_id || null,
-    game_name: campaign.games?.game_name || null,
-    game_store_url: campaign.games?.store_url || null,
-    game_package_identifier: campaign.games?.package_identifier || null,
-    game_logo_url: campaign.games?.logo_url || null,
-    account_company: campaign.games?.accounts?.company || null,
-    assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
-    assigned_user_name:
-      campaign.games?.accounts?.user_profiles?.display_name || null,
-    assigned_user_avatar_url:
-      campaign.games?.accounts?.user_profiles?.avatar_url || null,
-  }));
+  return data
+    .map((campaign: any) => ({
+      ...campaign,
+      account_id: campaign.games?.account_id || null,
+      game_name: campaign.games?.game_name || null,
+      game_store_url: campaign.games?.store_url || null,
+      game_package_identifier: campaign.games?.package_identifier || null,
+      game_logo_url: campaign.games?.logo_url || null,
+      account_company: campaign.games?.accounts?.company || null,
+      assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
+      assigned_user_name:
+        campaign.games?.accounts?.user_profiles?.display_name || null,
+      assigned_user_avatar_url:
+        campaign.games?.accounts?.user_profiles?.avatar_url || null,
+    }))
+    .filter((c: Campaign) => c.assigned_user_id === userId);
 }
 
 // 캠페인 생성

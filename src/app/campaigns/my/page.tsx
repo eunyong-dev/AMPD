@@ -67,13 +67,13 @@ export default function MyCampaignsPage() {
   const { profile: currentUserProfile } = useUserContext();
   const { user: currentUser } = useAuth();
 
-  // 캠페인 목록 로드
+  // 캠페인 목록 로드 — assigned_user_id 는 user_profiles.id 기반이므로 profile.id 사용
   const loadCampaigns = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUserProfile?.id) return;
 
     try {
       setLoading(true);
-      const data = await getMyCampaigns(currentUser.id);
+      const data = await getMyCampaigns(currentUserProfile.id);
       setCampaigns(data);
     } catch (err) {
       console.error('내 캠페인 로드 오류:', err);
@@ -85,7 +85,7 @@ export default function MyCampaignsPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUserProfile?.id]);
 
   // 게임 목록 로드
   const loadGames = useCallback(async () => {
