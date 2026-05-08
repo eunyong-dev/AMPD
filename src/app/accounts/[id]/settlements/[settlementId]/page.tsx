@@ -2,11 +2,17 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Trash2, Copy } from 'lucide-react';
+import { Trash2, Copy, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -213,6 +219,85 @@ export default function SettlementDetailPage() {
   const tableRef = useRef<HTMLTableElement>(null);
   useRawCopy(tableRef);
 
+  // Detail 라인을 클립보드로 복사 (Description은 두 칸 차지)
+  const copyLines = async ({ withHeader }: { withHeader: boolean }) => {
+    if (sortedLines.length === 0) return;
+
+    const headers = [
+      'Description',
+      '',
+      'Model',
+      'Rate',
+      'GEO',
+      'Duration',
+      'Quantity',
+      'Amount',
+    ];
+    const dataRows: string[][] = sortedLines.map((l) => [
+      l.description ?? '',
+      '',
+      l.model ?? '',
+      String(Number(l.rate)),
+      l.geo ?? '',
+      `${l.duration_from} ~ ${l.duration_to}`,
+      String(l.quantity),
+      String(Number(l.amount)),
+    ]);
+    const totalRow = [
+      'TOTAL',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      String(linesTotal),
+    ];
+    const rows: string[][] = withHeader
+      ? [headers, ...dataRows, totalRow]
+      : dataRows;
+
+    const tsv = rows.map((r) => r.join('\t')).join('\n');
+
+    // Plain HTML <table> — Google 시트의 기본 paste 동작에 맡김.
+    // 숫자 셀은 Sheets가 자동 인식하고 destination 셀 서식 적용.
+    const escapeHtml = (s: string) =>
+      s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const html = `<table>${rows
+      .map(
+        (r) =>
+          `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`
+      )
+      .join('')}</table>`;
+
+    try {
+      if (
+        typeof ClipboardItem !== 'undefined' &&
+        navigator.clipboard.write
+      ) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': new Blob([tsv], { type: 'text/plain' }),
+            'text/html': new Blob([html], { type: 'text/html' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(tsv);
+      }
+      toast.success(
+        `Copied ${sortedLines.length} line${
+          sortedLines.length === 1 ? '' : 's'
+        }${withHeader ? ' with header' : ''}.`
+      );
+    } catch {
+      toast.error('Failed to copy to clipboard.');
+    }
+  };
+
   if (loading) {
     return (
       <AccessControl>
@@ -286,55 +371,27 @@ export default function SettlementDetailPage() {
           <div className='flex items-center justify-between mb-3'>
             <h2 className='text-lg font-semibold'>Detail</h2>
             {settlement.lines.length > 0 && (
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={async () => {
-                  const headers = [
-                    'Description',
-                    'Model',
-                    'Rate',
-                    'GEO',
-                    'Duration',
-                    'Quantity',
-                    'Amount',
-                  ];
-                  const rows = sortedLines.map((l) =>
-                    [
-                      l.description ?? '',
-                      l.model ?? '',
-                      String(Number(l.rate)),
-                      l.geo ?? '',
-                      `${l.duration_from} ~ ${l.duration_to}`,
-                      String(l.quantity),
-                      String(Number(l.amount)),
-                    ].join('\t')
-                  );
-                  const totalRow = [
-                    'TOTAL',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    String(linesTotal),
-                  ].join('\t');
-                  const tsv = [headers.join('\t'), ...rows, totalRow].join(
-                    '\n'
-                  );
-                  try {
-                    await navigator.clipboard.writeText(tsv);
-                    toast.success(
-                      `Copied ${sortedLines.length} lines to clipboard.`
-                    );
-                  } catch {
-                    toast.error('Failed to copy to clipboard.');
-                  }
-                }}
-              >
-                <Copy className='h-4 w-4 mr-1.5' />
-                Copy table
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant='outline' size='sm'>
+                    <Copy className='h-4 w-4 mr-1.5' />
+                    Copy
+                    <ChevronDown className='h-4 w-4 ml-1' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem
+                    onClick={() => copyLines({ withHeader: true })}
+                  >
+                    Copy with header
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => copyLines({ withHeader: false })}
+                  >
+                    Copy data only
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
