@@ -44,12 +44,12 @@ export function GameThumbnailTooltip({
     try {
       await navigator.clipboard.writeText(gameNameToCopy);
       setCopiedGameName(true);
-      toast.success('Game name copied to clipboard');
+      toast.success('게임 이름을 클립보드에 복사했습니다');
       setTimeout(() => {
         setCopiedGameName(false);
       }, COPY_RESET_DELAY);
     } catch (error) {
-      toast.error('Failed to copy game name');
+      toast.error('게임 이름 복사에 실패했습니다');
     }
   }, [gameName]);
 
@@ -61,12 +61,12 @@ export function GameThumbnailTooltip({
     try {
       await navigator.clipboard.writeText(packageNameToCopy);
       setCopiedPackageName(true);
-      toast.success('Package name copied to clipboard');
+      toast.success('패키지 이름을 클립보드에 복사했습니다');
       setTimeout(() => {
         setCopiedPackageName(false);
       }, COPY_RESET_DELAY);
     } catch (error) {
-      toast.error('Failed to copy package name');
+      toast.error('패키지 이름 복사에 실패했습니다');
     }
   }, [packageIdentifier]);
 

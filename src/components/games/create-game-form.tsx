@@ -99,7 +99,7 @@ const GameInfoField = ({
   id,
   label,
   value,
-  placeholder = 'Enter URL to auto-fill',
+  placeholder = 'URL을 입력하면 자동으로 채워집니다',
   logoUrl,
   isFetching = false,
   copiedFieldId,
@@ -193,13 +193,13 @@ const UrlInputField = ({
     if (url && detectedType) {
       if (urlType === 'app_store' && detectedType === 'google_play') {
         toast.warning(
-          'This URL is for Google Play. Please enter an App Store URL.'
+          '이 URL은 Google Play 주소입니다. App Store URL을 입력해주세요.'
         );
         return;
       }
       if (urlType === 'google_play' && detectedType === 'app_store') {
         toast.warning(
-          'This URL is for App Store. Please enter a Google Play URL.'
+          '이 URL은 App Store 주소입니다. Google Play URL을 입력해주세요.'
         );
         return;
       }
@@ -228,7 +228,7 @@ const UrlInputField = ({
           disabled={!value || isFetching}
           className='absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs'
         >
-          {isFetching ? <Loader2 className='h-3 w-3 animate-spin' /> : 'Fetch'}
+          {isFetching ? <Loader2 className='h-3 w-3 animate-spin' /> : '가져오기'}
         </Button>
       </div>
     </div>
@@ -311,14 +311,14 @@ export function CreateGameForm({
 
       // 정보가 하나라도 가져온 경우에만 성공 토스트 표시
       if (gameInfo.game_name) {
-        toast.success('Game information fetched successfully');
+        toast.success('게임 정보를 성공적으로 가져왔습니다');
       } else {
         toast.warning(
-          'Could not extract game information from URL. Please check the URL or enter manually.'
+          'URL에서 게임 정보를 가져올 수 없습니다. URL을 확인하거나 직접 입력해주세요.'
         );
       }
     } catch (error) {
-      toast.error('Failed to fetch game information');
+      toast.error('게임 정보 가져오기에 실패했습니다');
     } finally {
       setIsFetchingInfo(false);
     }
@@ -365,7 +365,7 @@ export function CreateGameForm({
         const formName = urlType === 'app_store' ? 'App Store' : 'Google Play';
 
         toast.warning(
-          `The URL you entered is for ${platformName}, but the form is set for ${formName}. Platform will be automatically updated.`
+          `입력하신 URL은 ${platformName} 주소이지만 폼은 ${formName}로 설정되어 있습니다. 플랫폼이 자동으로 변경됩니다.`
         );
 
         // 플랫폼 자동 업데이트
@@ -420,14 +420,14 @@ export function CreateGameForm({
         .writeText(text.trim())
         .then(() => {
           setCopiedFieldId(fieldId);
-          toast.success(`${label} copied to clipboard`);
+          toast.success(`${label}을(를) 클립보드에 복사했습니다`);
 
           setTimeout(() => {
             setCopiedFieldId(null);
           }, COPY_RESET_DELAY);
         })
         .catch(() => {
-          toast.error('Failed to copy to clipboard');
+          toast.error('클립보드 복사에 실패했습니다');
         });
     },
     []
@@ -471,10 +471,10 @@ export function CreateGameForm({
     const errors: string[] = [];
 
     if (!accountId) {
-      errors.push('Account ID is required');
+      errors.push('광고주 ID가 필요합니다');
     }
     if (!newGame.platform) {
-      errors.push('Platform is required');
+      errors.push('플랫폼을 선택해주세요');
     }
 
     // URL이 입력되었는지 확인
@@ -485,12 +485,12 @@ export function CreateGameForm({
         (newGame.app_store_url || newGame.google_play_url));
 
     if (!hasUrl) {
-      errors.push('Please enter at least one store URL.');
+      errors.push('스토어 URL을 하나 이상 입력해주세요.');
     }
 
     if (!newGame.game_name || !newGame.game_name.trim()) {
       errors.push(
-        'Game name is required. Please wait for the URL to fetch game information or enter a URL.'
+        '게임 이름이 필요합니다. URL에서 게임 정보를 가져오기를 기다리거나 URL을 입력해주세요.'
       );
     }
 
@@ -549,13 +549,13 @@ export function CreateGameForm({
 
       await onCreateGame(gameData);
 
-      toast.success('Game created successfully');
+      toast.success('게임이 생성되었습니다');
       resetForm();
       onGameCreated?.();
       onClose();
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to create game';
+        err instanceof Error ? err.message : '게임 생성에 실패했습니다';
       toast.error(errorMessage);
     }
   };
@@ -599,6 +599,7 @@ export function CreateGameForm({
         />
       );
     }
+
 
     if (newGame.platform === 'both') {
       return (
@@ -652,13 +653,13 @@ export function CreateGameForm({
         <div className='grid gap-4 md:grid-cols-2'>
           <GameInfoField
             id='game_name'
-            label='Game Name'
+            label='게임 이름'
             value={newGame.game_name || ''}
             {...commonProps}
           />
           <GameInfoField
             id='bundle_id'
-            label='Bundle ID (Optional)'
+            label='Bundle ID (선택)'
             value={newGame.bundle_id || ''}
             {...commonProps}
           />
@@ -671,13 +672,13 @@ export function CreateGameForm({
         <div className='grid gap-4 md:grid-cols-2'>
           <GameInfoField
             id='game_name'
-            label='Game Name'
+            label='게임 이름'
             value={newGame.game_name || ''}
             {...commonProps}
           />
           <GameInfoField
             id='package_name'
-            label='Package Name (Optional)'
+            label='Package Name (선택)'
             value={newGame.package_name || ''}
             {...commonProps}
           />
@@ -690,19 +691,19 @@ export function CreateGameForm({
         <div className='grid gap-4 md:grid-cols-3'>
           <GameInfoField
             id='game_name'
-            label='Game Name'
+            label='게임 이름'
             value={newGame.game_name || ''}
             {...commonProps}
           />
           <GameInfoField
             id='bundle_id'
-            label='Bundle ID (Optional)'
+            label='Bundle ID (선택)'
             value={newGame.bundle_id || ''}
             {...commonProps}
           />
           <GameInfoField
             id='package_name'
-            label='Package Name (Optional)'
+            label='Package Name (선택)'
             value={newGame.package_name || ''}
             {...commonProps}
           />
@@ -717,16 +718,16 @@ export function CreateGameForm({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>Create New Game</DialogTitle>
+          <DialogTitle>새 게임 생성</DialogTitle>
           <DialogDescription>
-            Add a new game to your account. Enter the store URL to automatically
-            fetch game information.
+            광고주 계정에 새 게임을 추가합니다. 스토어 URL을 입력하면 게임
+            정보가 자동으로 채워집니다.
           </DialogDescription>
         </DialogHeader>
         <div className='space-y-4'>
           {/* Platform 선택 */}
           <div className='space-y-2'>
-            <Label htmlFor='platform'>Platform *</Label>
+            <Label htmlFor='platform'>플랫폼 *</Label>
             <Select
               value={newGame.platform}
               onValueChange={(value) =>
@@ -734,7 +735,7 @@ export function CreateGameForm({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder='Select platform' />
+                <SelectValue placeholder='플랫폼을 선택해주세요' />
               </SelectTrigger>
               <SelectContent>
                 {PLATFORM_OPTIONS.map((option) => (
@@ -754,10 +755,10 @@ export function CreateGameForm({
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={onClose} size='sm'>
-            Cancel
+            취소
           </Button>
           <Button onClick={handleCreateGame} size='sm'>
-            Create Game
+            게임 생성
           </Button>
         </DialogFooter>
       </DialogContent>

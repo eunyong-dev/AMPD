@@ -251,13 +251,13 @@ export default function CampaignDetailPage() {
       try {
         const updatedCampaign = await updateCampaign(campaignId, campaignData);
         setCampaign(updatedCampaign);
-        toast.success('Campaign updated successfully.');
+        toast.success('캠페인이 업데이트되었습니다.');
       } catch (err) {
         const errorMessage =
           err instanceof Error
             ? err.message
-            : 'An error occurred while updating the campaign.';
-        toast.error(`Failed to update campaign: ${errorMessage}`);
+            : '캠페인을 업데이트하는 중 오류가 발생했습니다.';
+        toast.error(`캠페인 업데이트 실패: ${errorMessage}`);
         throw err;
       }
     },
@@ -276,7 +276,7 @@ export default function CampaignDetailPage() {
 
     if (!isManageAllowed) {
       toast.error(
-        'You can only delete campaigns from accounts assigned to you.'
+        '본인에게 할당된 광고주의 캠페인만 삭제할 수 있습니다.'
       );
       return;
     }
@@ -289,12 +289,12 @@ export default function CampaignDetailPage() {
 
     try {
       await deleteCampaign(campaign.id);
-      toast.success('Campaign deleted successfully');
+      toast.success('캠페인이 삭제되었습니다');
       router.push('/campaigns');
     } catch (err) {
       toast.error(
-        `Failed to delete campaign: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `캠페인 삭제 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     }
@@ -449,12 +449,12 @@ export default function CampaignDetailPage() {
       }
 
       setAllData(fetchedData);
-      toast.success('Data loaded successfully.');
+      toast.success('데이터를 불러왔습니다.');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'An unknown error occurred.';
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       setDataError(errorMessage);
-      toast.error(`Failed to load data: ${errorMessage}`);
+      toast.error(`데이터 불러오기 실패: ${errorMessage}`);
       console.error('Google Sheets 데이터 가져오기 오류:', err);
     } finally {
       setDataLoading(false);
@@ -1110,19 +1110,6 @@ export default function CampaignDetailPage() {
   return (
     <AccessControl>
       <div className='space-y-4 w-full overflow-x-hidden'>
-        {/* Header */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold tracking-tight flex items-center gap-3'>
-              <TargetIcon className='h-8 w-8 text-primary' />
-              Campaign Detail
-            </h1>
-            <p className='text-muted-foreground'>
-              View and manage campaign details
-            </p>
-          </div>
-        </div>
-
         {/* Campaign Information */}
         <div className='space-y-4'>
           {/* Information Table */}
@@ -1132,18 +1119,18 @@ export default function CampaignDetailPage() {
                 <TableHeader className={TABLE_STYLES.header}>
                   <TableRow>
                     <TableHead style={{ width: '200px' }}>
-                      Campaign Name
+                      캠페인명
                     </TableHead>
-                    <TableHead style={{ width: '150px' }}>Account</TableHead>
-                    <TableHead style={{ width: '250px' }}>Game Name</TableHead>
+                    <TableHead style={{ width: '150px' }}>광고주</TableHead>
+                    <TableHead style={{ width: '250px' }}>게임명</TableHead>
                     <TableHead style={{ width: '160px' }}>
-                      Assigned User
+                      담당자
                     </TableHead>
                     <TableHead
                       style={{ width: '120px' }}
                       className='text-center'
                     >
-                      Region
+                      지역
                     </TableHead>
                     <TableHead
                       style={{ width: '80px' }}
@@ -1151,8 +1138,8 @@ export default function CampaignDetailPage() {
                     >
                       MMP
                     </TableHead>
-                    <TableHead style={{ width: '120px' }}>Type</TableHead>
-                    <TableHead style={{ width: '200px' }}>Date Range</TableHead>
+                    <TableHead style={{ width: '120px' }}>타입</TableHead>
+                    <TableHead style={{ width: '200px' }}>기간</TableHead>
                     <TableHead
                       style={{ width: '100px' }}
                       className='text-center'
@@ -1188,7 +1175,7 @@ export default function CampaignDetailPage() {
                         </Link>
                       ) : (
                         <span className='text-sm text-muted-foreground'>
-                          Unknown
+                          알 수 없음
                         </span>
                       )}
                     </TableCell>
@@ -1304,7 +1291,7 @@ export default function CampaignDetailPage() {
                           </>
                         ) : (
                           <div className='text-xs text-muted-foreground'>
-                            Unassigned
+                            미지정
                           </div>
                         )}
                       </div>
@@ -1424,7 +1411,7 @@ export default function CampaignDetailPage() {
                             size='icon'
                           >
                             <MoreHorizontalIcon className='h-4 w-4' />
-                            <span className='sr-only'>Open menu</span>
+                            <span className='sr-only'>메뉴 열기</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
@@ -1437,7 +1424,7 @@ export default function CampaignDetailPage() {
                             disabled={!isManageAllowed}
                           >
                             <EditIcon className='mr-1 h-4 w-4' />
-                            Edit Campaign
+                            캠페인 수정
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={handleDeleteClick}
@@ -1445,7 +1432,7 @@ export default function CampaignDetailPage() {
                             disabled={!isManageAllowed}
                           >
                             <TrashIcon className='mr-1 h-4 w-4' />
-                            Delete Campaign
+                            캠페인 삭제
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1466,19 +1453,19 @@ export default function CampaignDetailPage() {
                   value='daily'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  Daily
+                  일간
                 </TabsTrigger>
                 <TabsTrigger
                   value='monthly'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  Monthly
+                  월간
                 </TabsTrigger>
                 <TabsTrigger
                   value='charts'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  Charts
+                  차트
                 </TabsTrigger>
               </TabsList>
               <div className='flex items-center gap-2'>
@@ -1489,7 +1476,7 @@ export default function CampaignDetailPage() {
                       onChange={setDateRange}
                       presets={datePickerPresets}
                       placeholder={
-                        lastDate ? 'Last 30 days' : 'Select Date Range'
+                        lastDate ? '최근 30일' : '기간 선택'
                       }
                       triggerClassName='max-[1100px]:justify-center'
                       hideLabelClassName='max-[1100px]:hidden'
@@ -1499,10 +1486,10 @@ export default function CampaignDetailPage() {
                       size='sm'
                       className='flex-shrink-0'
                       onClick={() => setCompareEnabled((v) => !v)}
-                      title='Compare to another period'
+                      title='다른 기간과 비교'
                     >
                       <span className='max-[1100px]:hidden'>
-                        {compareEnabled ? 'Comparing' : 'Compare'}
+                        {compareEnabled ? '비교중' : '비교'}
                       </span>
                       <span className='hidden max-[1100px]:inline'>vs</span>
                     </Button>
@@ -1511,7 +1498,7 @@ export default function CampaignDetailPage() {
                         value={compareDateRange}
                         onChange={setCompareDateRange}
                         presets={datePickerPresets}
-                        placeholder='Comparison range'
+                        placeholder='비교 기간'
                         triggerClassName='max-[1100px]:justify-center'
                         hideLabelClassName='max-[1100px]:hidden'
                       />
@@ -1529,9 +1516,9 @@ export default function CampaignDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value='daily'>Daily</SelectItem>
-                      <SelectItem value='weekly'>Weekly</SelectItem>
-                      <SelectItem value='monthly'>Monthly</SelectItem>
+                      <SelectItem value='daily'>일간</SelectItem>
+                      <SelectItem value='weekly'>주간</SelectItem>
+                      <SelectItem value='monthly'>월간</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -1545,7 +1532,7 @@ export default function CampaignDetailPage() {
                   }}
                 >
                   <ExternalLink className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
-                  <span className='max-[1100px]:hidden'>View Sheet</span>
+                  <span className='max-[1100px]:hidden'>시트 보기</span>
                 </Button>
                 <Button
                   variant='default'
@@ -1561,7 +1548,7 @@ export default function CampaignDetailPage() {
                       dataLoading ? 'animate-spin' : ''
                     }`}
                   />
-                  <span className='max-[1100px]:hidden'>Refresh</span>
+                  <span className='max-[1100px]:hidden'>새로고침</span>
                 </Button>
               </div>
             </div>
@@ -1592,26 +1579,26 @@ export default function CampaignDetailPage() {
                       fetchSheetData(campaign.daily_report_url!, true)
                     }
                   >
-                    Retry
+                    다시 시도
                   </Button>
                 </div>
               ) : !data || data.length === 0 ? (
                 <div className='text-center py-8 text-muted-foreground'>
-                  No data available.
+                  데이터가 없습니다.
                 </div>
               ) : (
                 <div className='space-y-4'>
                   <Card>
                     <CardHeader className='flex flex-row items-start justify-between gap-4 flex-wrap'>
                       <div>
-                        <CardTitle>ROAS Trend</CardTitle>
+                        <CardTitle>ROAS 추이</CardTitle>
                         <CardDescription>
                           {granularity === 'monthly'
-                            ? 'Monthly'
+                            ? '월간'
                             : granularity === 'weekly'
-                            ? 'Weekly'
-                            : 'Daily'}{' '}
-                          ROAS by cohort. Red dashed line = 100% BEP.
+                            ? '주간'
+                            : '일간'}{' '}
+                          코호트별 ROAS. 빨간 점선 = 100% BEP.
                         </CardDescription>
                       </div>
                       <ToggleGroup
@@ -1737,14 +1724,14 @@ export default function CampaignDetailPage() {
                   <Card>
                     <CardHeader className='flex flex-row items-start justify-between gap-4 flex-wrap'>
                       <div>
-                        <CardTitle>Volume Trend</CardTitle>
+                        <CardTitle>볼륨 추이</CardTitle>
                         <CardDescription>
                           {granularity === 'monthly'
-                            ? 'Monthly'
+                            ? '월간'
                             : granularity === 'weekly'
-                            ? 'Weekly'
-                            : 'Daily'}{' '}
-                          volume by metric
+                            ? '주간'
+                            : '일간'}{' '}
+                          지표별 볼륨
                         </CardDescription>
                       </div>
                       <ToggleGroup
@@ -1865,11 +1852,11 @@ export default function CampaignDetailPage() {
                       <CardTitle>Cost vs Revenue</CardTitle>
                       <CardDescription>
                         {granularity === 'monthly'
-                          ? 'Monthly'
+                          ? '월간'
                           : granularity === 'weekly'
-                          ? 'Weekly'
-                          : 'Daily'}{' '}
-                        cost vs revenue comparison
+                          ? '주간'
+                          : '일간'}{' '}
+                        Cost vs Revenue 비교
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1943,7 +1930,7 @@ export default function CampaignDetailPage() {
           <Card>
             <CardContent className='pt-6'>
               <p className='text-center text-muted-foreground'>
-                Report URL is not set.
+                Report URL이 설정되지 않았습니다.
               </p>
             </CardContent>
           </Card>
@@ -1974,14 +1961,14 @@ export default function CampaignDetailPage() {
             setShowDeleteDialog(false);
           }}
           onConfirm={handleDeleteCampaign}
-          title={isManageAllowed ? 'Are you sure?' : 'Cannot Delete Campaign'}
+          title={isManageAllowed ? '정말 삭제하시겠습니까?' : '캠페인을 삭제할 수 없습니다'}
           description={
             isManageAllowed
-              ? `This action cannot be undone. This will permanently delete the campaign ${campaign?.name} from your account.`
-              : `You can only delete campaigns from accounts assigned to you. This campaign ${campaign?.name} is from an account assigned to another user.`
+              ? `이 작업은 되돌릴 수 없습니다. ${campaign?.name} 캠페인이 영구적으로 삭제됩니다.`
+              : `본인에게 할당된 광고주의 캠페인만 삭제할 수 있습니다. ${campaign?.name} 캠페인은 다른 사용자에게 할당된 광고주의 캠페인입니다.`
           }
-          confirmLabel='Delete'
-          cancelLabel='Close'
+          confirmLabel='삭제'
+          cancelLabel='닫기'
           isAllowed={isManageAllowed}
         />
       </div>

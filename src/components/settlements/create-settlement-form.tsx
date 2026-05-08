@@ -202,15 +202,15 @@ export function CreateSettlementForm({
   const handleSave = async () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      toast.error('Enter a title.');
+      toast.error('제목을 입력해주세요.');
       return;
     }
     if (selectedIds.length === 0) {
-      toast.error('Select at least one campaign.');
+      toast.error('캠페인을 하나 이상 선택해주세요.');
       return;
     }
     if (!range?.from || !range?.to) {
-      toast.error('Select a period (start and end).');
+      toast.error('기간(시작일과 종료일)을 선택해주세요.');
       return;
     }
 
@@ -225,12 +225,12 @@ export function CreateSettlementForm({
       if (onCreate) {
         await onCreate(data);
       } else {
-        toast.success('Settlement saved (UI only).');
+        toast.success('정산서가 저장되었습니다 (UI 전용).');
       }
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to save settlement: ${msg}`);
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`정산서 저장 실패: ${msg}`);
     } finally {
       setInternalSubmitting(false);
     }
@@ -238,23 +238,23 @@ export function CreateSettlementForm({
 
   const triggerLabel =
     selectedIds.length === 0
-      ? 'Select campaigns'
-      : `${selectedIds.length} campaign${selectedIds.length > 1 ? 's' : ''} selected`;
+      ? '캠페인을 선택해주세요'
+      : `${selectedIds.length}개 캠페인 선택됨`;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className='max-w-md'>
         <DialogHeader>
-          <DialogTitle>Add Settlement</DialogTitle>
+          <DialogTitle>정산서 추가</DialogTitle>
           <DialogDescription>
-            Select the campaigns and the period this settlement covers.
+            정산서에 포함할 캠페인과 기간을 선택해주세요.
           </DialogDescription>
         </DialogHeader>
 
         <div className='space-y-4'>
           {/* Title */}
           <div className='space-y-2'>
-            <Label htmlFor='settlement-title'>Title *</Label>
+            <Label htmlFor='settlement-title'>제목 *</Label>
             <Input
               id='settlement-title'
               placeholder='e.g. 2026-04 Hello Games'
@@ -267,19 +267,19 @@ export function CreateSettlementForm({
 
           {/* Period */}
           <div className='space-y-2'>
-            <Label>Period *</Label>
+            <Label>기간 *</Label>
             <DateRangePicker
               value={range}
               onChange={setRange}
               presets={presets}
-              placeholder='Select period'
+              placeholder='기간을 선택해주세요'
               triggerClassName='w-full'
             />
           </div>
 
           {/* Campaigns */}
           <div className='space-y-2'>
-            <Label>Campaigns *</Label>
+            <Label>캠페인 *</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -296,7 +296,7 @@ export function CreateSettlementForm({
                     }
                   >
                     {campaigns.length === 0
-                      ? 'No campaigns in this account'
+                      ? '이 광고주에 캠페인이 없습니다'
                       : triggerLabel}
                   </span>
                   <ChevronDown className='h-4 w-4 opacity-50' />
@@ -317,7 +317,7 @@ export function CreateSettlementForm({
                         className='text-xs text-muted-foreground hover:text-foreground'
                         onClick={toggleAll}
                       >
-                        {allSelected ? 'Clear all' : 'Select all'}
+                        {allSelected ? '전체 해제' : '전체 선택'}
                       </button>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -344,16 +344,16 @@ export function CreateSettlementForm({
             disabled={submitting}
             size='sm'
           >
-            Cancel
+            취소
           </Button>
           <Button onClick={handleSave} disabled={submitting} size='sm'>
             {submitting ? (
               <>
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                Creating...
+                생성 중...
               </>
             ) : (
-              'Create'
+              '생성'
             )}
           </Button>
         </DialogFooter>

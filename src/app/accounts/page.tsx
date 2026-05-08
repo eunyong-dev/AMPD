@@ -177,8 +177,8 @@ export default function AccountManagementPage() {
         // AccountsTable에서 이미 toast를 표시하므로 여기서는 표시하지 않음
       } catch (error) {
         toast.error(
-          `Failed to delete account: ${
-            error instanceof Error ? error.message : 'Unknown error'
+          `광고주 삭제 실패: ${
+            error instanceof Error ? error.message : '알 수 없는 오류'
           }`
         );
       }
@@ -242,19 +242,6 @@ export default function AccountManagementPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Header */}
-        {!isLoading && (
-          <div>
-            <h1 className='text-3xl font-bold tracking-tight flex items-center gap-3'>
-              <BuildingIcon className='h-8 w-8 text-primary' />
-              Account Management
-            </h1>
-            <p className='text-muted-foreground'>
-              Manage advertiser accounts and their assigned managers
-            </p>
           </div>
         )}
 

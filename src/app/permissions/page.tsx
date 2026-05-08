@@ -64,7 +64,7 @@ export default function PermissionsPage() {
 
       // 현재 사용자가 자신의 역할을 변경하려고 하는 경우 방지
       if (profile && profile.id === userId) {
-        toast.error('You cannot change your own role.');
+        toast.error('자신의 역할은 변경할 수 없습니다.');
         return;
       }
 
@@ -76,15 +76,15 @@ export default function PermissionsPage() {
       try {
         await changeUserRole(userId, newRole);
         toast.success(
-          `Role changed to ${newRole.toUpperCase()} for "${
+          `"${
             user.display_name || user.email
-          }".`
+          }"의 역할을 ${newRole.toUpperCase()}로 변경했습니다.`
         );
       } catch (error) {
         console.error('Role change error:', error);
         const errorMessage =
-          error instanceof Error ? error.message : 'Failed to change role.';
-        toast.error(`Failed to change role: ${errorMessage}`);
+          error instanceof Error ? error.message : '역할 변경에 실패했습니다.';
+        toast.error(`역할 변경 실패: ${errorMessage}`);
         throw error; // 상위 컴포넌트에서 에러 처리할 수 있도록 throw
       }
     },
@@ -99,13 +99,13 @@ export default function PermissionsPage() {
 
       // 현재 사용자가 자신을 비활성화하려고 하는 경우 방지
       if (profile && profile.id === userId && !checked) {
-        toast.error('You cannot deactivate your own account.');
+        toast.error('자신의 계정은 비활성화할 수 없습니다.');
         return;
       }
 
       // 관리자가 아닌 경우 비활성화 방지
       if (profile && profile.role !== 'admin' && !checked) {
-        toast.error('Only administrators can deactivate users.');
+        toast.error('관리자만 사용자를 비활성화할 수 있습니다.');
         return;
       }
 
@@ -116,16 +116,18 @@ export default function PermissionsPage() {
 
       try {
         await toggleActive(userId);
-        const action = checked ? 'activated' : 'deactivated';
+        const action = checked ? '활성화' : '비활성화';
         toast.success(
-          `User "${user.display_name || user.email}" has been ${action}.`
+          `사용자 "${user.display_name || user.email}"이(가) ${action}되었습니다.`
         );
       } catch (error) {
         console.error('User status change error:', error);
-        const action = checked ? 'activate' : 'deactivate';
+        const action = checked ? '활성화' : '비활성화';
         const errorMessage =
-          error instanceof Error ? error.message : `Failed to ${action} user.`;
-        toast.error(`Failed to change status: ${errorMessage}`);
+          error instanceof Error
+            ? error.message
+            : `사용자 ${action}에 실패했습니다.`;
+        toast.error(`상태 변경 실패: ${errorMessage}`);
         throw error; // 상위 컴포넌트에서 에러 처리할 수 있도록 throw
       }
     },
@@ -137,19 +139,6 @@ export default function PermissionsPage() {
   return (
     <AdminAccessControl>
       <div className='@container/main flex flex-1 flex-col gap-4'>
-        {/* Header */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold tracking-tight flex items-center gap-3'>
-              <ShieldIcon className='h-8 w-8 text-primary' />
-              Permissions Management
-            </h1>
-            <p className='text-muted-foreground'>
-              Manage user roles and permissions across the platform
-            </p>
-          </div>
-        </div>
-
         {/* Error Display */}
         {error && (
           <div className='p-4 text-sm rounded-xl border text-destructive bg-destructive/10 border-destructive/20'>
@@ -204,7 +193,7 @@ export default function PermissionsPage() {
           <div className='*:data-[slot=card]:shadow-xs flex flex-col xl:flex-row gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card'>
             <Card className='@container/card flex-1 rounded-xl'>
               <CardHeader className='relative'>
-                <CardDescription>Total Users</CardDescription>
+                <CardDescription>전체 사용자</CardDescription>
                 <CardTitle className='@[250px]/card:text-3xl text-2xl font-semibold tabular-nums'>
                   {stats.total}
                 </CardTitle>
@@ -214,7 +203,7 @@ export default function PermissionsPage() {
                     className='flex gap-1 rounded-lg text-xs'
                   >
                     <UsersIcon className='size-3' />
-                    {stats.active} active
+                    {stats.active} 활성
                   </Badge>
                 </div>
               </CardHeader>
@@ -222,7 +211,7 @@ export default function PermissionsPage() {
 
             <Card className='@container/card flex-1 rounded-xl'>
               <CardHeader className='relative'>
-                <CardDescription>Administrators</CardDescription>
+                <CardDescription>관리자</CardDescription>
                 <CardTitle className='@[250px]/card:text-3xl text-2xl font-semibold tabular-nums'>
                   {stats.admin}
                 </CardTitle>
@@ -240,7 +229,7 @@ export default function PermissionsPage() {
 
             <Card className='@container/card flex-1 rounded-xl'>
               <CardHeader className='relative'>
-                <CardDescription>Account Managers</CardDescription>
+                <CardDescription>AM (담당자)</CardDescription>
                 <CardTitle className='@[250px]/card:text-3xl text-2xl font-semibold tabular-nums'>
                   {stats.am}
                 </CardTitle>
@@ -265,7 +254,7 @@ export default function PermissionsPage() {
           <div className='flex flex-col gap-3'>
             <div className='flex items-center gap-2 text-lg font-medium'>
               <UsersIcon className='h-5 w-5' />
-              <span>Users ({filteredUsers.length})</span>
+              <span>사용자 ({filteredUsers.length})</span>
             </div>
             <UsersTable
               data={filteredUsers as any}

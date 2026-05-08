@@ -77,7 +77,7 @@ export function useGameCacheRefresh(options?: UseGameCacheRefreshOptions) {
       const { data: games, error: gamesError } = await gamesQuery;
 
       if (gamesError) {
-        toast.error(`Failed to load games: ${gamesError.message}`);
+        toast.error(`게임 불러오기 실패: ${gamesError.message}`);
         return;
       }
 
@@ -93,7 +93,7 @@ export function useGameCacheRefresh(options?: UseGameCacheRefreshOptions) {
       const { data: campaigns, error: campaignsError } = await campaignsQuery;
 
       if (campaignsError) {
-        toast.error(`Failed to load campaigns: ${campaignsError.message}`);
+        toast.error(`캠페인 불러오기 실패: ${campaignsError.message}`);
         return;
       }
 
@@ -108,7 +108,7 @@ export function useGameCacheRefresh(options?: UseGameCacheRefreshOptions) {
         }));
 
       if (logoTargets.length === 0 && nameTargets.length === 0) {
-        toast.success('Nothing to refresh.');
+        toast.success('새로고침할 항목이 없습니다.');
         setProgress(null);
         return;
       }
@@ -272,15 +272,15 @@ export function useGameCacheRefresh(options?: UseGameCacheRefreshOptions) {
         const totalUpdated = p.logos.updated + p.names.updated;
         const totalFailed = p.logos.failed + p.names.failed;
         toast.success(
-          `Refresh complete: ${totalUpdated} updated${
-            totalFailed > 0 ? `, ${totalFailed} failed` : ''
+          `새로고침 완료: ${totalUpdated}개 업데이트${
+            totalFailed > 0 ? `, ${totalFailed}개 실패` : ''
           }.`
         );
         return p;
       });
     } catch (err) {
       toast.error(
-        `Refresh failed: ${err instanceof Error ? err.message : 'Unknown'}`
+        `새로고침 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
       );
     } finally {
       setRefreshing(false);

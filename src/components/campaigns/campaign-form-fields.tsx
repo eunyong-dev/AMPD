@@ -84,11 +84,11 @@ export function CampaignFormFields({
       {/* Campaign Name */}
       <div className='space-y-2'>
         <Label htmlFor={id('name')}>
-          Campaign Name <span className='text-red-500'>*</span>
+          캠페인 제목 <span className='text-red-500'>*</span>
         </Label>
         <Input
           id={id('name')}
-          placeholder='Enter campaign name'
+          placeholder='캠페인 제목을 입력해주세요'
           value={value.name}
           onChange={(e) => onChange({ ...value, name: e.target.value })}
           autoComplete='off'
@@ -98,7 +98,7 @@ export function CampaignFormFields({
       {/* Game Selection */}
       <div className='space-y-2'>
         <Label htmlFor={id('game')}>
-          Game <span className='text-red-500'>*</span>
+          게임 <span className='text-red-500'>*</span>
         </Label>
         <Select
           value={value.game_id || ''}
@@ -119,7 +119,7 @@ export function CampaignFormFields({
               {value.game_id ? (
                 <>
                   <span className='flex-1 text-left truncate'>
-                    {selectedGame?.game_name || 'Select a game'}
+                    {selectedGame?.game_name || '게임을 선택해주세요'}
                   </span>
                   {(() => {
                     const platformLabel =
@@ -136,7 +136,7 @@ export function CampaignFormFields({
                   })()}
                 </>
               ) : (
-                <span className='flex-1 text-left'>Select a game</span>
+                <span className='flex-1 text-left'>게임을 선택해주세요</span>
               )}
             </div>
           </SelectTrigger>
@@ -180,14 +180,14 @@ export function CampaignFormFields({
       <div className='grid grid-cols-2 gap-4'>
         <div className='space-y-2'>
           <Label htmlFor={id('region')}>
-            Region <span className='text-red-500'>*</span>
+            지역 <span className='text-red-500'>*</span>
           </Label>
           <Select
             value={value.region || undefined}
             onValueChange={(v) => onChange({ ...value, region: v })}
           >
             <SelectTrigger id={id('region')}>
-              <SelectValue placeholder='Select Region'>
+              <SelectValue placeholder='지역을 선택해주세요'>
                 {(() => {
                   if (!value.region) return '';
                   const opt = REGION_OPTIONS.find(
@@ -222,11 +222,11 @@ export function CampaignFormFields({
                   <MmpIcon mmp={value.mmp} />
                   <span className='flex-1 text-left'>
                     {MMP_OPTIONS.find((opt) => opt.value === value.mmp)?.label ||
-                      'Select MMP'}
+                      'MMP를 선택해주세요'}
                   </span>
                 </div>
               ) : (
-                <SelectValue placeholder='Select MMP' />
+                <SelectValue placeholder='MMP를 선택해주세요' />
               )}
             </SelectTrigger>
             <SelectContent>
@@ -247,14 +247,14 @@ export function CampaignFormFields({
       <div className='grid grid-cols-2 gap-4'>
         <div className='space-y-2'>
           <Label htmlFor={id('type')}>
-            Campaign Type <span className='text-red-500'>*</span>
+            캠페인 유형 <span className='text-red-500'>*</span>
           </Label>
           <Select
             value={value.campaign_type || undefined}
             onValueChange={(v) => onChange({ ...value, campaign_type: v })}
           >
             <SelectTrigger id={id('type')}>
-              <SelectValue placeholder='Select Campaign Type' />
+              <SelectValue placeholder='캠페인 유형을 선택해주세요' />
             </SelectTrigger>
             <SelectContent>
               {CAMPAIGN_TYPE_OPTIONS.map((option) => (
@@ -268,7 +268,7 @@ export function CampaignFormFields({
 
         <div className='space-y-2'>
           <Label htmlFor={id('status')}>
-            Status <span className='text-red-500'>*</span>
+            상태 <span className='text-red-500'>*</span>
           </Label>
           <Select
             value={value.status || undefined}
@@ -279,10 +279,10 @@ export function CampaignFormFields({
                 <span className={STATUS_COLOR[value.status] || ''}>
                   {CAMPAIGN_STATUS_OPTIONS.find(
                     (opt) => opt.value === value.status
-                  )?.label || 'Select status'}
+                  )?.label || '상태를 선택해주세요'}
                 </span>
               ) : (
-                <SelectValue placeholder='Select Status' />
+                <SelectValue placeholder='상태를 선택해주세요' />
               )}
             </SelectTrigger>
             <SelectContent>
@@ -302,18 +302,18 @@ export function CampaignFormFields({
       <div className='grid grid-cols-2 gap-4'>
         <DateField
           id={id('start-date')}
-          label='Start Date'
+          label='시작일'
           required
           value={value.start_date}
           onChange={(d) => onChange({ ...value, start_date: d ?? '' })}
-          placeholder='Select start date'
+          placeholder='시작일을 선택해주세요'
         />
         <DateField
           id={id('end-date')}
-          label='End Date'
+          label='종료일'
           value={value.end_date ?? ''}
           onChange={(d) => onChange({ ...value, end_date: d })}
-          placeholder='Select end date'
+          placeholder='종료일을 선택해주세요'
         />
       </div>
 
@@ -347,10 +347,10 @@ export function CampaignFormFields({
 
       {/* Description */}
       <div className='space-y-2'>
-        <Label htmlFor={id('description')}>Description</Label>
+        <Label htmlFor={id('description')}>설명</Label>
         <Input
           id={id('description')}
-          placeholder='Enter campaign description (optional)'
+          placeholder='캠페인 설명을 입력해주세요 (선택)'
           value={value.description || ''}
           onChange={(e) =>
             onChange({ ...value, description: e.target.value || null })

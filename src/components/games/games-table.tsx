@@ -50,12 +50,12 @@ export function GamesTable({
   const handleDeleteGame = async (gameId: string) => {
     try {
       await onDeleteGame(gameId);
-      toast.success('Game deleted successfully');
+      toast.success('게임이 삭제되었습니다');
       onGameDeleted?.(gameId);
     } catch (err) {
       toast.error(
-        `Failed to delete game: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `게임 삭제 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     }
@@ -81,13 +81,13 @@ export function GamesTable({
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={onSelectAll}
-                aria-label='Select all'
+                aria-label='전체 선택'
               />
             </TableHead>
-            <TableHead style={{ width: '200px' }}>Game Name</TableHead>
-            <TableHead style={{ width: '120px' }}>Account</TableHead>
-            <TableHead style={{ width: '100px' }}>Platform</TableHead>
-            <TableHead style={{ width: '120px' }}>Store Links</TableHead>
+            <TableHead style={{ width: '200px' }}>게임명</TableHead>
+            <TableHead style={{ width: '120px' }}>광고주</TableHead>
+            <TableHead style={{ width: '100px' }}>플랫폼</TableHead>
+            <TableHead style={{ width: '120px' }}>스토어 링크</TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -101,7 +101,7 @@ export function GamesTable({
                     onCheckedChange={(checked) =>
                       onSelectGame(game.id, !!checked)
                     }
-                    aria-label='Select row'
+                    aria-label='행 선택'
                   />
                 </TableCell>
                 <TableCell style={{ width: '200px' }}>
@@ -152,7 +152,7 @@ export function GamesTable({
                         size='icon'
                       >
                         <MoreHorizontalIcon className='h-4 w-4' />
-                        <span className='sr-only'>Open menu</span>
+                        <span className='sr-only'>메뉴 열기</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -164,14 +164,14 @@ export function GamesTable({
                         className='flex items-center gap-0'
                       >
                         <EditIcon className='mr-1 h-4 w-4' />
-                        Edit Game
+                        게임 수정
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDeleteGame(game.id)}
                         className='text-red-600 focus:text-red-600 flex items-center gap-0'
                       >
                         <TrashIcon className='mr-1 h-4 w-4' />
-                        Delete Game
+                        게임 삭제
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

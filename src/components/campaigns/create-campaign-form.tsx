@@ -72,38 +72,38 @@ export function CreateCampaignForm({
 
   const validateForm = (): boolean => {
     if (games.length === 0) {
-      toast.error('Please add a game first before creating a campaign.');
+      toast.error('캠페인을 생성하려면 먼저 게임을 추가해주세요.');
       return false;
     }
     if (!form.name.trim()) {
-      toast.error('Please enter campaign name.');
+      toast.error('캠페인 제목을 입력해주세요.');
       return false;
     }
     if (!form.game_id) {
-      toast.error('Please select a game.');
+      toast.error('게임을 선택해주세요.');
       return false;
     }
     if (!form.start_date) {
-      toast.error('Please select start date.');
+      toast.error('시작일을 선택해주세요.');
       return false;
     }
     if (!form.region) {
-      toast.error('Please select region.');
+      toast.error('지역을 선택해주세요.');
       return false;
     }
     if (!form.mmp) {
-      toast.error('Please select MMP.');
+      toast.error('MMP를 선택해주세요.');
       return false;
     }
     if (!form.campaign_type) {
-      toast.error('Please select campaign type.');
+      toast.error('캠페인 유형을 선택해주세요.');
       return false;
     }
     if (
       form.end_date &&
       new Date(form.start_date) > new Date(form.end_date)
     ) {
-      toast.error('End date must be after start date.');
+      toast.error('종료일은 시작일 이후여야 합니다.');
       return false;
     }
     return true;
@@ -149,14 +149,14 @@ export function CreateCampaignForm({
         daily_report_url: form.daily_report_url?.trim() || null,
         regional_game_name: regionalName,
       });
-      toast.success('Campaign created successfully.');
+      toast.success('캠페인이 생성되었습니다.');
       onClose();
     } catch (error) {
       const msg =
         error instanceof Error
           ? error.message
-          : 'An error occurred while creating the campaign.';
-      toast.error(`Campaign creation error: ${msg}`);
+          : '캠페인을 생성하는 중 오류가 발생했습니다.';
+      toast.error(`캠페인 생성 오류: ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -166,9 +166,9 @@ export function CreateCampaignForm({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>Create New Campaign</DialogTitle>
+          <DialogTitle>새 캠페인 생성</DialogTitle>
           <DialogDescription>
-            Create a new campaign. Please fill in all required fields.
+            새 캠페인을 생성합니다. 모든 필수 항목을 입력해주세요.
           </DialogDescription>
         </DialogHeader>
 
@@ -187,11 +187,11 @@ export function CreateCampaignForm({
             onClick={onClose}
             disabled={isSubmitting}
           >
-            Cancel
+            취소
           </Button>
           <Button type='button' onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            Create Campaign
+            캠페인 생성
           </Button>
         </DialogFooter>
       </DialogContent>

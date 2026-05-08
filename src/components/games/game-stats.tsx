@@ -24,28 +24,28 @@ export function GameStats({
 }: GameStatsProps) {
   const stats = [
     {
-      title: 'Total Games',
+      title: '전체 게임',
       value: totalGames,
       icon: GamepadIcon,
-      description: 'All games in the system',
+      description: '시스템에 등록된 모든 게임',
     },
     {
-      title: 'Active Games',
+      title: '활성 게임',
       value: activeGames,
       icon: TrendingUpIcon,
-      description: 'Currently active games',
+      description: '현재 활성 상태인 게임',
     },
     {
-      title: 'Accounts',
+      title: '광고주',
       value: totalAccounts,
       icon: UsersIcon,
-      description: 'Accounts with games',
+      description: '게임을 보유한 광고주',
     },
     {
-      title: 'Categories',
+      title: '카테고리',
       value: totalCategories,
       icon: TrophyIcon,
-      description: 'Game categories',
+      description: '게임 카테고리',
     },
   ];
 

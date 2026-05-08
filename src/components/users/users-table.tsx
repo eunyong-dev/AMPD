@@ -85,7 +85,7 @@ const UserCell = React.memo(
         </Avatar>
         <div>
           <div className='font-medium leading-tight'>
-            {user.display_name || 'Unknown'}
+            {user.display_name || '알 수 없음'}
           </div>
           <div className='text-xs text-muted-foreground leading-tight'>
             {user.email}
@@ -158,7 +158,7 @@ const RoleCell = React.memo(
             ) : (
               <UserIcon className='size-3' />
             )}
-            <SelectValue placeholder='Select role' />
+            <SelectValue placeholder='역할 선택' />
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -256,7 +256,7 @@ interface LastLoginCellProps {
 const LastLoginCell = React.memo(
   ({ createdAt }: LastLoginCellProps) => (
     <span className='tabular-nums'>
-      {createdAt ? new Date(createdAt).toLocaleDateString() : 'Never'}
+      {createdAt ? new Date(createdAt).toLocaleDateString() : '없음'}
     </span>
   ),
   // 커스텀 비교 함수: 항상 동일하다고 간주 (재렌더링 최소화)
@@ -344,20 +344,20 @@ export const UsersTable = React.memo(
                 style={{ width: '300px', minWidth: '300px', maxWidth: '300px' }}
                 className='text-left'
               >
-                User
+                사용자
               </TableHead>
               <TableHead
                 style={{ width: '200px', minWidth: '200px', maxWidth: '200px' }}
                 className='text-left'
               >
-                Role
+                역할
               </TableHead>
-              <TableHead className='text-left'>Status</TableHead>
+              <TableHead className='text-left'>상태</TableHead>
               <TableHead
                 style={{ width: '150px', minWidth: '150px', maxWidth: '150px' }}
                 className='text-left'
               >
-                Created At
+                생성일
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -376,7 +376,7 @@ export const UsersTable = React.memo(
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className='h-24 text-center'>
-                  No results.
+                  결과가 없습니다.
                 </TableCell>
               </TableRow>
             )}

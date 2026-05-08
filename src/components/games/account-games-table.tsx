@@ -85,20 +85,20 @@ function GameTableRow({
   const handleDeleteGame = async () => {
     // 권한 재확인 (안전을 위해)
     if (!isDeleteAllowed) {
-      toast.error('You can only delete games from accounts assigned to you.');
+      toast.error('본인에게 할당된 광고주의 게임만 삭제할 수 있습니다.');
       setShowDeleteDialog(false);
       return;
     }
 
     try {
       await onDeleteGame(game.id);
-      toast.success('Game deleted successfully');
+      toast.success('게임이 삭제되었습니다');
       onGameDeleted?.(game.id);
       setShowDeleteDialog(false);
     } catch (err) {
       toast.error(
-        `Failed to delete game: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `게임 삭제 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     }
@@ -111,14 +111,14 @@ function GameTableRow({
       .writeText(text.trim())
       .then(() => {
         setCopiedFieldId(fieldId);
-        toast.success(`${label} copied to clipboard`);
+        toast.success(`${label}을(를) 클립보드에 복사했습니다`);
 
         setTimeout(() => {
           setCopiedFieldId(null);
         }, 2000);
       })
       .catch(() => {
-        toast.error('Failed to copy to clipboard');
+        toast.error('클립보드 복사에 실패했습니다');
       });
   };
 
@@ -262,7 +262,7 @@ function GameTableRow({
               size='icon'
             >
               <MoreHorizontalIcon className='h-4 w-4' />
-              <span className='sr-only'>Open menu</span>
+              <span className='sr-only'>메뉴 열기</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end' className='w-auto min-w-[120px]'>
@@ -271,7 +271,7 @@ function GameTableRow({
               className='text-red-600 focus:text-red-600 flex items-center gap-0'
             >
               <TrashIcon className='mr-1 h-4 w-4' />
-              Delete Game
+              게임 삭제
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -280,14 +280,14 @@ function GameTableRow({
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteGame}
-        title={isDeleteAllowed ? 'Are you sure?' : 'Cannot Delete Game'}
+        title={isDeleteAllowed ? '정말 삭제하시겠습니까?' : '게임을 삭제할 수 없습니다'}
         description={
           isDeleteAllowed
-            ? `This action cannot be undone. This will permanently delete the game ${game.game_name} from your account.`
-            : `You can only delete games from accounts assigned to you. This game ${game.game_name} is from an account assigned to another user.`
+            ? `이 작업은 되돌릴 수 없습니다. ${game.game_name} 게임이 영구적으로 삭제됩니다.`
+            : `본인에게 할당된 광고주의 게임만 삭제할 수 있습니다. ${game.game_name} 게임은 다른 사용자에게 할당된 광고주의 게임입니다.`
         }
-        confirmLabel='Delete'
-        cancelLabel='Close'
+        confirmLabel='삭제'
+        cancelLabel='닫기'
         isAllowed={isDeleteAllowed}
       />
     </TableRow>
@@ -313,8 +313,8 @@ export function AccountGamesTable({
         <Table style={{ tableLayout: 'fixed', width: '100%' }}>
           <TableHeader className={TABLE_STYLES.header}>
             <TableRow>
-              <TableHead style={{ width: '300px' }}>Game Name</TableHead>
-              <TableHead style={{ width: '120px' }}>Platform</TableHead>
+              <TableHead style={{ width: '300px' }}>게임명</TableHead>
+              <TableHead style={{ width: '120px' }}>플랫폼</TableHead>
               <TableHead style={{ width: '250px' }}>
                 Package/Bundle ID
               </TableHead>

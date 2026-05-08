@@ -29,36 +29,25 @@ export default function SettingsPage() {
   return (
     <AccessControl>
       <div className='space-y-6 w-full overflow-x-hidden'>
-        <div>
-          <h1 className='text-3xl font-bold tracking-tight flex items-center gap-3'>
-            <SettingsIcon className='h-8 w-8 text-primary' />
-            Settings
-          </h1>
-          <p className='text-sm text-muted-foreground mt-1'>
-            Administrative tools and maintenance actions.
-          </p>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
               <Sparkles className='h-5 w-5' />
-              Refresh Game Cache (All Accounts)
+              게임 캐시 새로고침 (전체 광고주)
             </CardTitle>
             <CardDescription>
-              Re-fetches and overwrites cached data across all accounts to keep
-              it in sync with external store pages:
+              모든 광고주의 캐시 데이터를 외부 스토어 페이지와 동기화하기 위해
+              재조회 후 덮어씁니다:
               <ul className='mt-2 ml-4 list-disc space-y-0.5'>
                 <li>
-                  <strong>Game logos</strong> — fetches latest icon from store
+                  <strong>게임 로고</strong> — 스토어에서 최신 아이콘을 가져옵니다
                 </li>
                 <li>
-                  <strong>Regional game names</strong> — fetches latest
-                  region-localized name
+                  <strong>지역별 게임명</strong> — 지역화된 최신 게임명을 가져옵니다
                 </li>
               </ul>
-              Existing values are kept if the fetch fails. For per-account
-              refresh, use the button on Account Detail → Campaigns tab.
+              조회에 실패한 경우 기존 값이 유지됩니다. 광고주별 새로고침은
+              광고주 상세 → 캠페인 탭의 버튼을 사용하세요.
             </CardDescription>
           </CardHeader>
           <CardContent className='space-y-4'>
@@ -66,7 +55,7 @@ export default function SettingsPage() {
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`}
               />
-              {refreshing ? 'Refreshing...' : 'Refresh missing data'}
+              {refreshing ? '새로고침 중...' : '누락된 데이터 새로고침'}
             </Button>
 
             {progress && (
@@ -89,8 +78,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div className='grid grid-cols-2 gap-3 text-xs'>
-                  <PhaseRow label='Logos' phase={progress.logos} />
-                  <PhaseRow label='Regional names' phase={progress.names} />
+                  <PhaseRow label='로고' phase={progress.logos} />
+                  <PhaseRow label='지역별 이름' phase={progress.names} />
                 </div>
               </div>
             )}

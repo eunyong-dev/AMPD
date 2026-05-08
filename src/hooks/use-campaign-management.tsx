@@ -539,13 +539,13 @@ export function useCampaignManagement(accountId?: string) {
       );
       // join 데이터 누락 케이스 대비 — 백그라운드 동기화
       loadCampaigns();
-      toast.success('Campaign updated successfully.');
+      toast.success('캠페인이 업데이트되었습니다.');
       return updatedCampaign;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '캠페인을 수정할 수 없습니다.';
       setError(errorMessage);
-      toast.error(`Failed to update campaign: ${errorMessage}`);
+      toast.error(`캠페인 업데이트 실패: ${errorMessage}`);
       throw err;
     }
   };

@@ -82,22 +82,22 @@ export function EditCampaignForm({
 
   const validateForm = (): boolean => {
     if (!form.name.trim()) {
-      toast.error('Please enter campaign name.');
+      toast.error('캠페인 제목을 입력해주세요.');
       return false;
     }
     if (!form.game_id) {
-      toast.error('Please select a game.');
+      toast.error('게임을 선택해주세요.');
       return false;
     }
     if (!form.start_date) {
-      toast.error('Please select start date.');
+      toast.error('시작일을 선택해주세요.');
       return false;
     }
     if (
       form.end_date &&
       new Date(form.start_date) > new Date(form.end_date)
     ) {
-      toast.error('End date must be after start date.');
+      toast.error('종료일은 시작일 이후여야 합니다.');
       return false;
     }
     return true;
@@ -135,9 +135,9 @@ export function EditCampaignForm({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>Edit Campaign</DialogTitle>
+          <DialogTitle>캠페인 수정</DialogTitle>
           <DialogDescription>
-            Update the campaign information. Please fill in all required fields.
+            캠페인 정보를 업데이트합니다. 모든 필수 항목을 입력해주세요.
           </DialogDescription>
         </DialogHeader>
 
@@ -156,11 +156,11 @@ export function EditCampaignForm({
             onClick={onClose}
             disabled={isSubmitting}
           >
-            Cancel
+            취소
           </Button>
           <Button type='button' onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            Update Campaign
+            캠페인 업데이트
           </Button>
         </DialogFooter>
       </DialogContent>

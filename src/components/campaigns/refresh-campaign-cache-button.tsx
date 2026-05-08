@@ -37,12 +37,12 @@ export function RefreshCampaignCacheButton({
           className='flex-shrink-0'
           onClick={refresh}
           disabled={refreshing}
-          title='Refresh missing game logos and regional names for this account'
+          title='이 광고주의 누락된 게임 로고와 지역별 이름을 새로고침합니다'
         >
           <RefreshCw
             className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}
           />
-          Refresh cache
+          캐시 새로고침
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -69,8 +69,8 @@ export function RefreshCampaignCacheButton({
 
         {progress && (
           <div className='grid grid-cols-2 gap-2 text-xs'>
-            <PhaseRow label='Logos' phase={progress.logos} />
-            <PhaseRow label='Names' phase={progress.names} />
+            <PhaseRow label='로고' phase={progress.logos} />
+            <PhaseRow label='이름' phase={progress.names} />
           </div>
         )}
       </PopoverContent>

@@ -97,10 +97,10 @@ export function CreateAccountForm({
     // 폼 검증
     const validationErrors = [];
     if (!newAccount.company.trim())
-      validationErrors.push('Company name is required');
-    if (!newAccount.country) validationErrors.push('Country is required');
+      validationErrors.push('회사명을 입력해주세요');
+    if (!newAccount.country) validationErrors.push('국가를 선택해주세요');
     if (!newAccount.assigned_user_id)
-      validationErrors.push('Assigned user is required');
+      validationErrors.push('담당자를 선택해주세요');
 
     if (validationErrors.length > 0) {
       validationErrors.forEach((error) => toast.error(error));
@@ -114,14 +114,14 @@ export function CreateAccountForm({
         assigned_user_id: newAccount.assigned_user_id,
       });
 
-      toast.success('Account created successfully');
+      toast.success('광고주가 생성되었습니다');
       resetForm();
       onAccountCreated?.();
       onClose();
     } catch (err) {
       toast.error(
-        `Failed to create account: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `광고주 생성 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     }
@@ -135,18 +135,18 @@ export function CreateAccountForm({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>Create New Account</DialogTitle>
+          <DialogTitle>새 광고주 생성</DialogTitle>
           <DialogDescription>
-            Create a new advertiser account and assign it to a manager.
+            새 광고주 계정을 생성하고 담당자를 지정합니다.
           </DialogDescription>
         </DialogHeader>
         <div className='space-y-4 py-4'>
           <div className='grid gap-4 md:grid-cols-2'>
             <div className='space-y-2'>
-              <Label htmlFor='company'>Company Name</Label>
+              <Label htmlFor='company'>회사명</Label>
               <Input
                 id='company'
-                placeholder='Enter company name'
+                placeholder='회사명을 입력해주세요'
                 value={newAccount.company}
                 onChange={(e) =>
                   setNewAccount((prev) => ({
@@ -158,7 +158,7 @@ export function CreateAccountForm({
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='country'>Country</Label>
+              <Label htmlFor='country'>국가</Label>
               <Select
                 value={newAccount.country}
                 onValueChange={(value) =>
@@ -166,7 +166,7 @@ export function CreateAccountForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder='Select country' />
+                  <SelectValue placeholder='국가를 선택해주세요' />
                 </SelectTrigger>
                 <SelectContent>
                   {COUNTRY_OPTIONS.map((option) => (
@@ -183,7 +183,7 @@ export function CreateAccountForm({
             </div>
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='assigned_user'>Assigned User</Label>
+            <Label htmlFor='assigned_user'>담당자</Label>
             <Select
               value={newAccount.assigned_user_id}
               onValueChange={(value) =>
@@ -194,7 +194,7 @@ export function CreateAccountForm({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder='Select assigned user' />
+                <SelectValue placeholder='담당자를 선택해주세요' />
               </SelectTrigger>
               <SelectContent>
                 {availableUsers.map((user) => (
@@ -221,9 +221,9 @@ export function CreateAccountForm({
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={onClose}>
-            Cancel
+            취소
           </Button>
-          <Button onClick={handleCreateAccount}>Create Account</Button>
+          <Button onClick={handleCreateAccount}>광고주 생성</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

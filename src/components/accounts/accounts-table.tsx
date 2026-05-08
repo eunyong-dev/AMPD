@@ -107,7 +107,7 @@ export function AccountsTable({
     // 권한 재확인 (안전을 위해)
     if (!isDeleteAllowed) {
       toast.error(
-        'You can only delete accounts assigned to you.'
+        '본인에게 할당된 광고주만 삭제할 수 있습니다.'
       );
       setDeleteDialogOpen(false);
       setAccountToDelete(null);
@@ -116,14 +116,14 @@ export function AccountsTable({
 
     try {
       await onDeleteAccount(accountToDelete.id);
-      toast.success('Account deleted successfully');
+      toast.success('광고주가 삭제되었습니다');
       onAccountDeleted?.(accountToDelete.id);
       setDeleteDialogOpen(false);
       setAccountToDelete(null);
     } catch (err) {
       toast.error(
-        `Failed to delete account: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `광고주 삭제 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     }
@@ -136,13 +136,13 @@ export function AccountsTable({
           <Table style={{ tableLayout: 'fixed', width: '100%' }}>
             <TableHeader className={TABLE_STYLES.header}>
               <TableRow>
-                <TableHead style={{ width: '200px' }}>Account</TableHead>
-                <TableHead style={{ width: '120px' }}>Country</TableHead>
-                <TableHead style={{ width: '160px' }}>Assigned User</TableHead>
+                <TableHead style={{ width: '200px' }}>광고주</TableHead>
+                <TableHead style={{ width: '120px' }}>국가</TableHead>
+                <TableHead style={{ width: '160px' }}>담당자</TableHead>
                 <TableHead style={{ width: '80px' }} className='text-center'>
-                  Games
+                  게임
                 </TableHead>
-                <TableHead style={{ width: '110px' }}>Campaigns</TableHead>
+                <TableHead style={{ width: '110px' }}>캠페인</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -190,7 +190,7 @@ export function AccountsTable({
                       className='inline-flex gap-1 px-1.5 py-0.5 text-xs text-muted-foreground [&_svg]:size-3 text-green-600 w-fit hover:text-green-700 cursor-pointer'
                     >
                       <CheckCircle2Icon className='text-green-500' />
-                      Active {account.active_campaigns}
+                      활성 {account.active_campaigns}
                     </Badge>
                   </Link>
                 </TableCell>
@@ -208,7 +208,7 @@ export function AccountsTable({
                         size='icon'
                       >
                         <MoreHorizontalIcon className='h-4 w-4' />
-                        <span className='sr-only'>Open menu</span>
+                        <span className='sr-only'>메뉴 열기</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -222,7 +222,7 @@ export function AccountsTable({
                           disabled={!canManageResource(currentUserProfile, account.assigned_user_id)}
                         >
                           <PencilIcon className='mr-1 h-4 w-4' />
-                          Edit Account
+                          광고주 수정
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -236,7 +236,7 @@ export function AccountsTable({
                         className='text-red-600 focus:text-red-600 flex items-center gap-0'
                       >
                         <TrashIcon className='mr-1 h-4 w-4' />
-                        Delete Account
+                        광고주 삭제
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -256,15 +256,15 @@ export function AccountsTable({
         }}
         onConfirm={handleDeleteAccount}
         title={
-          isDeleteAllowed ? 'Are you sure?' : 'Cannot Delete Account'
+          isDeleteAllowed ? '정말 삭제하시겠습니까?' : '광고주를 삭제할 수 없습니다'
         }
         description={
           isDeleteAllowed
-            ? `This action cannot be undone. This will permanently delete the account ${accountToDelete?.company} and all associated games and campaigns.`
-            : `You can only delete accounts assigned to you. This account ${accountToDelete?.company} is assigned to another user.`
+            ? `이 작업은 되돌릴 수 없습니다. ${accountToDelete?.company} 광고주와 연관된 모든 게임 및 캠페인이 영구적으로 삭제됩니다.`
+            : `본인에게 할당된 광고주만 삭제할 수 있습니다. ${accountToDelete?.company} 광고주는 다른 사용자에게 할당되어 있습니다.`
         }
-        confirmLabel='Delete'
-        cancelLabel='Close'
+        confirmLabel='삭제'
+        cancelLabel='닫기'
         isAllowed={isDeleteAllowed}
       />
     </>

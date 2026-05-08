@@ -13,6 +13,7 @@ import {
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatBreakdownCard } from '@/components/common/stat-breakdown-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -77,8 +78,8 @@ export default function MyCampaignsPage() {
     } catch (err) {
       console.error('내 캠페인 로드 오류:', err);
       toast.error(
-        `Failed to load campaigns: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `캠페인 불러오기 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     } finally {
@@ -125,13 +126,13 @@ export default function MyCampaignsPage() {
             campaign.id === campaignId ? updatedCampaign : campaign
           )
         );
-        toast.success('Campaign updated successfully.');
+        toast.success('캠페인이 업데이트되었습니다.');
       } catch (err) {
         const errorMessage =
           err instanceof Error
             ? err.message
-            : 'An error occurred while updating the campaign.';
-        toast.error(`Failed to update campaign: ${errorMessage}`);
+            : '캠페인을 업데이트하는 중 오류가 발생했습니다.';
+        toast.error(`캠페인 업데이트 실패: ${errorMessage}`);
         throw err;
       }
     },
@@ -268,98 +269,28 @@ export default function MyCampaignsPage() {
   return (
     <AccessControl>
       <div className='space-y-4'>
-        {/* Header */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold tracking-tight flex items-center gap-3'>
-              <UserIcon className='h-8 w-8 text-primary' />
-              My Campaigns
-            </h1>
-            <p className='text-muted-foreground'>
-              View and manage campaigns created by you
-            </p>
-          </div>
-        </div>
-
         {/* Campaign Statistics */}
-        <div className='space-y-6'>
-          {/* By Status */}
-          <div>
-            <div className='flex items-center gap-2 mb-3'>
-              <TargetIcon className='h-4 w-4 text-muted-foreground' />
-              <h3 className='text-sm font-semibold'>Campaigns by Status</h3>
-            </div>
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
-              {(
-                [
-                  {
-                    label: 'Planning',
-                    value: stats.planning,
-                    color: '#eab308',
-                  },
-                  {
-                    label: 'Ongoing',
-                    value: stats.ongoing,
-                    color: '#22c55e',
-                  },
-                  {
-                    label: 'Holding',
-                    value: stats.holding,
-                    color: '#ef4444',
-                  },
-                  {
-                    label: 'End',
-                    value: stats.end,
-                    color: '#94a3b8',
-                  },
-                ] as const
-              ).map((s) => (
-                <Card key={s.label}>
-                  <CardContent className='p-4'>
-                    <div className='flex items-center gap-1.5 text-xs text-muted-foreground mb-1'>
-                      <span
-                        className='h-2 w-2 rounded-full'
-                        style={{ backgroundColor: s.color }}
-                      />
-                      {s.label}
-                    </div>
-                    <div className='text-2xl font-semibold tabular-nums'>
-                      {s.value}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* By Region */}
-          <div>
-            <div className='flex items-center gap-2 mb-3'>
-              <MapPinIcon className='h-4 w-4 text-muted-foreground' />
-              <h3 className='text-sm font-semibold'>Campaigns by Region</h3>
-            </div>
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
-              {(
-                [
-                  { label: '🇰🇷 KR', value: campaignStatsByRegion.KR },
-                  { label: '🇯🇵 JP', value: campaignStatsByRegion.JP },
-                  { label: '🇹🇼 TW', value: campaignStatsByRegion.TW },
-                  { label: '🇺🇸 US', value: campaignStatsByRegion.US },
-                ] as const
-              ).map((r) => (
-                <Card key={r.label}>
-                  <CardContent className='p-4'>
-                    <div className='text-xs text-muted-foreground mb-1'>
-                      {r.label}
-                    </div>
-                    <div className='text-2xl font-semibold tabular-nums'>
-                      {r.value}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+        <div className='grid grid-cols-1 min-[1950px]:grid-cols-2 gap-4'>
+          <StatBreakdownCard
+            icon={<TargetIcon className='h-4 w-4 text-muted-foreground' />}
+            title='상태별 캠페인'
+            items={[
+              { key: 'planning', label: '계획', value: stats.planning, color: '#eab308' },
+              { key: 'ongoing', label: '진행중', value: stats.ongoing, color: '#22c55e' },
+              { key: 'holding', label: '홀딩', value: stats.holding, color: '#ef4444' },
+              { key: 'end', label: '종료', value: stats.end, color: '#94a3b8' },
+            ]}
+          />
+          <StatBreakdownCard
+            icon={<MapPinIcon className='h-4 w-4 text-muted-foreground' />}
+            title='지역별 캠페인'
+            items={[
+              { key: 'KR', label: '🇰🇷 KR', value: campaignStatsByRegion.KR, color: '#3b82f6' },
+              { key: 'JP', label: '🇯🇵 JP', value: campaignStatsByRegion.JP, color: '#a855f7' },
+              { key: 'TW', label: '🇹🇼 TW', value: campaignStatsByRegion.TW, color: '#14b8a6' },
+              { key: 'US', label: '🇺🇸 US', value: campaignStatsByRegion.US, color: '#f97316' },
+            ]}
+          />
         </div>
 
         {/* Search - 1450px 이하일 때 위쪽에 표시 */}
@@ -367,7 +298,7 @@ export default function MyCampaignsPage() {
           <div className='relative w-full'>
             <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
             <Input
-              placeholder='Search campaigns...'
+              placeholder='캠페인 검색...'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className='pl-10 h-9 w-full'
@@ -385,31 +316,31 @@ export default function MyCampaignsPage() {
                   value='all'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  All
+                  전체
                 </TabsTrigger>
                 <TabsTrigger
                   value='planning'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  Planning
+                  계획
                 </TabsTrigger>
                 <TabsTrigger
                   value='ongoing'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  Ongoing
+                  진행중
                 </TabsTrigger>
                 <TabsTrigger
                   value='holding'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  Holding
+                  홀딩
                 </TabsTrigger>
                 <TabsTrigger
                   value='end'
                   className='rounded-lg text-sm px-3 py-1'
                 >
-                  End
+                  종료
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -420,7 +351,7 @@ export default function MyCampaignsPage() {
               <div className='hidden search-break:block relative flex-1 max-w-md min-w-0'>
                 <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
                 <Input
-                  placeholder='Search campaigns...'
+                  placeholder='캠페인 검색...'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className='pl-10 h-9'
@@ -438,10 +369,10 @@ export default function MyCampaignsPage() {
                     <GlobeIcon className='h-4 w-4' />
                     <span className='hidden filter-break:inline ml-2'>
                       {selectedRegions.length === 0
-                        ? 'All Regions'
+                        ? '전체 지역'
                         : selectedRegions.includes('all')
-                        ? 'All Regions'
-                        : `${selectedRegions.length} selected`}
+                        ? '전체 지역'
+                        : `${selectedRegions.length}개 선택`}
                     </span>
                     <ChevronDownIcon className='hidden filter-break:block ml-2 h-4 w-4' />
                   </Button>
@@ -457,7 +388,7 @@ export default function MyCampaignsPage() {
                       onCheckedChange={() => {}}
                       className='data-[state=checked]:bg-black data-[state=checked]:border-black'
                     />
-                    <span>All Regions</span>
+                    <span>전체 지역</span>
                   </DropdownMenuItem>
                   {regionOptions.map((region) => (
                     <DropdownMenuItem
@@ -483,7 +414,7 @@ export default function MyCampaignsPage() {
                   <Button variant='outline' size='sm' className='flex-shrink-0'>
                     <ColumnsIcon className='h-4 w-4' />
                     <span className='hidden filter-break:inline ml-2'>
-                      Customize Columns
+                      컬럼 설정
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -497,7 +428,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Campaign Title
+                    캠페인 제목
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.gameName}
@@ -508,7 +439,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Game Name
+                    게임명
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.assignedUser}
@@ -519,7 +450,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Assigned User
+                    담당자
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.region}
@@ -530,7 +461,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Region
+                    지역
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.mmp}
@@ -552,7 +483,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Type
+                    타입
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.dateRange}
@@ -563,7 +494,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Date Range
+                    기간
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.status}
@@ -574,7 +505,7 @@ export default function MyCampaignsPage() {
                       }))
                     }
                   >
-                    Status
+                    상태
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={columnVisibility.jiraUrl}
@@ -630,15 +561,16 @@ export default function MyCampaignsPage() {
             currentUserProfile={currentUserProfile}
             accountAssignedUserId={undefined}
             columnVisibility={columnVisibility}
+            groupByAccount
           />
         ) : (
           <div className='text-center py-12'>
             <div className='mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4'>
               <UserIcon className='h-12 w-12 text-muted-foreground' />
             </div>
-            <h3 className='text-lg font-semibold mb-2'>No campaigns found</h3>
+            <h3 className='text-lg font-semibold mb-2'>캠페인이 없습니다</h3>
             <p className='text-muted-foreground'>
-              You haven&apos;t created any campaigns yet.
+              아직 생성한 캠페인이 없습니다.
             </p>
           </div>
         )}

@@ -99,10 +99,10 @@ export function EditAccountForm({
     // 폼 검증
     const validationErrors = [];
     if (!editedAccount.company.trim())
-      validationErrors.push('Company name is required');
-    if (!editedAccount.country) validationErrors.push('Country is required');
+      validationErrors.push('회사명을 입력해주세요');
+    if (!editedAccount.country) validationErrors.push('국가를 선택해주세요');
     if (!editedAccount.assigned_user_id)
-      validationErrors.push('Assigned user is required');
+      validationErrors.push('담당자를 선택해주세요');
 
     if (validationErrors.length > 0) {
       validationErrors.forEach((error) => toast.error(error));
@@ -116,12 +116,12 @@ export function EditAccountForm({
         assigned_user_id: editedAccount.assigned_user_id,
       });
 
-      toast.success('Account updated successfully');
+      toast.success('광고주 정보가 업데이트되었습니다');
       resetForm();
       onAccountUpdated?.();
       onClose();
     } catch (err) {
-      toast.error('Failed to update account');
+      toast.error('광고주 업데이트에 실패했습니다');
     }
   };
 
@@ -133,18 +133,18 @@ export function EditAccountForm({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>Edit Account</DialogTitle>
+          <DialogTitle>광고주 수정</DialogTitle>
           <DialogDescription>
-            Update the account information and assigned user.
+            광고주 정보와 담당자를 업데이트합니다.
           </DialogDescription>
         </DialogHeader>
         <div className='space-y-4 py-4'>
           <div className='grid gap-4 md:grid-cols-2'>
             <div className='space-y-2'>
-              <Label htmlFor='edit-company'>Company Name</Label>
+              <Label htmlFor='edit-company'>회사명</Label>
               <Input
                 id='edit-company'
-                placeholder='Enter company name'
+                placeholder='회사명을 입력해주세요'
                 value={editedAccount.company}
                 onChange={(e) =>
                   setEditedAccount((prev) => ({
@@ -156,7 +156,7 @@ export function EditAccountForm({
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='edit-country'>Country</Label>
+              <Label htmlFor='edit-country'>국가</Label>
               <Select
                 value={editedAccount.country}
                 onValueChange={(value) =>
@@ -164,7 +164,7 @@ export function EditAccountForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder='Select country' />
+                  <SelectValue placeholder='국가를 선택해주세요' />
                 </SelectTrigger>
                 <SelectContent>
                   {COUNTRY_OPTIONS.map((option) => (
@@ -181,7 +181,7 @@ export function EditAccountForm({
             </div>
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='edit-assigned_user'>Assigned User</Label>
+            <Label htmlFor='edit-assigned_user'>담당자</Label>
             <Select
               value={editedAccount.assigned_user_id}
               onValueChange={(value) =>
@@ -192,7 +192,7 @@ export function EditAccountForm({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder='Select assigned user' />
+                <SelectValue placeholder='담당자를 선택해주세요' />
               </SelectTrigger>
               <SelectContent>
                 {availableUsers.map((user) => (
@@ -219,9 +219,9 @@ export function EditAccountForm({
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={onClose}>
-            Cancel
+            취소
           </Button>
-          <Button onClick={handleUpdateAccount}>Update Account</Button>
+          <Button onClick={handleUpdateAccount}>광고주 업데이트</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

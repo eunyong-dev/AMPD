@@ -13,14 +13,16 @@ import {
 } from '@/components/ui/breadcrumb';
 import { getCampaignById } from '@/hooks/use-campaign-management';
 
-// 페이지 경로와 표시 이름 매핑
+// 정적 경로 → 한국어 표시 이름 매핑
 const pathMap: Record<string, string> = {
-  '/': 'Home',
-  '/accounts': 'Accounts',
-  '/analytics': 'Analytics',
-  '/campaigns': 'Campaigns',
-  '/team': 'Team',
-  '/settings': 'Settings',
+  '/': '홈',
+  '/accounts': '광고주',
+  '/analytics': '분석',
+  '/campaigns': '캠페인',
+  '/campaigns/my': '내 캠페인',
+  '/team': '팀',
+  '/settings': '설정',
+  '/permissions': '권한',
 };
 
 export function AppBreadcrumb() {
@@ -64,34 +66,48 @@ export function AppBreadcrumb() {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href='/'>Home</Link>
+            <Link href='/'>홈</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
 
         {pathSegments.map((segment, index) => {
-          const href = '/' + pathSegments.slice(0, index + 1).join('/');
+          let href = '/' + pathSegments.slice(0, index + 1).join('/');
           const isLast = index === pathSegments.length - 1;
 
-          // 동적 경로 처리
+          // 동적 경로 표시 이름 결정 — 위치(index) + segment 패턴 매칭
           let displayName = pathMap[href];
           if (!displayName) {
-            // /accounts/[id] 경로인 경우
-            if (
-              pathSegments[0] === 'accounts' &&
-              pathSegments.length === 2 &&
-              isLast
-            ) {
-              displayName = 'Account Detail';
+            const isAccountsRoute = pathSegments[0] === 'accounts';
+            const isCampaignsRoute = pathSegments[0] === 'campaigns';
+
+            // /accounts/[id] — index 1: 회사명 (URL slug)
+            if (isAccountsRoute && index === 1) {
+              displayName = decodeURIComponent(segment);
             }
-            // /campaigns/[id] 경로인 경우
+            // /accounts/[id]/settlements — index 2
+            // 실제 페이지 없으므로 광고주 상세의 정산서 탭으로 링크
             else if (
-              pathSegments[0] === 'campaigns' &&
-              pathSegments.length === 2 &&
-              isLast
+              isAccountsRoute &&
+              index === 2 &&
+              segment === 'settlements'
             ) {
+              displayName = '정산서';
+              href = `/accounts/${pathSegments[1]}?tab=settlements`;
+            }
+            // /accounts/[id]/settlements/[settlementId] — index 3
+            else if (isAccountsRoute && index === 3) {
+              displayName = '정산서 상세';
+            }
+            // /campaigns/[id] — index 1: 캠페인 이름
+            else if (isCampaignsRoute && index === 1 && isLast) {
               displayName = campaignName || segment;
             } else {
-              displayName = segment.charAt(0).toUpperCase() + segment.slice(1);
+              // 그 외: 디코딩한 segment 그대로
+              try {
+                displayName = decodeURIComponent(segment);
+              } catch {
+                displayName = segment;
+              }
             }
           }
 

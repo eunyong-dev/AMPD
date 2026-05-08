@@ -18,7 +18,7 @@ export function AccountStats({
     <div className='grid gap-4 md:grid-cols-3'>
       <Card>
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-          <CardTitle className='text-sm font-medium'>Total Accounts</CardTitle>
+          <CardTitle className='text-sm font-medium'>전체 광고주</CardTitle>
           <BuildingIcon className='h-4 w-4 text-muted-foreground' />
         </CardHeader>
         <CardContent>
@@ -27,7 +27,7 @@ export function AccountStats({
       </Card>
       <Card>
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-          <CardTitle className='text-sm font-medium'>Total Games</CardTitle>
+          <CardTitle className='text-sm font-medium'>전체 게임</CardTitle>
           <GamepadIcon className='h-4 w-4 text-muted-foreground' />
         </CardHeader>
         <CardContent>
@@ -37,7 +37,7 @@ export function AccountStats({
       <Card>
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
           <CardTitle className='text-sm font-medium'>
-            Total Active Campaigns
+            전체 활성 캠페인
           </CardTitle>
           <TargetIcon className='h-4 w-4 text-muted-foreground' />
         </CardHeader>

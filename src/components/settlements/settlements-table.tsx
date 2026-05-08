@@ -60,7 +60,7 @@ export function SettlementsTable({
   if (settlements.length === 0) {
     return (
       <div className='border rounded-xl py-12 text-center text-sm text-muted-foreground'>
-        No settlements yet.
+        아직 정산서가 없습니다.
       </div>
     );
   }
@@ -71,16 +71,16 @@ export function SettlementsTable({
         <TableHeader className={TABLE_STYLES.header}>
           <TableRow>
             <TableHead className='whitespace-nowrap' style={{ minWidth: 200 }}>
-              Title
+              제목
             </TableHead>
             <TableHead className='whitespace-nowrap' style={{ minWidth: 200 }}>
-              Period
+              기간
             </TableHead>
-            <TableHead className='whitespace-nowrap'>Campaigns</TableHead>
+            <TableHead className='whitespace-nowrap'>캠페인</TableHead>
             <TableHead className='whitespace-nowrap text-right'>
-              Total
+              합계
             </TableHead>
-            <TableHead className='whitespace-nowrap'>Created</TableHead>
+            <TableHead className='whitespace-nowrap'>생성일</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className={TABLE_STYLES.body}>
@@ -107,9 +107,7 @@ export function SettlementsTable({
               <TableCell className='whitespace-nowrap text-sm text-muted-foreground tabular-nums'>
                 {s.campaigns.length === 0
                   ? '—'
-                  : `${s.campaigns.length} campaign${
-                      s.campaigns.length === 1 ? '' : 's'
-                    }`}
+                  : `${s.campaigns.length}개 캠페인`}
               </TableCell>
               <TableCell className='whitespace-nowrap text-right tabular-nums font-medium'>
                 {formatAmount(Number(s.total_amount))}

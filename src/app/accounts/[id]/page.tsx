@@ -6,6 +6,7 @@ import { PlusIcon, BuildingIcon, MapPinIcon, TargetIcon } from 'lucide-react';
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatBreakdownCard } from '@/components/common/stat-breakdown-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -194,13 +195,12 @@ export default function AccountDetailPage() {
     return (
       <AccessControl>
         <div className='text-center py-12'>
-          <h2 className='text-2xl font-semibold mb-4'>Account Not Found</h2>
+          <h2 className='text-2xl font-semibold mb-4'>광고주를 찾을 수 없습니다</h2>
           <p className='text-muted-foreground mb-6'>
-            The account you&apos;re looking for doesn&apos;t exist or you don&apos;t have
-            access to it.
+            찾으시는 광고주가 존재하지 않거나 접근 권한이 없습니다.
           </p>
           <Button onClick={() => window.history.back()}>
-            Back to Accounts
+            광고주 목록으로
           </Button>
         </div>
       </AccessControl>
@@ -212,12 +212,12 @@ export default function AccountDetailPage() {
     return (
       <AccessControl>
         <div className='text-center py-12'>
-          <h2 className='text-2xl font-semibold mb-4'>Access Denied</h2>
+          <h2 className='text-2xl font-semibold mb-4'>접근 권한이 없습니다</h2>
           <p className='text-muted-foreground mb-6'>
-            You don&apos;t have permission to view this account.
+            이 광고주를 조회할 권한이 없습니다.
           </p>
           <Button onClick={() => window.history.back()}>
-            Back to Accounts
+            광고주 목록으로
           </Button>
         </div>
       </AccessControl>
@@ -230,11 +230,7 @@ export default function AccountDetailPage() {
         {/* Header */}
         <div className='flex items-center justify-between'>
           <div>
-            <h1 className='text-3xl font-bold tracking-tight flex items-center gap-3'>
-              <BuildingIcon className='h-8 w-8 text-primary' />
-              Account Detail
-            </h1>
-            <div className='flex items-center gap-3 mt-1'>
+            <div className='flex items-center gap-3'>
               <span className='text-base font-semibold'>
                 {currentAccount.company}
               </span>
@@ -275,18 +271,18 @@ export default function AccountDetailPage() {
                   </AvatarFallback>
                 </Avatar>
                 <span className='text-sm text-muted-foreground'>
-                  {currentAccount.assigned_user_name || 'Unassigned'}
+                  {currentAccount.assigned_user_name || '미지정'}
                 </span>
               </div>
             </div>
           </div>
           <div className='flex items-center gap-6'>
             <div className='text-right'>
-              <p className='text-xs text-muted-foreground mb-1'>Games</p>
+              <p className='text-xs text-muted-foreground mb-1'>게임</p>
               <p className='text-2xl font-bold'>{accountGames.length}</p>
             </div>
             <div className='text-right'>
-              <p className='text-xs text-muted-foreground mb-1'>Total Campaigns</p>
+              <p className='text-xs text-muted-foreground mb-1'>전체 캠페인</p>
               <p className='text-2xl font-bold'>
                 {campaignStatsByStatus.total}
               </p>
@@ -295,84 +291,27 @@ export default function AccountDetailPage() {
         </div>
 
         {/* Campaign Statistics */}
-        <div className='space-y-6'>
-          {/* By Status */}
-          <div>
-            <div className='flex items-center gap-2 mb-3'>
-              <TargetIcon className='h-4 w-4 text-muted-foreground' />
-              <h3 className='text-sm font-semibold'>Campaigns by Status</h3>
-            </div>
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
-              {(
-                [
-                  {
-                    label: 'Planning',
-                    value: campaignStatsByStatus.planning,
-                    color: '#eab308',
-                  },
-                  {
-                    label: 'Ongoing',
-                    value: campaignStatsByStatus.ongoing,
-                    color: '#22c55e',
-                  },
-                  {
-                    label: 'Holding',
-                    value: campaignStatsByStatus.holding,
-                    color: '#ef4444',
-                  },
-                  {
-                    label: 'End',
-                    value: campaignStatsByStatus.end,
-                    color: '#94a3b8',
-                  },
-                ] as const
-              ).map((s) => (
-                <Card key={s.label}>
-                  <CardContent className='p-4'>
-                    <div className='flex items-center gap-1.5 text-xs text-muted-foreground mb-1'>
-                      <span
-                        className='h-2 w-2 rounded-full'
-                        style={{ backgroundColor: s.color }}
-                      />
-                      {s.label}
-                    </div>
-                    <div className='text-2xl font-semibold tabular-nums'>
-                      {s.value}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* By Region */}
-          <div>
-            <div className='flex items-center gap-2 mb-3'>
-              <MapPinIcon className='h-4 w-4 text-muted-foreground' />
-              <h3 className='text-sm font-semibold'>Campaigns by Region</h3>
-            </div>
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
-              {(
-                [
-                  { label: '🇰🇷 KR', value: campaignStatsByRegion.KR },
-                  { label: '🇯🇵 JP', value: campaignStatsByRegion.JP },
-                  { label: '🇹🇼 TW', value: campaignStatsByRegion.TW },
-                  { label: '🇺🇸 US', value: campaignStatsByRegion.US },
-                ] as const
-              ).map((r) => (
-                <Card key={r.label}>
-                  <CardContent className='p-4'>
-                    <div className='text-xs text-muted-foreground mb-1'>
-                      {r.label}
-                    </div>
-                    <div className='text-2xl font-semibold tabular-nums'>
-                      {r.value}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+        <div className='grid grid-cols-1 min-[1950px]:grid-cols-2 gap-4'>
+          <StatBreakdownCard
+            icon={<TargetIcon className='h-4 w-4 text-muted-foreground' />}
+            title='상태별 캠페인'
+            items={[
+              { key: 'planning', label: '계획', value: campaignStatsByStatus.planning, color: '#eab308' },
+              { key: 'ongoing', label: '진행중', value: campaignStatsByStatus.ongoing, color: '#22c55e' },
+              { key: 'holding', label: '홀딩', value: campaignStatsByStatus.holding, color: '#ef4444' },
+              { key: 'end', label: '종료', value: campaignStatsByStatus.end, color: '#94a3b8' },
+            ]}
+          />
+          <StatBreakdownCard
+            icon={<MapPinIcon className='h-4 w-4 text-muted-foreground' />}
+            title='지역별 캠페인'
+            items={[
+              { key: 'KR', label: '🇰🇷 KR', value: campaignStatsByRegion.KR, color: '#3b82f6' },
+              { key: 'JP', label: '🇯🇵 JP', value: campaignStatsByRegion.JP, color: '#a855f7' },
+              { key: 'TW', label: '🇹🇼 TW', value: campaignStatsByRegion.TW, color: '#14b8a6' },
+              { key: 'US', label: '🇺🇸 US', value: campaignStatsByRegion.US, color: '#f97316' },
+            ]}
+          />
         </div>
 
         {/* Create Game Form */}
@@ -417,7 +356,7 @@ export default function AccountDetailPage() {
                 value='campaigns'
                 className='rounded-lg text-sm px-3 py-1 flex items-center gap-2'
               >
-                Campaigns
+                캠페인
                 <span className='bg-muted text-muted-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center'>
                   {campaignStatsByStatus.total}
                 </span>
@@ -426,7 +365,7 @@ export default function AccountDetailPage() {
                 value='games'
                 className='rounded-lg text-sm px-3 py-1 flex items-center gap-2'
               >
-                Games
+                게임
                 <span className='bg-muted text-muted-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center'>
                   {accountGames.length}
                 </span>
@@ -435,7 +374,7 @@ export default function AccountDetailPage() {
                 value='settlements'
                 className='rounded-lg text-sm px-3 py-1'
               >
-                Settlements
+                정산서
               </TabsTrigger>
             </TabsList>
 
@@ -455,7 +394,7 @@ export default function AccountDetailPage() {
                         onClick={() => {
                           if (accountGames.length === 0) {
                             toast.error(
-                              'Please add a game first before creating a campaign.'
+                              '캠페인을 생성하려면 먼저 게임을 추가해주세요.'
                             );
                             return;
                           }
@@ -465,12 +404,12 @@ export default function AccountDetailPage() {
                         disabled
                       >
                         <PlusIcon className='h-4 w-4' />
-                        Add Campaign
+                        캠페인 추가
                       </Button>
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Please add a game first before creating a campaign.</p>
+                    <p>캠페인을 생성하려면 먼저 게임을 추가해주세요.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -482,7 +421,7 @@ export default function AccountDetailPage() {
                   } else if (activeTab === 'campaigns') {
                     if (accountGames.length === 0) {
                       toast.error(
-                        'Please add a game first before creating a campaign.'
+                        '캠페인을 생성하려면 먼저 게임을 추가해주세요.'
                       );
                       return;
                     }
@@ -495,10 +434,10 @@ export default function AccountDetailPage() {
               >
                 <PlusIcon className='h-4 w-4' />
                 {activeTab === 'games'
-                  ? 'Add Game'
+                  ? '게임 추가'
                   : activeTab === 'campaigns'
-                  ? 'Add Campaign'
-                  : 'Add Settlement'}
+                  ? '캠페인 추가'
+                  : '정산서 추가'}
               </Button>
             )}
             </div>
@@ -517,13 +456,13 @@ export default function AccountDetailPage() {
                 <div className='mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4'>
                   <PlusIcon className='h-12 w-12 text-muted-foreground' />
                 </div>
-                <h3 className='text-lg font-semibold mb-2'>No games found</h3>
+                <h3 className='text-lg font-semibold mb-2'>게임이 없습니다</h3>
                 <p className='text-muted-foreground mb-4'>
-                  This account doesn&apos;t have any games yet.
+                  이 광고주에는 아직 등록된 게임이 없습니다.
                 </p>
                 <Button onClick={() => setShowCreateGameForm(true)}>
                   <PlusIcon className='mr-1 h-4 w-4' />
-                  Add First Game
+                  첫 게임 추가
                 </Button>
               </div>
             )}
@@ -578,10 +517,10 @@ export default function AccountDetailPage() {
                   <PlusIcon className='h-12 w-12 text-muted-foreground' />
                 </div>
                 <h3 className='text-lg font-semibold mb-2'>
-                  No campaigns found
+                  캠페인이 없습니다
                 </h3>
                 <p className='text-muted-foreground mb-4'>
-                  This account doesn&apos;t have any campaigns yet.
+                  이 광고주에는 아직 등록된 캠페인이 없습니다.
                 </p>
                 {accountGames.length === 0 ? (
                   <TooltipProvider delayDuration={0}>
@@ -591,19 +530,19 @@ export default function AccountDetailPage() {
                           <Button
                             onClick={() => {
                               toast.error(
-                                'Please add a game first before creating a campaign.'
+                                '캠페인을 생성하려면 먼저 게임을 추가해주세요.'
                               );
                             }}
                             disabled
                           >
                             <PlusIcon className='mr-1 h-4 w-4' />
-                            Add First Campaign
+                            첫 캠페인 추가
                           </Button>
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
-                          Please add a game first before creating a campaign.
+                          캠페인을 생성하려면 먼저 게임을 추가해주세요.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -615,7 +554,7 @@ export default function AccountDetailPage() {
                     }}
                   >
                     <PlusIcon className='mr-1 h-4 w-4' />
-                    Add First Campaign
+                    첫 캠페인 추가
                   </Button>
                 )}
               </div>
@@ -669,14 +608,12 @@ export default function AccountDetailPage() {
                 })),
               });
               toast.success(
-                `Settlement created with ${created.lines.length} line${
-                  created.lines.length !== 1 ? 's' : ''
-                }.`
+                `정산서가 ${created.lines.length}개 행으로 생성되었습니다.`
               );
             } catch (err) {
               const msg =
-                err instanceof Error ? err.message : 'Unknown error';
-              toast.error(`Failed to create settlement: ${msg}`);
+                err instanceof Error ? err.message : '알 수 없는 오류';
+              toast.error(`정산서 생성 실패: ${msg}`);
               throw err;
             }
           }}

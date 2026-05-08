@@ -138,7 +138,7 @@ export default function SettlementDetailPage() {
 
       if (error) throw error;
       if (!data) {
-        toast.error('Settlement not found.');
+        toast.error('정산서를 찾을 수 없습니다.');
         router.push(`${accountBaseUrl}?tab=settlements`);
         return;
       }
@@ -166,8 +166,8 @@ export default function SettlementDetailPage() {
       };
       setSettlement(detail);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to load settlement: ${msg}`);
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`정산서 불러오기 실패: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -186,11 +186,11 @@ export default function SettlementDetailPage() {
         .delete()
         .eq('id', settlement.id);
       if (error) throw error;
-      toast.success('Settlement deleted.');
+      toast.success('정산서가 삭제되었습니다.');
       router.push(`${accountBaseUrl}?tab=settlements`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to delete: ${msg}`);
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`삭제 실패: ${msg}`);
     } finally {
       setShowDelete(false);
     }
@@ -219,13 +219,14 @@ export default function SettlementDetailPage() {
   const tableRef = useRef<HTMLTableElement>(null);
   useRawCopy(tableRef);
 
-  // Detail 라인을 클립보드로 복사 (Description은 두 칸 차지)
+  // Detail 라인을 클립보드로 복사
+  // - withHeader: 헤더 + 데이터 + TOTAL (전체 테이블)
+  // - !withHeader: 데이터 라인만 (헤더 미리 세팅된 템플릿용)
   const copyLines = async ({ withHeader }: { withHeader: boolean }) => {
     if (sortedLines.length === 0) return;
 
     const headers = [
       'Description',
-      '',
       'Model',
       'Rate',
       'GEO',
@@ -235,7 +236,6 @@ export default function SettlementDetailPage() {
     ];
     const dataRows: string[][] = sortedLines.map((l) => [
       l.description ?? '',
-      '',
       l.model ?? '',
       String(Number(l.rate)),
       l.geo ?? '',
@@ -250,7 +250,6 @@ export default function SettlementDetailPage() {
       '',
       '',
       '',
-      '',
       String(linesTotal),
     ];
     const rows: string[][] = withHeader
@@ -259,20 +258,38 @@ export default function SettlementDetailPage() {
 
     const tsv = rows.map((r) => r.join('\t')).join('\n');
 
-    // Plain HTML <table> — Google 시트의 기본 paste 동작에 맡김.
-    // 숫자 셀은 Sheets가 자동 인식하고 destination 셀 서식 적용.
+    // HTML <table> — visual styling 포함 (헤더/총계 배경, 테두리).
+    // Google 시트는 inline style을 source 서식으로 받고, 셀 내용 서식은
+    // destination 우선 적용 (예: $ 표시는 시트의 셀 format이 적용)
     const escapeHtml = (s: string) =>
       s
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-    const html = `<table>${rows
-      .map(
-        (r) =>
-          `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`
-      )
-      .join('')}</table>`;
+
+    const cellBase =
+      'border:1px solid #d1d5db;padding:6px 10px;vertical-align:top;';
+    const headerStyle =
+      cellBase + 'background-color:#f3f4f6;font-weight:600;';
+    const totalStyle =
+      cellBase + 'background-color:#f9fafb;font-weight:600;border-top:2px solid #9ca3af;';
+
+    const renderRow = (cells: string[], style: string) =>
+      `<tr>${cells
+        .map((c) => `<td style="${style}">${escapeHtml(c)}</td>`)
+        .join('')}</tr>`;
+
+    let bodyHtml = '';
+    if (withHeader) {
+      bodyHtml += renderRow(headers, headerStyle);
+    }
+    bodyHtml += dataRows.map((r) => renderRow(r, cellBase)).join('');
+    if (withHeader) {
+      bodyHtml += renderRow(totalRow, totalStyle);
+    }
+
+    const html = `<table style="border-collapse:collapse;">${bodyHtml}</table>`;
 
     try {
       if (
@@ -289,12 +306,12 @@ export default function SettlementDetailPage() {
         await navigator.clipboard.writeText(tsv);
       }
       toast.success(
-        `Copied ${sortedLines.length} line${
-          sortedLines.length === 1 ? '' : 's'
-        }${withHeader ? ' with header' : ''}.`
+        `${sortedLines.length}개 행${
+          withHeader ? ' (헤더 포함)' : ''
+        }을(를) 복사했습니다.`
       );
     } catch {
-      toast.error('Failed to copy to clipboard.');
+      toast.error('클립보드 복사에 실패했습니다.');
     }
   };
 
@@ -314,7 +331,7 @@ export default function SettlementDetailPage() {
     return (
       <AccessControl>
         <div className='text-center py-12 text-muted-foreground'>
-          Settlement not found.
+          정산서를 찾을 수 없습니다.
         </div>
       </AccessControl>
     );
@@ -361,7 +378,7 @@ export default function SettlementDetailPage() {
               onClick={() => setShowDelete(true)}
             >
               <Trash2 className='h-4 w-4 mr-1.5' />
-              Delete
+              삭제
             </Button>
           </div>
         </div>
@@ -369,13 +386,13 @@ export default function SettlementDetailPage() {
         {/* Detail Lines */}
         <div>
           <div className='flex items-center justify-between mb-3'>
-            <h2 className='text-lg font-semibold'>Detail</h2>
+            <h2 className='text-lg font-semibold'>상세</h2>
             {settlement.lines.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='sm'>
                     <Copy className='h-4 w-4 mr-1.5' />
-                    Copy
+                    복사
                     <ChevronDown className='h-4 w-4 ml-1' />
                   </Button>
                 </DropdownMenuTrigger>
@@ -383,12 +400,12 @@ export default function SettlementDetailPage() {
                   <DropdownMenuItem
                     onClick={() => copyLines({ withHeader: true })}
                   >
-                    Copy with header
+                    헤더 포함 복사
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => copyLines({ withHeader: false })}
                   >
-                    Copy data only
+                    데이터만 복사
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -397,7 +414,7 @@ export default function SettlementDetailPage() {
 
           {settlement.lines.length === 0 ? (
             <div className='border rounded-xl py-12 text-center text-sm text-muted-foreground'>
-              No detail lines. (시트에 해당 기간의 데이터가 없거나 단가가
+              상세 라인이 없습니다. (시트에 해당 기간의 데이터가 없거나 단가가
               비어있을 수 있습니다.)
             </div>
           ) : (
@@ -409,23 +426,23 @@ export default function SettlementDetailPage() {
                       className='whitespace-nowrap'
                       style={{ width: '100%' }}
                     >
-                      Description
+                      설명
                     </TableHead>
-                    <TableHead className='whitespace-nowrap'>Model</TableHead>
+                    <TableHead className='whitespace-nowrap'>모델</TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
-                      Rate
+                      단가
                     </TableHead>
                     <TableHead className='whitespace-nowrap pl-10'>
                       GEO
                     </TableHead>
                     <TableHead className='whitespace-nowrap tabular-nums'>
-                      Duration
+                      기간
                     </TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
-                      Quantity
+                      수량
                     </TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
-                      Amount
+                      금액
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -474,7 +491,7 @@ export default function SettlementDetailPage() {
                       colSpan={6}
                       className='whitespace-nowrap text-right font-semibold'
                     >
-                      TOTAL
+                      합계
                     </TableCell>
                     <TableCell
                       className='whitespace-nowrap text-right tabular-nums font-bold'
@@ -493,8 +510,8 @@ export default function SettlementDetailPage() {
           isOpen={showDelete}
           onClose={() => setShowDelete(false)}
           onConfirm={handleDelete}
-          title='Delete Settlement'
-          description={`"${settlement.title}" 정산을 삭제합니다. 모든 정산 detail이 함께 삭제됩니다.`}
+          title='정산서 삭제'
+          description={`"${settlement.title}" 정산을 삭제합니다. 모든 정산 상세 내역이 함께 삭제됩니다.`}
         />
       </div>
       <Toaster position='top-center' />

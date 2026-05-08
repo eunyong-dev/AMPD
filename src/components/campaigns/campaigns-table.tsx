@@ -90,7 +90,7 @@ function getStatusDisplay(status: string | null): StatusDisplay {
     (option) => option.value === status
   );
   if (!statusOption) {
-    return { label: 'Unknown', variant: 'outline', color: '' };
+    return { label: '알 수 없음', variant: 'outline', color: '' };
   }
 
   const variantMap: Record<string, 'outline'> = {
@@ -118,11 +118,11 @@ function getTypeDisplay(type: string | null): string {
   const typeOption = CAMPAIGN_TYPE_OPTIONS.find(
     (option) => option.value === type
   );
-  return typeOption?.label || type || 'Unknown';
+  return typeOption?.label || type || '알 수 없음';
 }
 
 function getRegionDisplay(region: string | null): string {
-  if (!region) return 'Unknown';
+  if (!region) return '알 수 없음';
 
   const regionEmojiMap: Record<string, string> = {
     KR: '🇰🇷',
@@ -137,7 +137,7 @@ function getRegionDisplay(region: string | null): string {
 
 function getMMPDisplay(mmp: string | null): string {
   const mmpOption = MMP_OPTIONS.find((option) => option.value === mmp);
-  return mmpOption?.label || mmp || 'Unknown';
+  return mmpOption?.label || mmp || '알 수 없음';
 }
 
 // 컴포넌트: Game Image Cell
@@ -411,12 +411,12 @@ function CampaignTableRow({
     try {
       await navigator.clipboard.writeText(gameNameToCopy);
       setCopiedGameName(true);
-      toast.success('Game name copied to clipboard');
+      toast.success('게임 이름을 클립보드에 복사했습니다');
       setTimeout(() => {
         setCopiedGameName(false);
       }, COPY_RESET_DELAY);
     } catch (error) {
-      toast.error('Failed to copy game name');
+      toast.error('게임 이름 복사에 실패했습니다');
     }
   }, [gameNameLoading, regionalGameName, campaign.game_name]);
 
@@ -442,7 +442,7 @@ function CampaignTableRow({
               {campaign.account_company}
             </Link>
           ) : (
-            <span className='text-sm text-muted-foreground'>Unknown</span>
+            <span className='text-sm text-muted-foreground'>알 수 없음</span>
           )}
         </TableCell>
       )}
@@ -536,7 +536,7 @@ function CampaignTableRow({
                 </div>
               </>
             ) : (
-              <div className='text-xs text-muted-foreground'>Unassigned</div>
+              <div className='text-xs text-muted-foreground'>미지정</div>
             )}
           </div>
         </TableCell>
@@ -609,7 +609,7 @@ function CampaignTableRow({
               size='icon'
             >
               <MoreHorizontalIcon className='h-4 w-4' />
-              <span className='sr-only'>Open menu</span>
+              <span className='sr-only'>메뉴 열기</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end' className='w-auto min-w-[120px]'>
@@ -619,7 +619,7 @@ function CampaignTableRow({
               disabled={!isManageAllowed}
             >
               <EditIcon className='mr-1 h-4 w-4' />
-              Edit Campaign
+              캠페인 수정
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleDeleteClick(campaign.id, isManageAllowed)}
@@ -627,7 +627,7 @@ function CampaignTableRow({
               disabled={!isManageAllowed}
             >
               <TrashIcon className='mr-1 h-4 w-4' />
-              Delete Campaign
+              캠페인 삭제
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -648,6 +648,8 @@ interface CampaignsTableProps {
   currentUserProfile?: UserProfile | null;
   accountAssignedUserId?: string;
   columnVisibility?: Record<string, boolean>;
+  /** true면 광고주(account_company)로 1차 그룹핑 후 내부 정렬 */
+  groupByAccount?: boolean;
 }
 
 export function CampaignsTable({
@@ -660,6 +662,7 @@ export function CampaignsTable({
   onEditCampaign,
   currentUserProfile,
   accountAssignedUserId,
+  groupByAccount = false,
   columnVisibility = {
     campaignTitle: true,
     account: true,
@@ -695,10 +698,11 @@ export function CampaignsTable({
   }, [sortDir]);
 
   const sortedCampaigns = useMemo(() => {
-    if (!sortColumn) return campaigns;
+    if (!sortColumn && !groupByAccount) return campaigns;
     const copy = [...campaigns];
 
-    copy.sort((a, b) => {
+    const innerCompare = (a: Campaign, b: Campaign): number => {
+      if (!sortColumn) return 0;
       let cmp = 0;
       if (sortColumn === 'name') {
         cmp = compareByNameAndRegion(a, b);
@@ -709,9 +713,24 @@ export function CampaignsTable({
         if (cmp === 0) cmp = compareByNameAndRegion(a, b);
       }
       return sortDir === 'asc' ? cmp : -cmp;
+    };
+
+    copy.sort((a, b) => {
+      // 1차: 광고주 그룹핑 (요청 시) — 그룹 자체 정렬 방향은 항상 asc
+      if (groupByAccount) {
+        const aCompany = a.account_company ?? '';
+        const bCompany = b.account_company ?? '';
+        const groupCmp = aCompany.localeCompare(bCompany, 'ko-KR', {
+          numeric: true,
+          sensitivity: 'base',
+        });
+        if (groupCmp !== 0) return groupCmp;
+      }
+      // 2차: 기존 정렬 (이름/지역)
+      return innerCompare(a, b);
     });
     return copy;
-  }, [campaigns, sortColumn, sortDir]);
+  }, [campaigns, sortColumn, sortDir, groupByAccount]);
 
   const renderSortIcon = (col: SortColumn) => {
     if (sortColumn !== col) {
@@ -728,7 +747,7 @@ export function CampaignsTable({
     (campaignId: string, isAllowed: boolean) => {
       if (!isAllowed) {
         toast.error(
-          'You can only delete campaigns from accounts assigned to you.'
+          '본인에게 할당된 광고주의 캠페인만 삭제할 수 있습니다.'
         );
         return;
       }
@@ -744,15 +763,15 @@ export function CampaignsTable({
 
     try {
       await onDeleteCampaign(campaignToDelete);
-      toast.success('Campaign deleted successfully');
+      toast.success('캠페인이 삭제되었습니다');
       onCampaignDeleted?.(campaignToDelete);
       setShowDeleteDialog(false);
       setCampaignToDelete(null);
       setDeleteIsAllowed(false);
     } catch (err) {
       toast.error(
-        `Failed to delete campaign: ${
-          err instanceof Error ? err.message : 'Unknown error'
+        `캠페인 삭제 실패: ${
+          err instanceof Error ? err.message : '알 수 없는 오류'
         }`
       );
     }
@@ -790,24 +809,24 @@ export function CampaignsTable({
                       onClick={() => cycleSort('name')}
                       className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
                     >
-                      Campaign Title
+                      캠페인 제목
                       {renderSortIcon('name')}
                     </button>
                   </TableHead>
                 )}
                 {columnVisibility.account && (
                   <TableHead style={{ width: COLUMN_WIDTHS.account }}>
-                    Account
+                    광고주
                   </TableHead>
                 )}
                 {columnVisibility.gameName && (
                   <TableHead style={{ width: COLUMN_WIDTHS.gameName }}>
-                    Game Name
+                    게임명
                   </TableHead>
                 )}
                 {columnVisibility.assignedUser && (
                   <TableHead style={{ width: COLUMN_WIDTHS.assignedUser }}>
-                    Assigned User
+                    담당자
                   </TableHead>
                 )}
                 {columnVisibility.region && (
@@ -820,7 +839,7 @@ export function CampaignsTable({
                       onClick={() => cycleSort('region')}
                       className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors font-medium mx-auto'
                     >
-                      Region
+                      지역
                       {renderSortIcon('region')}
                     </button>
                   </TableHead>
@@ -835,12 +854,12 @@ export function CampaignsTable({
                 )}
                 {columnVisibility.type && (
                   <TableHead style={{ width: COLUMN_WIDTHS.type }}>
-                    Type
+                    타입
                   </TableHead>
                 )}
                 {columnVisibility.dateRange && (
                   <TableHead style={{ width: COLUMN_WIDTHS.dateRange }}>
-                    Date Range
+                    기간
                   </TableHead>
                 )}
                 {columnVisibility.status && (
@@ -848,7 +867,7 @@ export function CampaignsTable({
                     style={{ width: COLUMN_WIDTHS.status }}
                     className='text-center'
                   >
-                    Status
+                    상태
                   </TableHead>
                 )}
                 {columnVisibility.jiraUrl && (
@@ -894,14 +913,14 @@ export function CampaignsTable({
         isOpen={showDeleteDialog}
         onClose={handleCloseDialog}
         onConfirm={handleDeleteCampaign}
-        title={deleteIsAllowed ? 'Are you sure?' : 'Cannot Delete Campaign'}
+        title={deleteIsAllowed ? '정말 삭제하시겠습니까?' : '캠페인을 삭제할 수 없습니다'}
         description={
           deleteIsAllowed
-            ? `This action cannot be undone. This will permanently delete the campaign ${campaignToDeleteData?.name} from your account.`
-            : `You can only delete campaigns from accounts assigned to you. This campaign ${campaignToDeleteData?.name} is from an account assigned to another user.`
+            ? `이 작업은 되돌릴 수 없습니다. ${campaignToDeleteData?.name} 캠페인이 영구적으로 삭제됩니다.`
+            : `본인에게 할당된 광고주의 캠페인만 삭제할 수 있습니다. ${campaignToDeleteData?.name} 캠페인은 다른 사용자에게 할당된 광고주의 캠페인입니다.`
         }
-        confirmLabel='Delete'
-        cancelLabel='Close'
+        confirmLabel='삭제'
+        cancelLabel='닫기'
         isAllowed={deleteIsAllowed}
       />
     </TooltipProvider>

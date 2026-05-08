@@ -31,7 +31,7 @@ export const NAVIGATION_DATA = {
 
   navMain: [
     {
-      title: 'Accounts',
+      title: '광고주',
       url: '/accounts',
       icon: BuildingIcon,
     },
@@ -39,12 +39,12 @@ export const NAVIGATION_DATA = {
 
   navCampaigns: [
     {
-      title: 'All Campaigns',
+      title: '전체 캠페인',
       url: '/campaigns',
       icon: ClipboardListIcon,
     },
     {
-      title: 'My Campaigns',
+      title: '내 캠페인',
       url: '/campaigns/my',
       icon: UserIcon,
     },
@@ -52,13 +52,13 @@ export const NAVIGATION_DATA = {
 
   navAdmin: [
     {
-      title: 'Permissions',
+      title: '권한',
       url: '/permissions',
       icon: ShieldIcon,
       adminOnly: true,
     },
     {
-      title: 'Settings',
+      title: '설정',
       url: '/settings',
       icon: SettingsIcon,
       adminOnly: true,

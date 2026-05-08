@@ -19,18 +19,18 @@ export function EmptyState({
       <div className='rounded-full bg-muted p-3 mb-4'>
         <BuildingIcon className='h-8 w-8 text-muted-foreground' />
       </div>
-      <h3 className='text-lg font-semibold mb-2'>No accounts found</h3>
+      <h3 className='text-lg font-semibold mb-2'>광고주가 없습니다</h3>
       <p className='text-muted-foreground text-center mb-6 max-w-sm'>
         {accountsLength === 0
-          ? "You haven't created any accounts yet. Create your first account to get started."
+          ? '아직 등록된 광고주가 없습니다. 첫 광고주를 추가하여 시작해보세요.'
           : hasFilter
-          ? 'No accounts match your current search or filter criteria. Try adjusting your filters.'
-          : 'No accounts are available.'}
+          ? '검색 조건에 일치하는 광고주가 없습니다. 필터를 조정해 보세요.'
+          : '표시할 광고주가 없습니다.'}
       </p>
       {accountsLength === 0 && (
         <Button onClick={onCreateAccount} className='flex items-center gap-2'>
           <PlusIcon className='h-4 w-4' />
-          Create First Account
+          첫 광고주 추가
         </Button>
       )}
     </div>
