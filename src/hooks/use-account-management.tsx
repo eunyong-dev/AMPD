@@ -11,6 +11,7 @@ import { useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AccountProfile,
+  AccountInputData,
   getActiveUserProfiles,
   addAccount,
   getAllAccountProfiles,
@@ -60,7 +61,7 @@ export function useAccountManagement() {
       data,
     }: {
       accountId: string;
-      data: { company: string; country: string; assigned_user_id: string };
+      data: AccountInputData;
     }) => updateAccount(accountId, data),
     onSuccess: (updated) => {
       queryClient.setQueryData<AccountProfile[]>(
@@ -83,11 +84,7 @@ export function useAccountManagement() {
 
   // 회사명 중복 사전 체크 후 생성
   const createAccountWithDupCheck = useCallback(
-    async (accountData: {
-      company: string;
-      country: string;
-      assigned_user_id: string;
-    }) => {
+    async (accountData: AccountInputData) => {
       const normalized = accountData.company.trim().toLowerCase();
       if (!normalized) {
         throw new Error('Company name is required.');
@@ -124,10 +121,8 @@ export function useAccountManagement() {
         queryClient.invalidateQueries({ queryKey: accountKeys.list() });
       },
       createAccount: createAccountWithDupCheck,
-      updateAccount: async (
-        accountId: string,
-        data: { company: string; country: string; assigned_user_id: string }
-      ) => updateMutation.mutateAsync({ accountId, data }),
+      updateAccount: async (accountId: string, data: AccountInputData) =>
+        updateMutation.mutateAsync({ accountId, data }),
       removeAccount: async (accountId: string) =>
         deleteMutation.mutateAsync(accountId),
     }),

@@ -24,18 +24,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserContext } from '@/lib/user-context';
-import type { AccountProfile } from '@/lib/account-management';
+import type { AccountInputData } from '@/lib/account-management';
 import { COUNTRY_OPTIONS } from '@/constants/countries';
 
 interface CreateAccountFormProps {
   isOpen: boolean;
   onClose: () => void;
   onAccountCreated?: () => void;
-  onCreateAccount: (accountData: {
-    company: string;
-    country: string;
-    assigned_user_id: string;
-  }) => Promise<void>;
+  onCreateAccount: (accountData: AccountInputData) => Promise<void>;
 }
 
 export function CreateAccountForm({
@@ -48,6 +44,9 @@ export function CreateAccountForm({
     company: '',
     country: '',
     assigned_user_id: '',
+    bill_to_name: '',
+    bill_to_email: '',
+    bill_to_address: '',
   });
 
   const { users: activeUsers } = useUserManagement();
@@ -85,13 +84,23 @@ export function CreateAccountForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, currentUser?.id, availableUsers]);
 
+  const resetForm = useCallback(() => {
+    setNewAccount({
+      company: '',
+      country: '',
+      assigned_user_id: '',
+      bill_to_name: '',
+      bill_to_email: '',
+      bill_to_address: '',
+    });
+  }, []);
+
   // 폼이 닫힐 때 상태 초기화
   useEffect(() => {
     if (!isOpen) {
       resetForm();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
   const handleCreateAccount = async () => {
     // 폼 검증
@@ -112,6 +121,9 @@ export function CreateAccountForm({
         company: newAccount.company.trim(),
         country: newAccount.country,
         assigned_user_id: newAccount.assigned_user_id,
+        bill_to_name: newAccount.bill_to_name.trim() || null,
+        bill_to_email: newAccount.bill_to_email.trim() || null,
+        bill_to_address: newAccount.bill_to_address.trim() || null,
       });
 
       toast.success('광고주가 생성되었습니다');
@@ -126,10 +138,6 @@ export function CreateAccountForm({
       );
     }
   };
-
-  const resetForm = useCallback(() => {
-    setNewAccount({ company: '', country: '', assigned_user_id: '' });
-  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -217,6 +225,64 @@ export function CreateAccountForm({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* 청구 정보 (BILL TO) */}
+          <div className='border-t pt-4 mt-2'>
+            <div className='text-sm font-semibold mb-3'>
+              청구 정보 (BILL TO){' '}
+              <span className='text-xs text-muted-foreground font-normal'>
+                선택 입력 — 인보이스 발행 시 사용
+              </span>
+            </div>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <div className='space-y-2'>
+                <Label htmlFor='bill_to_name'>청구처 이름</Label>
+                <Input
+                  id='bill_to_name'
+                  placeholder='청구처 이름'
+                  value={newAccount.bill_to_name}
+                  onChange={(e) =>
+                    setNewAccount((prev) => ({
+                      ...prev,
+                      bill_to_name: e.target.value,
+                    }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='bill_to_email'>청구처 이메일</Label>
+                <Input
+                  id='bill_to_email'
+                  type='email'
+                  placeholder='billing@example.com'
+                  value={newAccount.bill_to_email}
+                  onChange={(e) =>
+                    setNewAccount((prev) => ({
+                      ...prev,
+                      bill_to_email: e.target.value,
+                    }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
+              <div className='space-y-2 md:col-span-2'>
+                <Label htmlFor='bill_to_address'>청구처 주소</Label>
+                <Input
+                  id='bill_to_address'
+                  placeholder='청구처 주소'
+                  value={newAccount.bill_to_address}
+                  onChange={(e) =>
+                    setNewAccount((prev) => ({
+                      ...prev,
+                      bill_to_address: e.target.value,
+                    }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>

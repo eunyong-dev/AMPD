@@ -254,8 +254,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     <AccessControl>
       <SidebarProvider>
         <AppSidebar user={user} onSignOut={signOut} />
-        <SidebarInset className='min-w-0'>
-          <header className='sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 px-4'>
+        <SidebarInset className='min-w-0 print:m-0 print:shadow-none'>
+          <header className='sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 px-4 print:hidden'>
             <SidebarTrigger className='-ml-1 relative z-10' />
             <Separator orientation='vertical' className='h-2 relative z-10' />
             <div className='flex-1 relative z-10'>
@@ -274,7 +274,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             />
           </header>
           <RouteTransition>
-            <div className='flex flex-1 flex-col gap-4 px-4 py-4 w-full min-w-0'>
+            <div className='flex flex-1 flex-col gap-4 px-4 py-4 w-full min-w-0 print:p-0'>
               {children}
             </div>
           </RouteTransition>

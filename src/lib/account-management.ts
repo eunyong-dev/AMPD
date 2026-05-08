@@ -1,6 +1,6 @@
 /**
  * 계정 관리 API 함수들
- * 
+ *
  * 주의: 이 함수들은 클라이언트 사이드에서 사용됩니다.
  * 서버 사이드에서 사용하려면 서버 사이드 클라이언트를 사용해야 합니다.
  */
@@ -21,6 +21,18 @@ export interface AccountProfile {
   created_at: string;
   updated_at: string;
   last_campaign_date?: string;
+  bill_to_name?: string | null;
+  bill_to_email?: string | null;
+  bill_to_address?: string | null;
+}
+
+export interface AccountInputData {
+  company: string;
+  country: string;
+  assigned_user_id: string;
+  bill_to_name?: string | null;
+  bill_to_email?: string | null;
+  bill_to_address?: string | null;
 }
 
 /**
@@ -57,11 +69,9 @@ export async function getActiveUserProfiles(): Promise<UserProfile[]> {
 /**
  * 새 계정 추가
  */
-export async function addAccount(accountData: {
-  company: string;
-  country: string;
-  assigned_user_id: string;
-}): Promise<AccountProfile> {
+export async function addAccount(
+  accountData: AccountInputData
+): Promise<AccountProfile> {
   const supabase = createClient();
   // 먼저 담당자 정보 가져오기
   const { data: userData, error: userError } = await supabase
@@ -82,6 +92,9 @@ export async function addAccount(accountData: {
       company: accountData.company,
       country: accountData.country,
       assigned_user_id: accountData.assigned_user_id,
+      bill_to_name: accountData.bill_to_name ?? null,
+      bill_to_email: accountData.bill_to_email ?? null,
+      bill_to_address: accountData.bill_to_address ?? null,
     })
     .select()
     .single();
@@ -105,6 +118,9 @@ export async function addAccount(accountData: {
     active_games: data.active_games || 0,
     created_at: data.created_at || new Date().toISOString(),
     updated_at: data.updated_at || new Date().toISOString(),
+    bill_to_name: data.bill_to_name ?? null,
+    bill_to_email: data.bill_to_email ?? null,
+    bill_to_address: data.bill_to_address ?? null,
   };
 }
 
@@ -187,7 +203,7 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
       if (accountId) {
         totalCampaignsCountByAccount[accountId] =
           (totalCampaignsCountByAccount[accountId] || 0) + 1;
-        
+
         // active_campaigns는 'ongoing' 상태만 카운트
         if (campaign.status === 'ongoing') {
           activeCampaignsCountByAccount[accountId] =
@@ -209,6 +225,9 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     active_games: gamesCountByAccount[account.id] || 0,
     created_at: account.created_at || new Date().toISOString(),
     updated_at: account.updated_at || new Date().toISOString(),
+    bill_to_name: account.bill_to_name ?? null,
+    bill_to_email: account.bill_to_email ?? null,
+    bill_to_address: account.bill_to_address ?? null,
   }));
 }
 
@@ -217,11 +236,7 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
  */
 export async function updateAccount(
   accountId: string,
-  accountData: {
-    company: string;
-    country: string;
-    assigned_user_id: string;
-  }
+  accountData: AccountInputData
 ): Promise<AccountProfile> {
   const supabase = createClient();
   // 먼저 담당자 정보 가져오기
@@ -243,6 +258,9 @@ export async function updateAccount(
       company: accountData.company,
       country: accountData.country,
       assigned_user_id: accountData.assigned_user_id,
+      bill_to_name: accountData.bill_to_name ?? null,
+      bill_to_email: accountData.bill_to_email ?? null,
+      bill_to_address: accountData.bill_to_address ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', accountId)
@@ -268,6 +286,9 @@ export async function updateAccount(
     active_games: data.active_games || 0,
     created_at: data.created_at || new Date().toISOString(),
     updated_at: data.updated_at || new Date().toISOString(),
+    bill_to_name: data.bill_to_name ?? null,
+    bill_to_email: data.bill_to_email ?? null,
+    bill_to_address: data.bill_to_address ?? null,
   };
 }
 

@@ -24,7 +24,10 @@ import { useAccountManagement } from '@/hooks/use-account-management';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserContext } from '@/lib/user-context';
-import type { AccountProfile } from '@/lib/account-management';
+import type {
+  AccountProfile,
+  AccountInputData,
+} from '@/lib/account-management';
 import { CreateAccountForm } from '@/components/accounts/create-account-form';
 import { EditAccountForm } from '@/components/accounts/edit-account-form';
 import { AccountStats } from '@/components/accounts/account-stats';
@@ -125,11 +128,7 @@ export default function AccountManagementPage() {
 
   // 계정 생성 핸들러
   const handleCreateAccount = useCallback(
-    async (accountData: {
-      company: string;
-      country: string;
-      assigned_user_id: string;
-    }) => {
+    async (accountData: AccountInputData) => {
       try {
         await createAccount(accountData);
         // CreateAccountForm에서 이미 toast를 표시하므로 여기서는 표시하지 않음
@@ -151,14 +150,7 @@ export default function AccountManagementPage() {
 
   // 계정 업데이트 핸들러
   const handleUpdateAccount = useCallback(
-    async (
-      accountId: string,
-      accountData: {
-        company: string;
-        country: string;
-        assigned_user_id: string;
-      }
-    ) => {
+    async (accountId: string, accountData: AccountInputData) => {
       try {
         await updateAccount(accountId, accountData);
         setEditingAccount(null);

@@ -19,6 +19,9 @@ export type Database = {
           active_campaigns: number | null
           active_games: number | null
           assigned_user_id: string
+          bill_to_address: string | null
+          bill_to_email: string | null
+          bill_to_name: string | null
           company: string
           country: string
           created_at: string | null
@@ -30,6 +33,9 @@ export type Database = {
           active_campaigns?: number | null
           active_games?: number | null
           assigned_user_id: string
+          bill_to_address?: string | null
+          bill_to_email?: string | null
+          bill_to_name?: string | null
           company: string
           country: string
           created_at?: string | null
@@ -41,6 +47,9 @@ export type Database = {
           active_campaigns?: number | null
           active_games?: number | null
           assigned_user_id?: string
+          bill_to_address?: string | null
+          bill_to_email?: string | null
+          bill_to_name?: string | null
           company?: string
           country?: string
           created_at?: string | null
@@ -133,6 +142,54 @@ export type Database = {
           },
         ]
       }
+      company_info: {
+        Row: {
+          address: string
+          bank_account_number: string
+          bank_address: string
+          bank_name: string
+          bank_swift_code: string
+          beneficiary_address: string
+          beneficiary_name: string
+          email: string
+          id: number
+          name: string
+          payment_method: string
+          stamp_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          bank_account_number?: string
+          bank_address?: string
+          bank_name?: string
+          bank_swift_code?: string
+          beneficiary_address?: string
+          beneficiary_name?: string
+          email?: string
+          id?: number
+          name?: string
+          payment_method?: string
+          stamp_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          bank_account_number?: string
+          bank_address?: string
+          bank_name?: string
+          bank_swift_code?: string
+          beneficiary_address?: string
+          beneficiary_name?: string
+          email?: string
+          id?: number
+          name?: string
+          payment_method?: string
+          stamp_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           account_id: string
@@ -173,6 +230,62 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          bill_to_address: string | null
+          bill_to_email: string | null
+          bill_to_name: string | null
+          created_at: string
+          created_by: string | null
+          daily_seq: number
+          due_date: string
+          from_email: string | null
+          id: string
+          invoice_date: string
+          invoice_no: string
+          manager_no: string
+          settlement_id: string
+        }
+        Insert: {
+          bill_to_address?: string | null
+          bill_to_email?: string | null
+          bill_to_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          daily_seq: number
+          due_date: string
+          from_email?: string | null
+          id?: string
+          invoice_date: string
+          invoice_no: string
+          manager_no: string
+          settlement_id: string
+        }
+        Update: {
+          bill_to_address?: string | null
+          bill_to_email?: string | null
+          bill_to_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          daily_seq?: number
+          due_date?: string
+          from_email?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_no?: string
+          manager_no?: string
+          settlement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
             referencedColumns: ["id"]
           },
         ]
@@ -329,6 +442,7 @@ export type Database = {
           email: string
           id: string
           is_active: boolean
+          manager_no: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
           user_id: string | null
@@ -340,6 +454,7 @@ export type Database = {
           email: string
           id?: string
           is_active?: boolean
+          manager_no?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
           user_id?: string | null
@@ -351,6 +466,7 @@ export type Database = {
           email?: string
           id?: string
           is_active?: boolean
+          manager_no?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
           user_id?: string | null
@@ -362,7 +478,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      next_invoice_daily_seq: {
+        Args: { p_invoice_date: string; p_manager_no: string }
+        Returns: number
+      }
     }
     Enums: {
       user_role: "am" | "admin"

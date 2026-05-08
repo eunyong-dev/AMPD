@@ -28,8 +28,14 @@ import { toast, Toaster } from '@/components/ui/sonner';
 import { UserRole } from '@/lib/permissions';
 
 export default function PermissionsPage() {
-  const { users, loading, error, changeUserRole, toggleActive } =
-    useUserManagement();
+  const {
+    users,
+    loading,
+    error,
+    changeUserRole,
+    toggleActive,
+    updateManagerNo,
+  } = useUserManagement();
   const { profile } = useUserContext();
 
   // Notify global transition manager to avoid double loading
@@ -263,6 +269,19 @@ export default function PermissionsPage() {
                 handleRoleUpdate(id, newRole as UserRole)
               }
               onToggleActive={(id, checked) => handleToggleActive(id, checked)}
+              onChangeManagerNo={async (id, value) => {
+                try {
+                  await updateManagerNo(id, value);
+                  toast.success('담당자 번호가 저장되었습니다.');
+                } catch (err) {
+                  const msg =
+                    err instanceof Error
+                      ? err.message
+                      : '담당자 번호를 저장할 수 없습니다.';
+                  toast.error(`담당자 번호 저장 실패: ${msg}`);
+                  throw err;
+                }
+              }}
             />
           </div>
         )}

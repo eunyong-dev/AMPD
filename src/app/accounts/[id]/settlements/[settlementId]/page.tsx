@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Trash2, Copy, ChevronDown } from 'lucide-react';
+import { Trash2, Copy, ChevronDown, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
@@ -29,6 +30,7 @@ import {
 } from '@/components/common/table-wrapper';
 import { Toaster } from '@/components/ui/sonner';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
+import { IssueInvoiceModal } from '@/components/invoices/issue-invoice-modal';
 import { createClient } from '@/utils/supabase/client';
 import { accountUrl } from '@/lib/utils/account-url';
 import {
@@ -37,6 +39,8 @@ import {
 } from '@/lib/utils/campaign-sort';
 import { useRawCopy } from '@/lib/utils/use-raw-copy';
 import type { Database } from '@/lib/database.types';
+
+type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
 
 type SettlementRow = Database['public']['Tables']['settlements']['Row'];
 type SettlementLineRow =
@@ -112,6 +116,24 @@ export default function SettlementDetailPage() {
   const [settlement, setSettlement] = useState<SettlementDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
+  const [showIssueInvoice, setShowIssueInvoice] = useState(false);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
+
+  const loadInvoices = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('settlement_id', settlementId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setInvoices((data ?? []) as InvoiceRow[]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`인보이스 목록 조회 실패: ${msg}`);
+    }
+  }, [settlementId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,7 +197,8 @@ export default function SettlementDetailPage() {
 
   useEffect(() => {
     load();
-  }, [load]);
+    loadInvoices();
+  }, [load, loadInvoices]);
 
   const handleDelete = async () => {
     if (!settlement) return;
@@ -371,17 +394,81 @@ export default function SettlementDetailPage() {
               )}
             </div>
 
-            <Button
-              variant='outline'
-              size='sm'
-              className='text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0'
-              onClick={() => setShowDelete(true)}
-            >
-              <Trash2 className='h-4 w-4 mr-1.5' />
-              삭제
-            </Button>
+            <div className='flex items-center gap-2 flex-shrink-0'>
+              <Button
+                variant='default'
+                size='sm'
+                onClick={() => setShowIssueInvoice(true)}
+              >
+                <FileText className='h-4 w-4 mr-1.5' />
+                인보이스 발행
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='text-destructive hover:bg-destructive/10 hover:text-destructive'
+                onClick={() => setShowDelete(true)}
+              >
+                <Trash2 className='h-4 w-4 mr-1.5' />
+                삭제
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* 발행된 인보이스 */}
+        {invoices.length > 0 && (
+          <div>
+            <h2 className='text-lg font-semibold mb-3'>발행된 인보이스</h2>
+            <TableWrapper>
+              <Table style={{ width: '100%' }}>
+                <TableHeader className={TABLE_STYLES.header}>
+                  <TableRow>
+                    <TableHead className='whitespace-nowrap'>
+                      Invoice No
+                    </TableHead>
+                    <TableHead className='whitespace-nowrap tabular-nums'>
+                      Invoice Date
+                    </TableHead>
+                    <TableHead className='whitespace-nowrap tabular-nums'>
+                      Due Date
+                    </TableHead>
+                    <TableHead
+                      className='whitespace-nowrap text-right'
+                      style={{ width: 100 }}
+                    >
+                      보기
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className={TABLE_STYLES.body}>
+                  {invoices.map((inv) => (
+                    <TableRow key={inv.id}>
+                      <TableCell className='font-mono text-sm'>
+                        {inv.invoice_no}
+                      </TableCell>
+                      <TableCell className='tabular-nums'>
+                        {inv.invoice_date}
+                      </TableCell>
+                      <TableCell className='tabular-nums'>
+                        {inv.due_date}
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <Link
+                          href={`${accountBaseUrl}/settlements/${settlementId}/invoice/${inv.id}`}
+                          className='inline-flex items-center gap-1 text-primary hover:underline text-sm'
+                        >
+                          <ExternalLink className='h-3.5 w-3.5' />
+                          보기
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableWrapper>
+          </div>
+        )}
 
         {/* Detail Lines */}
         <div>
@@ -512,6 +599,19 @@ export default function SettlementDetailPage() {
           onConfirm={handleDelete}
           title='정산서 삭제'
           description={`"${settlement.title}" 정산을 삭제합니다. 모든 정산 상세 내역이 함께 삭제됩니다.`}
+        />
+
+        <IssueInvoiceModal
+          isOpen={showIssueInvoice}
+          onClose={() => setShowIssueInvoice(false)}
+          settlementId={settlementId}
+          accountId={settlement.account_id}
+          onIssued={(invoiceId) => {
+            // 발행 후 인보이스 보기로 이동
+            router.push(
+              `${accountBaseUrl}/settlements/${settlementId}/invoice/${invoiceId}`
+            );
+          }}
         />
       </div>
       <Toaster position='top-center' />

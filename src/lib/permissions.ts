@@ -14,6 +14,7 @@ export interface UserProfile {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  manager_no?: string | null;
 }
 
 /**

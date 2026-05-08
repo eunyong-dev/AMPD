@@ -24,7 +24,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserContext } from '@/lib/user-context';
-import type { AccountProfile } from '@/lib/account-management';
+import type {
+  AccountInputData,
+  AccountProfile,
+} from '@/lib/account-management';
 import { COUNTRY_OPTIONS } from '@/constants/countries';
 
 interface EditAccountFormProps {
@@ -34,11 +37,7 @@ interface EditAccountFormProps {
   onAccountUpdated?: () => void;
   onUpdateAccount: (
     accountId: string,
-    accountData: {
-      company: string;
-      country: string;
-      assigned_user_id: string;
-    }
+    accountData: AccountInputData
   ) => Promise<void>;
 }
 
@@ -53,6 +52,9 @@ export function EditAccountForm({
     company: '',
     country: '',
     assigned_user_id: '',
+    bill_to_name: '',
+    bill_to_email: '',
+    bill_to_address: '',
   });
 
   const { users: activeUsers } = useUserManagement();
@@ -81,17 +83,30 @@ export function EditAccountForm({
         company: account.company || '',
         country: account.country || '',
         assigned_user_id: account.assigned_user_id || '',
+        bill_to_name: account.bill_to_name ?? '',
+        bill_to_email: account.bill_to_email ?? '',
+        bill_to_address: account.bill_to_address ?? '',
       });
     }
   }, [isOpen, account]);
+
+  const resetForm = useCallback(() => {
+    setEditedAccount({
+      company: '',
+      country: '',
+      assigned_user_id: '',
+      bill_to_name: '',
+      bill_to_email: '',
+      bill_to_address: '',
+    });
+  }, []);
 
   // 폼이 닫힐 때 상태 초기화
   useEffect(() => {
     if (!isOpen) {
       resetForm();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
   const handleUpdateAccount = async () => {
     if (!account) return;
@@ -114,20 +129,19 @@ export function EditAccountForm({
         company: editedAccount.company.trim(),
         country: editedAccount.country,
         assigned_user_id: editedAccount.assigned_user_id,
+        bill_to_name: editedAccount.bill_to_name.trim() || null,
+        bill_to_email: editedAccount.bill_to_email.trim() || null,
+        bill_to_address: editedAccount.bill_to_address.trim() || null,
       });
 
       toast.success('광고주 정보가 업데이트되었습니다');
       resetForm();
       onAccountUpdated?.();
       onClose();
-    } catch (err) {
+    } catch {
       toast.error('광고주 업데이트에 실패했습니다');
     }
   };
-
-  const resetForm = useCallback(() => {
-    setEditedAccount({ company: '', country: '', assigned_user_id: '' });
-  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -216,6 +230,64 @@ export function EditAccountForm({
               </SelectContent>
             </Select>
           </div>
+
+          {/* 청구 정보 (BILL TO) */}
+          <div className='border-t pt-4 mt-2'>
+            <div className='text-sm font-semibold mb-3'>
+              청구 정보 (BILL TO){' '}
+              <span className='text-xs text-muted-foreground font-normal'>
+                선택 입력 — 인보이스 발행 시 사용
+              </span>
+            </div>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <div className='space-y-2'>
+                <Label htmlFor='edit-bill_to_name'>청구처 이름</Label>
+                <Input
+                  id='edit-bill_to_name'
+                  placeholder='청구처 이름'
+                  value={editedAccount.bill_to_name}
+                  onChange={(e) =>
+                    setEditedAccount((prev) => ({
+                      ...prev,
+                      bill_to_name: e.target.value,
+                    }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='edit-bill_to_email'>청구처 이메일</Label>
+                <Input
+                  id='edit-bill_to_email'
+                  type='email'
+                  placeholder='billing@example.com'
+                  value={editedAccount.bill_to_email}
+                  onChange={(e) =>
+                    setEditedAccount((prev) => ({
+                      ...prev,
+                      bill_to_email: e.target.value,
+                    }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
+              <div className='space-y-2 md:col-span-2'>
+                <Label htmlFor='edit-bill_to_address'>청구처 주소</Label>
+                <Input
+                  id='edit-bill_to_address'
+                  placeholder='청구처 주소'
+                  value={editedAccount.bill_to_address}
+                  onChange={(e) =>
+                    setEditedAccount((prev) => ({
+                      ...prev,
+                      bill_to_address: e.target.value,
+                    }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={onClose}>
@@ -227,4 +299,3 @@ export function EditAccountForm({
     </Dialog>
   );
 }
-

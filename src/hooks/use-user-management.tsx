@@ -12,6 +12,7 @@ import {
   toggleUserActive,
   deleteUser,
   addUser,
+  updateUserManagerNo,
 } from '@/lib/user-management';
 
 // Query Keys
@@ -84,6 +85,26 @@ export function useDeleteUser() {
 }
 
 /**
+ * 사용자 담당자 번호 업데이트 Mutation
+ */
+export function useUpdateUserManagerNo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      managerNo,
+    }: {
+      userId: string;
+      managerNo: string | null;
+    }) => updateUserManagerNo(userId, managerNo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+  });
+}
+
+/**
  * 사용자 생성 Mutation
  */
 export function useCreateUser() {
@@ -112,6 +133,7 @@ export function useUserManagement() {
   const toggleActiveMutation = useToggleUserActive();
   const deleteUserMutation = useDeleteUser();
   const createUserMutation = useCreateUser();
+  const updateManagerNoMutation = useUpdateUserManagerNo();
   const queryClient = useQueryClient();
 
   return {
@@ -141,6 +163,9 @@ export function useUserManagement() {
       role: UserRole;
     }) => {
       return await createUserMutation.mutateAsync(userData);
+    },
+    updateManagerNo: async (userId: string, value: string | null) => {
+      await updateManagerNoMutation.mutateAsync({ userId, managerNo: value });
     },
   };
 }

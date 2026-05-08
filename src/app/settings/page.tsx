@@ -1,8 +1,8 @@
 'use client';
 
-import { SettingsIcon, RefreshCw, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles } from 'lucide-react';
 
-import { AccessControl } from '@/components/access-control';
+import { AdminAccessControl } from '@/components/admin-access-control';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Toaster } from '@/components/ui/sonner';
+import { CompanyInfoCard } from '@/components/settings/company-info-card';
 import {
   useGameCacheRefresh,
   type PhaseProgress,
@@ -27,8 +28,9 @@ export default function SettingsPage() {
   const percent = totalAll > 0 ? Math.round((doneAll / totalAll) * 100) : 0;
 
   return (
-    <AccessControl>
+    <AdminAccessControl>
       <div className='space-y-6 w-full overflow-x-hidden'>
+        <CompanyInfoCard />
         <Card>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
@@ -87,7 +89,7 @@ export default function SettingsPage() {
         </Card>
       </div>
       <Toaster position='top-center' />
-    </AccessControl>
+    </AdminAccessControl>
   );
 }
 

@@ -439,10 +439,6 @@ function DateField({
             }}
             fromYear={1900}
             toYear={2100}
-            formatters={{
-              formatMonthDropdown: (date) =>
-                date.toLocaleString('en-US', { month: 'short' }),
-            }}
             initialFocus
           />
         </PopoverContent>

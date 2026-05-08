@@ -100,6 +100,28 @@ export async function updateUserRole(
 }
 
 /**
+ * 사용자 담당자 번호 업데이트
+ */
+export async function updateUserManagerNo(
+  userId: string,
+  managerNo: string | null
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({
+      manager_no: managerNo,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('담당자 번호 업데이트 오류:', error);
+    throw new Error('담당자 번호를 업데이트할 수 없습니다.');
+  }
+}
+
+/**
  * 사용자 활성화/비활성화 토글
  */
 export async function toggleUserActive(
