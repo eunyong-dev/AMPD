@@ -7,6 +7,7 @@
 
 import { createClient } from '@/utils/supabase/client';
 import { UserProfile } from '@/lib/permissions';
+import { logSupabaseError } from '@/lib/utils/error-handler';
 
 export interface AccountProfile {
   id: string;
@@ -34,8 +35,11 @@ export async function getActiveUserProfiles(): Promise<UserProfile[]> {
     .order('display_name', { ascending: true });
 
   if (error) {
-    console.error('활성 사용자 프로필 가져오기 오류:', error);
-    throw new Error('활성 사용자를 가져올 수 없습니다.');
+    logSupabaseError(
+      '활성 사용자 프로필 가져오기 오류:',
+      error,
+      '활성 사용자를 가져올 수 없습니다.'
+    );
   }
 
   return (data || []).map((profile) => ({
@@ -123,8 +127,11 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     .order('created_at', { ascending: false });
 
   if (accountsError) {
-    console.error('계정 프로필 가져오기 오류:', accountsError);
-    throw new Error('계정 프로필을 가져올 수 없습니다.');
+    logSupabaseError(
+      '계정 프로필 가져오기 오류:',
+      accountsError,
+      '계정 프로필을 가져올 수 없습니다.'
+    );
   }
 
   if (!accountsData || accountsData.length === 0) {

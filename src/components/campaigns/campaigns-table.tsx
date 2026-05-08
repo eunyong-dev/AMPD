@@ -10,6 +10,9 @@ import {
   ExternalLinkIcon,
   Copy,
   Check,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,6 +43,10 @@ import {
 import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
 import { formatDateYYYYMMDD } from '@/lib/utils/date';
 import { canManageResource } from '@/lib/utils/permissions';
+import {
+  compareByNameAndRegion,
+  REGION_PRIORITY,
+} from '@/lib/utils/campaign-sort';
 import { useGameInfo } from '@/hooks/use-game-info';
 import {
   Tooltip,
@@ -674,6 +681,52 @@ export function CampaignsTable({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [deleteIsAllowed, setDeleteIsAllowed] = useState(false);
+  // 정렬 상태 — 한 번에 한 컬럼만 활성. 기본값: name asc (KR>JP>TW>US tiebreak)
+  type SortColumn = 'name' | 'region';
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const cycleSort = useCallback((col: SortColumn) => {
+    setSortColumn((prev) => {
+      if (prev !== col) {
+        setSortDir('asc');
+        return col;
+      }
+      // 같은 컬럼 재클릭: asc → desc → null 사이클
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return prev === col && sortDir === 'desc' ? null : col;
+    });
+  }, [sortDir]);
+
+  const sortedCampaigns = useMemo(() => {
+    if (!sortColumn) return campaigns;
+    const copy = [...campaigns];
+
+    copy.sort((a, b) => {
+      let cmp = 0;
+      if (sortColumn === 'name') {
+        cmp = compareByNameAndRegion(a, b);
+      } else if (sortColumn === 'region') {
+        cmp =
+          (REGION_PRIORITY[a.region] ?? 99) -
+          (REGION_PRIORITY[b.region] ?? 99);
+        if (cmp === 0) cmp = compareByNameAndRegion(a, b);
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [campaigns, sortColumn, sortDir]);
+
+  const renderSortIcon = (col: SortColumn) => {
+    if (sortColumn !== col) {
+      return <ArrowUpDown className='h-3.5 w-3.5 opacity-40' />;
+    }
+    return sortDir === 'asc' ? (
+      <ArrowUp className='h-3.5 w-3.5' />
+    ) : (
+      <ArrowDown className='h-3.5 w-3.5' />
+    );
+  };
 
   const handleDeleteClick = useCallback(
     (campaignId: string, isAllowed: boolean) => {
@@ -736,7 +789,14 @@ export function CampaignsTable({
               <TableRow>
                 {columnVisibility.campaignTitle && (
                   <TableHead style={{ width: COLUMN_WIDTHS.campaignTitle }}>
-                    Campaign Title
+                    <button
+                      type='button'
+                      onClick={() => cycleSort('name')}
+                      className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
+                    >
+                      Campaign Title
+                      {renderSortIcon('name')}
+                    </button>
                   </TableHead>
                 )}
                 {columnVisibility.account && (
@@ -759,7 +819,14 @@ export function CampaignsTable({
                     style={{ width: COLUMN_WIDTHS.region }}
                     className='text-center'
                   >
-                    Region
+                    <button
+                      type='button'
+                      onClick={() => cycleSort('region')}
+                      className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors font-medium mx-auto'
+                    >
+                      Region
+                      {renderSortIcon('region')}
+                    </button>
                   </TableHead>
                 )}
                 {columnVisibility.mmp && (
@@ -808,7 +875,7 @@ export function CampaignsTable({
               </TableRow>
             </TableHeader>
             <TableBody className={TABLE_STYLES.body}>
-              {campaigns.map((campaign) => {
+              {sortedCampaigns.map((campaign) => {
                 const statusDisplay = getStatusDisplay(campaign.status);
                 return (
                   <CampaignTableRow

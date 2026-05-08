@@ -13,7 +13,6 @@ import {
   TableWrapper,
   TABLE_STYLES,
 } from '@/components/common/table-wrapper';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { accountUrl } from '@/lib/utils/account-url';
 import type { SettlementWithDetail } from '@/hooks/use-settlement-management';
@@ -105,22 +104,12 @@ export function SettlementsTable({
               <TableCell className='whitespace-nowrap tabular-nums text-muted-foreground'>
                 {formatPeriod(s.period_from, s.period_to)}
               </TableCell>
-              <TableCell>
-                <div className='flex flex-wrap gap-1.5'>
-                  {s.campaigns.length === 0 ? (
-                    <span className='text-sm text-muted-foreground'>—</span>
-                  ) : (
-                    s.campaigns.map((c) => (
-                      <Badge
-                        key={c.id}
-                        variant='outline'
-                        className='font-normal'
-                      >
-                        {c.name}
-                      </Badge>
-                    ))
-                  )}
-                </div>
+              <TableCell className='whitespace-nowrap text-sm text-muted-foreground tabular-nums'>
+                {s.campaigns.length === 0
+                  ? '—'
+                  : `${s.campaigns.length} campaign${
+                      s.campaigns.length === 1 ? '' : 's'
+                    }`}
               </TableCell>
               <TableCell className='whitespace-nowrap text-right tabular-nums font-medium'>
                 {formatAmount(Number(s.total_amount))}

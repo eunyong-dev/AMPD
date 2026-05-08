@@ -6,6 +6,14 @@
 // 네비게이션 관련 상수
 export { NAVIGATION_DATA } from './navigation';
 
+// 캠페인 도메인 상수
+export {
+  CAMPAIGN_STATUS_OPTIONS,
+  CAMPAIGN_TYPE_OPTIONS,
+  MMP_OPTIONS,
+  REGION_OPTIONS,
+} from './campaigns';
+
 // 애플리케이션 설정 상수
 export {
   APP_CONFIG,

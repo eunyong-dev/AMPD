@@ -92,16 +92,20 @@ import {
   MMP_OPTIONS,
   REGION_OPTIONS,
 } from '@/hooks/use-campaign-management';
-import {
-  formatDateWithWeekday,
-  isSunday,
-  formatSales,
-  parseSheetDate,
-} from '@/lib/utils/sheet-formatters';
+import { parseSheetDate } from '@/lib/utils/sheet-formatters';
 import { useGameInfo } from '@/hooks/use-game-info';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
+import { DailyReportTable } from '@/components/campaigns/campaign-detail/daily-report-table';
+import { MonthlySummaryTable } from '@/components/campaigns/campaign-detail/monthly-summary-table';
+import { PeriodComparison } from '@/components/campaigns/campaign-detail/period-comparison';
+import { isRoasColumn, roasBgStyle, parseRoasPercent } from '@/lib/utils/roas';
+import {
+  aggregateCampaignMetrics,
+  filterRowsByDateRange,
+  findDateHeader as findCampaignDateHeader,
+} from '@/lib/utils/campaign-metrics';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { getAllGames } from '@/hooks/use-game-management';
 import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
@@ -141,29 +145,6 @@ function extractSheetParams(
   }
 }
 
-// ROAS 계열 컬럼 판별 (ROAS, D0 ROAS, D7 ROAS ...)
-const isRoasColumn = (header: string) =>
-  header.toLowerCase().includes('roas');
-
-// "130.20%" / "0.6502" 같은 문자열을 0.0~∞ 비율로 파싱
-const parseRoasPercent = (val: unknown): number | null => {
-  if (val === null || val === undefined) return null;
-  const str = String(val).trim();
-  if (!str || str === '-') return null;
-  const hasPercent = str.endsWith('%');
-  const cleaned = str.replace(/[$,\s]/g, '').replace(/%$/, '');
-  const n = parseFloat(cleaned);
-  if (isNaN(n)) return null;
-  return hasPercent ? n / 100 : n;
-};
-
-// ROAS 값에 따른 배경색: 0% → 투명, 100% 이상 → 가장 진한 녹색
-const roasBgStyle = (val: unknown): React.CSSProperties | undefined => {
-  const num = parseRoasPercent(val);
-  if (num === null || num <= 0) return undefined;
-  const opacity = Math.min(num, 1) * 0.6; // 최대 0.6으로 가독성 확보
-  return { backgroundColor: `rgba(34, 197, 94, ${opacity})` };
-};
 
 // ROAS 코호트 정의 — shadcn Area Chart - Gradient 톤 차용
 // 단일 blue hue, 옅은 sky → 짙은 indigo로 코호트 진행을 표현
@@ -231,6 +212,15 @@ export default function CampaignDetailPage() {
   // Volume 차트의 메트릭 (단일 선택)
   const [visibleMetric, setVisibleMetric] = useState<string>('Install');
   const [lastDate, setLastDate] = useState<Date | null>(null); // 마지막 날짜 저장
+  // 기간 비교 모드
+  const [compareEnabled, setCompareEnabled] = useState<boolean>(false);
+  const [compareDateRange, setCompareDateRange] = useState<
+    | {
+        from: Date | undefined;
+        to: Date | undefined;
+      }
+    | undefined
+  >(undefined);
 
   const { users: activeUsers } = useUserManagement();
   const { profile: userProfile } = useUserContext();
@@ -602,6 +592,26 @@ export default function CampaignDetailPage() {
       return true;
     });
   }, [allData, dateRange, lastDate]);
+
+  // 비교 기간 메트릭 (compareEnabled + compareDateRange 모두 있을 때만)
+  const comparisonMetrics = useMemo(() => {
+    if (!compareEnabled || !allData || allData.length === 0) return null;
+    const dateHeader = findCampaignDateHeader(allData[0]);
+    if (!dateHeader) return null;
+
+    const currentRows = data ?? [];
+    const compareRows = filterRowsByDateRange(
+      allData,
+      compareDateRange?.from,
+      compareDateRange?.to,
+      dateHeader
+    );
+
+    return {
+      current: aggregateCampaignMetrics(currentRows),
+      comparison: aggregateCampaignMetrics(compareRows),
+    };
+  }, [compareEnabled, allData, data, compareDateRange]);
 
   // 테이블 헤더 생성
   const headers = useMemo(() => {
@@ -1484,16 +1494,40 @@ export default function CampaignDetailPage() {
               </TabsList>
               <div className='flex items-center gap-2'>
                 {activeTab !== 'monthly' && (
-                  <DateRangePicker
-                    value={dateRange}
-                    onChange={setDateRange}
-                    presets={datePickerPresets}
-                    placeholder={
-                      lastDate ? 'Last 30 days' : 'Select Date Range'
-                    }
-                    triggerClassName='max-[1100px]:justify-center'
-                    hideLabelClassName='max-[1100px]:hidden'
-                  />
+                  <>
+                    <DateRangePicker
+                      value={dateRange}
+                      onChange={setDateRange}
+                      presets={datePickerPresets}
+                      placeholder={
+                        lastDate ? 'Last 30 days' : 'Select Date Range'
+                      }
+                      triggerClassName='max-[1100px]:justify-center'
+                      hideLabelClassName='max-[1100px]:hidden'
+                    />
+                    <Button
+                      variant={compareEnabled ? 'default' : 'outline'}
+                      size='sm'
+                      className='flex-shrink-0'
+                      onClick={() => setCompareEnabled((v) => !v)}
+                      title='Compare to another period'
+                    >
+                      <span className='max-[1100px]:hidden'>
+                        {compareEnabled ? 'Comparing' : 'Compare'}
+                      </span>
+                      <span className='hidden max-[1100px]:inline'>vs</span>
+                    </Button>
+                    {compareEnabled && (
+                      <DateRangePicker
+                        value={compareDateRange}
+                        onChange={setCompareDateRange}
+                        presets={datePickerPresets}
+                        placeholder='Comparison range'
+                        triggerClassName='max-[1100px]:justify-center'
+                        hideLabelClassName='max-[1100px]:hidden'
+                      />
+                    )}
+                  </>
                 )}
                 {activeTab === 'charts' && (
                   <Select
@@ -1540,6 +1574,16 @@ export default function CampaignDetailPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Period Comparison */}
+            {compareEnabled && comparisonMetrics && activeTab !== 'monthly' && (
+              <PeriodComparison
+                current={comparisonMetrics.current}
+                comparison={comparisonMetrics.comparison}
+                currentRange={dateRange}
+                comparisonRange={compareDateRange}
+              />
+            )}
 
             {/* Charts */}
             <TabsContent value='charts' className='space-y-4'>
@@ -1886,218 +1930,18 @@ export default function CampaignDetailPage() {
 
             {/* Monthly Summary (전체 데이터 기준) */}
             <TabsContent value='monthly'>
-              {!monthlySummary || monthlySummary.length === 0 ? (
-                <div className='text-center py-8 text-muted-foreground'>
-                  No monthly data available.
-                </div>
-              ) : (
-                <TableWrapper>
-                  <Table style={{ width: 'max-content', minWidth: '100%' }}>
-                    <TableHeader className={TABLE_STYLES.header}>
-                      <TableRow>
-                        <TableHead
-                          className='whitespace-nowrap'
-                          style={{ minWidth: '128px' }}
-                        >
-                          Month
-                        </TableHead>
-                        {Object.keys(monthlySummary[0])
-                          .filter((k) => k !== 'Month')
-                          .map((h, idx) => (
-                            <TableHead
-                              key={h}
-                              className={`whitespace-nowrap ${
-                                idx >= 0 && idx <= 3 ? 'text-center' : ''
-                              }`}
-                            >
-                              {h}
-                            </TableHead>
-                          ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className={TABLE_STYLES.body}>
-                      {monthlySummary.map((row) => {
-                        const cols = Object.keys(row).filter(
-                          (k) => k !== 'Month'
-                        );
-                        return (
-                          <TableRow key={row.Month}>
-                            <TableCell className='whitespace-nowrap font-medium'>
-                              {row.Month}
-                            </TableCell>
-                            {cols.map((col, idx) => (
-                              <TableCell
-                                key={col}
-                                className={`whitespace-nowrap ${
-                                  idx >= 0 && idx <= 3 ? 'text-center' : ''
-                                }`}
-                                style={
-                                  isRoasColumn(col)
-                                    ? roasBgStyle(row[col])
-                                    : undefined
-                                }
-                              >
-                                {row[col]}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableWrapper>
-              )}
+              <MonthlySummaryTable rows={monthlySummary ?? []} />
             </TabsContent>
 
             {/* Daily Report Data */}
             <TabsContent value='daily'>
-              {dataLoading ? (
-                <div className='space-y-2'>
-                  <Skeleton className='h-10 w-full' />
-                  <Skeleton className='h-10 w-full' />
-                  <Skeleton className='h-10 w-full' />
-                </div>
-              ) : dataError ? (
-                <div className='text-center py-8'>
-                  <p className='text-destructive mb-2'>{dataError}</p>
-                  <Button
-                    variant='outline'
-                    onClick={() => fetchSheetData(campaign.daily_report_url!)}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : !data || data.length === 0 ? (
-                <div className='text-center py-8 text-muted-foreground'>
-                  No data available.
-                </div>
-              ) : (
-                <TableWrapper>
-                  <Table style={{ width: 'max-content', minWidth: '100%' }}>
-                    <TableHeader className={TABLE_STYLES.header}>
-                      <TableRow>
-                        {headers.map((header, index) => {
-                          const isDate =
-                            header === '날짜' ||
-                            header === 'date' ||
-                            header.toLowerCase() === 'date';
-                          return (
-                            <TableHead
-                              key={header}
-                              className={`whitespace-nowrap ${
-                                isDate
-                                  ? 'sticky left-0 z-30 bg-muted'
-                                  : ''
-                              } ${
-                                index >= 1 && index <= 4 ? 'text-center' : ''
-                              }`}
-                              style={
-                                index === 0
-                                  ? { minWidth: '128px' }
-                                  : undefined
-                              }
-                            >
-                              {header}
-                            </TableHead>
-                          );
-                        })}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className={TABLE_STYLES.body}>
-                      {data.map((row, rowIndex) => {
-                        const dateHeader = headers.find(
-                          (h) =>
-                            h === '날짜' ||
-                            h === 'date' ||
-                            h.toLowerCase() === 'date'
-                        );
-                        const isRowSunday = dateHeader
-                          ? isSunday(row[dateHeader])
-                          : false;
-
-                        return (
-                          <TableRow
-                            key={rowIndex}
-                            className={
-                              isRowSunday
-                                ? 'bg-gray-50 dark:bg-gray-900/30'
-                                : ''
-                            }
-                          >
-                            {headers.map((header, cellIndex) => {
-                              const cellValue = row[header];
-                              const isDateCol =
-                                header === '날짜' ||
-                                header === 'date' ||
-                                header.toLowerCase() === 'date';
-                              let displayValue: string;
-                              let cellClassName = 'whitespace-nowrap';
-                              if (isDateCol) {
-                                cellClassName +=
-                                  ' sticky left-0 z-10 bg-muted font-medium';
-                              }
-
-                              if (isDateCol) {
-                                const formatted = formatDateWithWeekday(cellValue);
-                                const dateMatch = formatted.match(
-                                  /^(.+?)\s+\((.+?)\)$/
-                                );
-                                if (dateMatch) {
-                                  const [, datePart, weekdayPart] = dateMatch;
-                                  return (
-                                    <TableCell
-                                      key={cellIndex}
-                                      className={cellClassName}
-                                    >
-                                      <div className='flex items-center gap-2'>
-                                        <span className='w-24'>{datePart}</span>
-                                        <span className='text-muted-foreground'>
-                                          ({weekdayPart})
-                                        </span>
-                                      </div>
-                                    </TableCell>
-                                  );
-                                }
-                                displayValue = formatted;
-                              } else if (
-                                header === '매출(누적)' ||
-                                header === '매출' ||
-                                header.toLowerCase().includes('매출') ||
-                                header.toLowerCase().includes('sales')
-                              ) {
-                                displayValue = formatSales(cellValue);
-                              } else {
-                                displayValue =
-                                  cellValue !== null && cellValue !== undefined
-                                    ? String(cellValue)
-                                    : '-';
-                              }
-
-                              if (cellIndex >= 1 && cellIndex <= 4) {
-                                cellClassName += ' text-center';
-                              }
-
-                              return (
-                                <TableCell
-                                  key={header}
-                                  className={cellClassName}
-                                  style={
-                                    isRoasColumn(header)
-                                      ? roasBgStyle(cellValue)
-                                      : undefined
-                                  }
-                                >
-                                  {displayValue}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableWrapper>
-              )}
+              <DailyReportTable
+                loading={dataLoading}
+                error={dataError}
+                data={data ?? []}
+                headers={headers}
+                onRetry={() => fetchSheetData(campaign.daily_report_url!)}
+              />
             </TabsContent>
           </Tabs>
         ) : (

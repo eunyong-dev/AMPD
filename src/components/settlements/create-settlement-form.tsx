@@ -30,6 +30,7 @@ import {
   type DateRange,
   type DateRangePreset,
 } from '@/components/common/date-range-picker';
+import { compareByNameAndRegion } from '@/lib/utils/campaign-sort';
 
 export interface SettlementCampaignOption {
   id: string;
@@ -177,6 +178,13 @@ export function CreateSettlementForm({
     }
   }, [isOpen]);
 
+  // Account Detail의 캠페인 테이블과 동일한 정렬 규칙 적용
+  // (name 베이스 이름 가나다순 → region 우선순위 KR>JP>TW>US)
+  const sortedCampaigns = useMemo(
+    () => [...campaigns].sort(compareByNameAndRegion),
+    [campaigns]
+  );
+
   const allSelected = useMemo(
     () => campaigns.length > 0 && selectedIds.length === campaigns.length,
     [campaigns.length, selectedIds.length]
@@ -254,6 +262,7 @@ export function CreateSettlementForm({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={120}
+              autoComplete='off'
             />
           </div>
 
@@ -315,7 +324,7 @@ export function CreateSettlementForm({
                     <DropdownMenuSeparator />
                   </>
                 )}
-                {campaigns.map((c) => (
+                {sortedCampaigns.map((c) => (
                   <CampaignCheckboxItem
                     key={c.id}
                     campaign={c}

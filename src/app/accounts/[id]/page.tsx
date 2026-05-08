@@ -233,17 +233,11 @@ export default function AccountDetailPage() {
               <BuildingIcon className='h-8 w-8 text-primary' />
               Account Detail
             </h1>
-            <p className='text-muted-foreground'>
-              {currentAccount.company} - Account details and management
-            </p>
-          </div>
-        </div>
-
-        {/* Account Overview (카드 없이 인라인) */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h2 className='text-xl font-bold'>{currentAccount.company}</h2>
-            <div className='flex items-center gap-3 mt-0.5'>
+            <div className='flex items-center gap-3 mt-1'>
+              <span className='text-base font-semibold'>
+                {currentAccount.company}
+              </span>
+              <span className='text-sm text-muted-foreground'>•</span>
               <p className='text-sm text-muted-foreground'>
                 {(() => {
                   const countryEmojiMap: Record<string, string> = {

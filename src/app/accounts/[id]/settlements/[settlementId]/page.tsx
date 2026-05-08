@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { ChevronLeft, Trash2 } from 'lucide-react';
+import { Trash2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
@@ -28,6 +26,11 @@ import { DeleteConfirmationDialog } from '@/components/common/delete-confirmatio
 import { createClient } from '@/utils/supabase/client';
 import { accountUrl } from '@/lib/utils/account-url';
 import { useGameInfo } from '@/hooks/use-game-info';
+import {
+  compareByNameAndRegion,
+  compareByDescriptionAndGeo,
+} from '@/lib/utils/campaign-sort';
+import { useRawCopy } from '@/lib/utils/use-raw-copy';
 import type { Database } from '@/lib/database.types';
 
 type SettlementRow = Database['public']['Tables']['settlements']['Row'];
@@ -50,6 +53,7 @@ interface SettlementDetail extends SettlementRow {
 }
 
 // 게임 아이콘 + Description 셀 (line별 useGameInfo)
+// 스프레드시트로 복사 시 행 분리되지 않도록 inline 구조 사용
 function DescriptionCell({
   description,
   gameStoreUrl,
@@ -61,21 +65,21 @@ function DescriptionCell({
   const logoUrl = gameInfo?.logo_url ?? null;
 
   return (
-    <div className='flex items-center gap-2'>
+    <span className='inline-flex items-center gap-2 align-middle'>
       {logoUrl ? (
-        <Image
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={logoUrl}
           alt=''
           width={24}
           height={24}
-          className='h-6 w-6 rounded object-cover border border-border flex-shrink-0'
-          unoptimized
+          className='h-6 w-6 rounded object-cover border border-border inline-block flex-shrink-0'
         />
       ) : (
-        <div className='h-6 w-6 rounded bg-muted border border-border flex-shrink-0' />
+        <span className='h-6 w-6 rounded bg-muted border border-border inline-block flex-shrink-0' />
       )}
-      <span className='truncate'>{description ?? '—'}</span>
-    </div>
+      <span>{description ?? '—'}</span>
+    </span>
   );
 }
 
@@ -193,6 +197,21 @@ export default function SettlementDetailPage() {
     );
   }, [settlement]);
 
+  // 정렬: 베이스 이름 + region(KR>JP>TW>US) 우선순위
+  const sortedCampaigns = useMemo(() => {
+    if (!settlement) return [];
+    return [...settlement.campaigns].sort(compareByNameAndRegion);
+  }, [settlement]);
+
+  const sortedLines = useMemo(() => {
+    if (!settlement) return [];
+    return [...settlement.lines].sort(compareByDescriptionAndGeo);
+  }, [settlement]);
+
+  // Detail 테이블 복사 시 포맷팅된 숫자 → raw 숫자로 치환
+  const tableRef = useRef<HTMLTableElement>(null);
+  useRawCopy(tableRef);
+
   if (loading) {
     return (
       <AccessControl>
@@ -218,15 +237,8 @@ export default function SettlementDetailPage() {
   return (
     <AccessControl>
       <div className='space-y-6 w-full overflow-x-hidden'>
-        {/* Back + Header */}
+        {/* Header */}
         <div>
-          <Button variant='ghost' size='sm' asChild className='-ml-2 mb-2'>
-            <Link href={`${accountBaseUrl}?tab=settlements`}>
-              <ChevronLeft className='h-4 w-4 mr-1' />
-              Back to Settlements
-            </Link>
-          </Button>
-
           <div className='flex items-start justify-between gap-4 flex-wrap'>
             <div>
               <h1 className='text-2xl font-bold'>{settlement.title}</h1>
@@ -241,9 +253,9 @@ export default function SettlementDetailPage() {
                   {settlement.period_from} ~ {settlement.period_to}
                 </span>
               </div>
-              {settlement.campaigns.length > 0 && (
+              {sortedCampaigns.length > 0 && (
                 <div className='flex flex-wrap gap-1.5 mt-3'>
-                  {settlement.campaigns.map((c) => (
+                  {sortedCampaigns.map((c) => (
                     <Badge
                       key={c.id}
                       variant='outline'
@@ -270,7 +282,60 @@ export default function SettlementDetailPage() {
 
         {/* Detail Lines */}
         <div>
-          <h2 className='text-lg font-semibold mb-3'>Detail</h2>
+          <div className='flex items-center justify-between mb-3'>
+            <h2 className='text-lg font-semibold'>Detail</h2>
+            {settlement.lines.length > 0 && (
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={async () => {
+                  const headers = [
+                    'Description',
+                    'Model',
+                    'Rate',
+                    'GEO',
+                    'Duration',
+                    'Quantity',
+                    'Amount',
+                  ];
+                  const rows = sortedLines.map((l) =>
+                    [
+                      l.description ?? '',
+                      l.model ?? '',
+                      String(Number(l.rate)),
+                      l.geo ?? '',
+                      `${l.duration_from} ~ ${l.duration_to}`,
+                      String(l.quantity),
+                      String(Number(l.amount)),
+                    ].join('\t')
+                  );
+                  const totalRow = [
+                    'TOTAL',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    String(linesTotal),
+                  ].join('\t');
+                  const tsv = [headers.join('\t'), ...rows, totalRow].join(
+                    '\n'
+                  );
+                  try {
+                    await navigator.clipboard.writeText(tsv);
+                    toast.success(
+                      `Copied ${sortedLines.length} lines to clipboard.`
+                    );
+                  } catch {
+                    toast.error('Failed to copy to clipboard.');
+                  }
+                }}
+              >
+                <Copy className='h-4 w-4 mr-1.5' />
+                Copy table
+              </Button>
+            )}
+          </div>
 
           {settlement.lines.length === 0 ? (
             <div className='border rounded-xl py-12 text-center text-sm text-muted-foreground'>
@@ -279,17 +344,22 @@ export default function SettlementDetailPage() {
             </div>
           ) : (
             <TableWrapper>
-              <Table style={{ width: 'max-content', minWidth: '100%' }}>
+              <Table ref={tableRef} style={{ width: '100%' }}>
                 <TableHeader className={TABLE_STYLES.header}>
                   <TableRow>
-                    <TableHead className='whitespace-nowrap'>
+                    <TableHead
+                      className='whitespace-nowrap'
+                      style={{ width: '100%' }}
+                    >
                       Description
                     </TableHead>
                     <TableHead className='whitespace-nowrap'>Model</TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
                       Rate
                     </TableHead>
-                    <TableHead className='whitespace-nowrap'>GEO</TableHead>
+                    <TableHead className='whitespace-nowrap pl-10'>
+                      GEO
+                    </TableHead>
                     <TableHead className='whitespace-nowrap tabular-nums'>
                       Duration
                     </TableHead>
@@ -302,7 +372,7 @@ export default function SettlementDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className={TABLE_STYLES.body}>
-                  {settlement.lines.map((l) => (
+                  {sortedLines.map((l) => (
                     <TableRow key={l.id}>
                       <TableCell className='whitespace-nowrap font-medium'>
                         <DescriptionCell
@@ -313,19 +383,28 @@ export default function SettlementDetailPage() {
                       <TableCell className='whitespace-nowrap'>
                         {l.model ?? '—'}
                       </TableCell>
-                      <TableCell className='whitespace-nowrap text-right tabular-nums'>
+                      <TableCell
+                        className='whitespace-nowrap text-right tabular-nums'
+                        data-copy={String(Number(l.rate))}
+                      >
                         {formatRate(Number(l.rate))}
                       </TableCell>
-                      <TableCell className='whitespace-nowrap'>
+                      <TableCell className='whitespace-nowrap pl-10'>
                         {l.geo ?? '—'}
                       </TableCell>
                       <TableCell className='whitespace-nowrap tabular-nums text-muted-foreground'>
                         {l.duration_from} ~ {l.duration_to}
                       </TableCell>
-                      <TableCell className='whitespace-nowrap text-right tabular-nums'>
+                      <TableCell
+                        className='whitespace-nowrap text-right tabular-nums'
+                        data-copy={String(l.quantity)}
+                      >
                         {l.quantity.toLocaleString()}
                       </TableCell>
-                      <TableCell className='whitespace-nowrap text-right tabular-nums font-medium'>
+                      <TableCell
+                        className='whitespace-nowrap text-right tabular-nums font-medium'
+                        data-copy={String(Number(l.amount))}
+                      >
                         {formatAmount(Number(l.amount))}
                       </TableCell>
                     </TableRow>
@@ -338,7 +417,10 @@ export default function SettlementDetailPage() {
                     >
                       TOTAL
                     </TableCell>
-                    <TableCell className='whitespace-nowrap text-right tabular-nums font-bold'>
+                    <TableCell
+                      className='whitespace-nowrap text-right tabular-nums font-bold'
+                      data-copy={String(linesTotal)}
+                    >
                       {formatAmount(linesTotal)}
                     </TableCell>
                   </TableRow>

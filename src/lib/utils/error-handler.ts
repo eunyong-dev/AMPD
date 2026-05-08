@@ -152,6 +152,34 @@ export function isError(error: unknown): error is Error {
 }
 
 /**
+ * 브라우저가 오프라인 상태인지 확인
+ */
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && !navigator.onLine;
+}
+
+/**
+ * Supabase fetch 에러를 표준화된 방식으로 처리
+ * - 오프라인 시: console.error를 띄우지 않음 (Next.js dev overlay 방지)
+ * - 그 외: prefix와 함께 로깅 후 throw
+ *
+ * @param prefix 로그 접두사 (예: '캠페인 조회 오류')
+ * @param error Supabase가 반환한 error 객체
+ * @param userMessage 사용자에게 throw로 전달할 메시지 (기본: prefix와 동일)
+ */
+export function logSupabaseError(
+  prefix: string,
+  error: unknown,
+  userMessage?: string
+): never {
+  if (isOffline()) {
+    throw new Error('네트워크 연결을 확인해주세요.');
+  }
+  console.error(prefix, error);
+  throw new Error(userMessage ?? prefix);
+}
+
+/**
  * Supabase 에러인지 확인
  */
 export function isSupabaseError(error: unknown): boolean {

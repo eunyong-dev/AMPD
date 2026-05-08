@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
+import { logSupabaseError } from '@/lib/utils/error-handler';
 
 export interface Campaign {
   id: string;
@@ -50,30 +51,12 @@ export interface CampaignFormData {
   daily_report_url?: string | null;
 }
 
-// 캠페인 상태 옵션
-export const CAMPAIGN_STATUS_OPTIONS = [
-  { value: 'planning', label: 'Planning' },
-  { value: 'ongoing', label: 'Ongoing' },
-  { value: 'holding', label: 'Holding' },
-  { value: 'end', label: 'End' },
-];
-
-// 캠페인 타입 옵션
-export const CAMPAIGN_TYPE_OPTIONS = [{ value: 'CPI', label: 'CPI' }];
-
-// MMP 옵션 (데이터베이스 check constraint와 일치해야 함)
-export const MMP_OPTIONS = [
-  { value: 'AppsFlyer', label: 'AppsFlyer' },
-  { value: 'Adjust', label: 'Adjust' },
-];
-
-// 지역 옵션
-export const REGION_OPTIONS = [
-  { value: 'KR', label: 'Korea' },
-  { value: 'JP', label: 'Japan' },
-  { value: 'TW', label: 'Taiwan' },
-  { value: 'US', label: 'United States' },
-];
+export {
+  CAMPAIGN_STATUS_OPTIONS,
+  CAMPAIGN_TYPE_OPTIONS,
+  MMP_OPTIONS,
+  REGION_OPTIONS,
+} from '@/constants/campaigns';
 
 // 단일 캠페인 조회
 export async function getCampaignById(
@@ -114,32 +97,14 @@ export async function getCampaignById(
       .single();
 
     if (error) {
-      // 에러 객체를 any로 캐스팅하여 속성 접근
-      const errorAny = error as any;
-
-      // 에러 정보 추출
-      const errorMessage =
-        errorAny.message ||
-        errorAny.details ||
-        errorAny.hint ||
-        errorAny.code ||
-        '알 수 없는 오류';
-
-      console.error('캠페인 조회 오류 발생');
-      console.error('캠페인 ID:', campaignId);
-      console.error('에러 메시지:', errorMessage);
-      console.error('에러 코드:', errorAny.code);
-      console.error('에러 상세:', errorAny.details);
-      console.error('에러 힌트:', errorAny.hint);
-      console.error('전체 에러 객체:', error);
-      console.error('에러 객체 타입:', typeof error);
-      console.error('에러 객체 키:', Object.keys(error || {}));
-
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return null;
+      }
+      console.error('캠페인 조회 오류:', error, 'id:', campaignId);
       return null;
     }
 
     if (!data) {
-      console.error('캠페인 데이터가 없습니다. 캠페인 ID:', campaignId);
       return null;
     }
 
@@ -156,12 +121,10 @@ export async function getCampaignById(
         (data.games as any)?.accounts?.user_profiles?.avatar_url || null,
     };
   } catch (err) {
-    console.error('getCampaignById 예외 발생:', err);
-    console.error('에러 타입:', typeof err);
-    console.error(
-      '에러 내용:',
-      err instanceof Error ? err.message : String(err)
-    );
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return null;
+    }
+    console.error('getCampaignById 예외:', err);
     return null;
   }
 }
@@ -194,12 +157,15 @@ export async function getCampaignsByAccount(
       )
     `
     )
-    .eq('games.account_id', accountId)
+    .eq('account_id', accountId)
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('계정별 캠페인 조회 오류:', error);
-    throw new Error('캠페인을 불러올 수 없습니다.');
+    logSupabaseError(
+      '계정별 캠페인 조회 오류:',
+      error,
+      '캠페인을 불러올 수 없습니다.'
+    );
   }
 
   return data.map((campaign: any) => ({
@@ -246,8 +212,11 @@ export async function getAllCampaigns(): Promise<Campaign[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('모든 캠페인 조회 오류:', error);
-    throw new Error('캠페인을 불러올 수 없습니다.');
+    logSupabaseError(
+      '모든 캠페인 조회 오류:',
+      error,
+      '캠페인을 불러올 수 없습니다.'
+    );
   }
 
   return data.map((campaign: any) => ({
@@ -295,8 +264,11 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('내 캠페인 조회 오류:', error);
-    throw new Error('캠페인을 불러올 수 없습니다.');
+    logSupabaseError(
+      '내 캠페인 조회 오류:',
+      error,
+      '캠페인을 불러올 수 없습니다.'
+    );
   }
 
   return data.map((campaign: any) => ({
@@ -468,14 +440,34 @@ export async function updateCampaign(
 // 캠페인 삭제
 export async function deleteCampaign(campaignId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
+  // .select()로 실제 삭제된 행을 받아 RLS로 인한 silent skip을 감지
+  const { data, error } = await supabase
     .from('campaigns')
     .delete()
-    .eq('id', campaignId);
+    .eq('id', campaignId)
+    .select('id');
 
   if (error) {
+    const errAny = error as any;
     console.error('캠페인 삭제 오류:', error);
-    throw new Error('캠페인을 삭제할 수 없습니다.');
+
+    // FK 제약 위반 — 정산서가 이 캠페인을 참조하고 있음
+    if (errAny.code === '23503') {
+      throw new Error(
+        '이 캠페인을 참조하는 정산서가 있어 삭제할 수 없습니다. 먼저 관련 정산서를 삭제하세요.'
+      );
+    }
+    // 그 외는 supabase 메시지 그대로 노출
+    throw new Error(
+      errAny.message || errAny.details || '캠페인을 삭제할 수 없습니다.'
+    );
+  }
+
+  // RLS로 인해 에러 없이 0건 삭제되는 경우 감지
+  if (!data || data.length === 0) {
+    throw new Error(
+      '캠페인 삭제 권한이 없거나 캠페인을 찾을 수 없습니다. (Permission denied or not found)'
+    );
   }
 }
 

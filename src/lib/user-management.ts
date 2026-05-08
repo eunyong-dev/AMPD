@@ -7,6 +7,7 @@
 
 import { createClient } from '@/utils/supabase/client';
 import { UserProfile, UserRole } from '@/lib/permissions';
+import { logSupabaseError } from '@/lib/utils/error-handler';
 
 /**
  * 모든 사용자 프로필 가져오기
@@ -19,8 +20,11 @@ export async function getAllUserProfiles(): Promise<UserProfile[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('사용자 프로필 가져오기 오류:', error);
-    throw new Error('사용자 프로필을 가져올 수 없습니다.');
+    logSupabaseError(
+      '사용자 프로필 가져오기 오류:',
+      error,
+      '사용자 프로필을 가져올 수 없습니다.'
+    );
   }
 
   // 아바타 URL이 없는 경우 기본 아바타 생성
