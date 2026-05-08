@@ -25,7 +25,6 @@ import { Toaster } from '@/components/ui/sonner';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { createClient } from '@/utils/supabase/client';
 import { accountUrl } from '@/lib/utils/account-url';
-import { useGameInfo } from '@/hooks/use-game-info';
 import {
   compareByNameAndRegion,
   compareByDescriptionAndGeo,
@@ -44,6 +43,7 @@ interface CampaignBrief {
 
 interface SettlementLineWithGame extends SettlementLineRow {
   game_store_url: string | null;
+  game_logo_url: string | null;
 }
 
 interface SettlementDetail extends SettlementRow {
@@ -52,17 +52,17 @@ interface SettlementDetail extends SettlementRow {
   account_company: string | null;
 }
 
-// 게임 아이콘 + Description 셀 (line별 useGameInfo)
+// 게임 아이콘 + Description 셀
 // 스프레드시트로 복사 시 행 분리되지 않도록 inline 구조 사용
 function DescriptionCell({
   description,
-  gameStoreUrl,
+  gameLogoUrl,
 }: {
   description: string | null;
-  gameStoreUrl: string | null;
+  gameStoreUrl?: string | null;
+  gameLogoUrl: string | null;
 }) {
-  const { data: gameInfo } = useGameInfo(gameStoreUrl);
-  const logoUrl = gameInfo?.logo_url ?? null;
+  const logoUrl = gameLogoUrl ?? null;
 
   return (
     <span className='inline-flex items-center gap-2 align-middle'>
@@ -122,7 +122,7 @@ export default function SettlementDetailPage() {
             *,
             campaign:campaigns (
               id,
-              game:games ( store_url )
+              game:games ( store_url, logo_url )
             )
           )
           `
@@ -143,6 +143,7 @@ export default function SettlementDetailPage() {
         .map((l: any) => ({
           ...(l as SettlementLineRow),
           game_store_url: l?.campaign?.game?.store_url ?? null,
+          game_logo_url: l?.campaign?.game?.logo_url ?? null,
         }))
         .sort(
           (a: SettlementLineWithGame, b: SettlementLineWithGame) =>
@@ -378,6 +379,7 @@ export default function SettlementDetailPage() {
                         <DescriptionCell
                           description={l.description}
                           gameStoreUrl={l.game_store_url}
+                          gameLogoUrl={l.game_logo_url}
                         />
                       </TableCell>
                       <TableCell className='whitespace-nowrap'>

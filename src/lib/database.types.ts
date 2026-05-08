@@ -73,6 +73,7 @@ export type Database = {
           mmp: string
           name: string
           region: string
+          regional_game_name: string | null
           start_date: string
           status: string
           updated_at: string | null
@@ -91,6 +92,7 @@ export type Database = {
           mmp: string
           name: string
           region: string
+          regional_game_name?: string | null
           start_date: string
           status: string
           updated_at?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           mmp?: string
           name?: string
           region?: string
+          regional_game_name?: string | null
           start_date?: string
           status?: string
           updated_at?: string | null
@@ -136,6 +139,7 @@ export type Database = {
           created_at: string | null
           game_name: string
           id: string
+          logo_url: string | null
           package_identifier: string | null
           platform: string
           store_url: string | null
@@ -146,6 +150,7 @@ export type Database = {
           created_at?: string | null
           game_name: string
           id?: string
+          logo_url?: string | null
           package_identifier?: string | null
           platform: string
           store_url?: string | null
@@ -156,6 +161,7 @@ export type Database = {
           created_at?: string | null
           game_name?: string
           id?: string
+          logo_url?: string | null
           package_identifier?: string | null
           platform?: string
           store_url?: string | null

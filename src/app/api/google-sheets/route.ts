@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const gid = searchParams.get('gid');
   const fromDate = searchParams.get('fromDate');
   const toDate = searchParams.get('toDate');
+  const noCache = searchParams.get('noCache') === '1';
 
   if (!gid) {
     return NextResponse.json(
@@ -23,7 +24,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const data = await getSheetRows({ sheetId, gid, fromDate, toDate });
+    const data = await getSheetRows({
+      sheetId,
+      gid,
+      fromDate,
+      toDate,
+      noCache,
+    });
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (error) {
     console.error('Google Sheets 데이터 가져오기 오류:', error);

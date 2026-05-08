@@ -6,21 +6,102 @@ interface GameInfo {
   logo_url?: string;
 }
 
+// 서버 메모리 캐시 — 같은 store URL 반복 스크래핑 방지.
+// 게임 메타(이름/아이콘/번들ID)는 거의 변하지 않으므로 24시간 TTL이면 충분.
+// dev 서버 재시작 또는 serverless 인스턴스 재기동 시 자연스럽게 cold start.
+type CacheEntry = { data: GameInfo; expiresAt: number };
+const cache = new Map<string, CacheEntry>();
+const TTL_MS = 24 * 60 * 60 * 1000;
+// 진행 중인 동일 URL 요청 중복 fetch 방지
+const inflight = new Map<string, Promise<GameInfo>>();
+
+const getCached = (url: string): GameInfo | null => {
+  const hit = cache.get(url);
+  if (!hit) return null;
+  if (hit.expiresAt < Date.now()) {
+    cache.delete(url);
+    return null;
+  }
+  return hit.data;
+};
+
+const setCached = (url: string, data: GameInfo) => {
+  cache.set(url, { data, expiresAt: Date.now() + TTL_MS });
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    const body = await request.json();
+    const { url, noCache } = body as { url?: string; noCache?: boolean };
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
-    const gameInfo: GameInfo = {};
+    // 1) 캐시 hit — 즉시 반환 (noCache=true면 캐시 무시 + 기존 항목 삭제)
+    if (noCache) {
+      cache.delete(url);
+    } else {
+      const cached = getCached(url);
+      if (cached) {
+        return NextResponse.json({ data: cached });
+      }
+    }
+
+    // 2) 같은 URL의 in-flight 요청이 있으면 그걸 await (dedup)
+    const ongoing = inflight.get(url);
+    if (ongoing) {
+      const data = await ongoing;
+      return NextResponse.json({ data });
+    }
+
+    // 3) 새로 스크래핑 — 진행 중 등록
+    const promise = scrapeGameInfo(url).finally(() => {
+      inflight.delete(url);
+    });
+    inflight.set(url, promise);
+    const data = await promise;
+    setCached(url, data);
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error('게임 정보 가져오기 오류:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch game information' },
+      { status: 500 }
+    );
+  }
+}
+
+async function scrapeGameInfo(url: string): Promise<GameInfo> {
+  const gameInfo: GameInfo = {};
+  await scrapeImpl(url, gameInfo);
+  return gameInfo;
+}
+
+// 외부 fetch 전용 헬퍼 — AbortController로 timeout 강제
+async function timedFetch(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = 10_000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function scrapeImpl(url: string, gameInfo: GameInfo): Promise<void> {
+  // 기존 스크래핑 로직을 별도 함수로 분리 — POST 핸들러는 캐싱만 담당
+  try {
 
     // App Store URL 처리
     if (url.includes('apps.apple.com')) {
       try {
         // App Store URL에서 정보 추출
-        const response = await fetch(url, {
+        const response = await timedFetch(url, {
           headers: {
             'User-Agent':
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -64,9 +145,14 @@ export async function POST(request: NextRequest) {
 
         if (appId) {
           try {
-            // iTunes Lookup API를 사용하여 앱 정보 가져오기
-            const itunesUrl = `https://itunes.apple.com/lookup?id=${appId}`;
-            const itunesResponse = await fetch(itunesUrl);
+            // URL에서 country code 추출 (예: /jp/app/... → jp)
+            // iTunes Lookup API는 country 파라미터로 region별 localized 데이터 반환
+            const countryMatch = url.match(/apps\.apple\.com\/([a-z]{2})\//i);
+            const country = countryMatch?.[1]?.toLowerCase();
+            const itunesUrl = country
+              ? `https://itunes.apple.com/lookup?id=${appId}&country=${country}`
+              : `https://itunes.apple.com/lookup?id=${appId}`;
+            const itunesResponse = await timedFetch(itunesUrl, {}, 8_000);
 
             if (itunesResponse.ok) {
               const itunesData = await itunesResponse.json();
@@ -274,7 +360,7 @@ export async function POST(request: NextRequest) {
     // Google Play URL 처리
     else if (url.includes('play.google.com')) {
       try {
-        const response = await fetch(url, {
+        const response = await timedFetch(url, {
           headers: {
             'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -415,13 +501,8 @@ export async function POST(request: NextRequest) {
         console.error('Google Play 스크래핑 오류:', error);
       }
     }
-
-    return NextResponse.json({ data: gameInfo });
   } catch (error) {
-    console.error('게임 정보 가져오기 오류:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch game information' },
-      { status: 500 }
-    );
+    console.error('게임 정보 스크래핑 오류:', error);
+    // 부분적으로 채워진 gameInfo라도 반환 (caller가 캐시함)
   }
 }

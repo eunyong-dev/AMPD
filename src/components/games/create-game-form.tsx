@@ -509,8 +509,31 @@ export function CreateGameForm({
       // UI에서는 분리된 필드를 사용하지만, 저장할 때는 통합된 필드로 변환
       const storeUrl =
         newGame.app_store_url || newGame.google_play_url || undefined;
-      const packageIdentifier =
+      let packageIdentifier =
         newGame.bundle_id || newGame.package_name || undefined;
+      let logoUrl = newGame.logo_url || undefined;
+
+      // logo_url이나 package_identifier가 비어있는데 store URL이 있으면
+      // submit 시점에 한 번 더 fetch — 사용자가 fetch 완료 전 클릭한 경우 대비
+      if (storeUrl && (!logoUrl || !packageIdentifier)) {
+        try {
+          const res = await fetch('/api/fetch-game-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: storeUrl }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            const info = json?.data ?? {};
+            if (!logoUrl && info.logo_url) logoUrl = info.logo_url;
+            if (!packageIdentifier && info.package_identifier) {
+              packageIdentifier = info.package_identifier;
+            }
+          }
+        } catch {
+          // fetch 실패해도 캠페인 생성은 진행
+        }
+      }
 
       // 플랫폼 값을 데이터베이스 제약조건에 맞게 변환
       const platform = PLATFORM_MAP[newGame.platform] || newGame.platform;
@@ -521,6 +544,7 @@ export function CreateGameForm({
         platform: platform,
         store_url: storeUrl || undefined,
         package_identifier: packageIdentifier || undefined,
+        logo_url: logoUrl,
       };
 
       await onCreateGame(gameData);

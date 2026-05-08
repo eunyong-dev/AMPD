@@ -23,6 +23,7 @@ export interface Campaign {
   status: string;
   jira_url: string | null;
   daily_report_url: string | null;
+  regional_game_name: string | null;
   created_at: string | null;
   updated_at: string | null;
   created_by: string | null;
@@ -30,6 +31,7 @@ export interface Campaign {
   game_name?: string;
   game_store_url?: string | null;
   game_package_identifier?: string | null;
+  game_logo_url?: string | null;
   account_company?: string;
   assigned_user_id?: string;
   assigned_user_name?: string;
@@ -49,6 +51,7 @@ export interface CampaignFormData {
   status: string;
   jira_url?: string | null;
   daily_report_url?: string | null;
+  regional_game_name?: string | null;
 }
 
 export {
@@ -80,6 +83,7 @@ export async function getCampaignById(
           game_name,
           store_url,
           package_identifier,
+          logo_url,
           account_id,
           accounts(
             id,
@@ -113,6 +117,7 @@ export async function getCampaignById(
       game_name: (data.games as any)?.game_name || null,
       game_store_url: (data.games as any)?.store_url || null,
       game_package_identifier: (data.games as any)?.package_identifier || null,
+      game_logo_url: (data.games as any)?.logo_url || null,
       account_company: (data.games as any)?.accounts?.company || null,
       assigned_user_id: (data.games as any)?.accounts?.assigned_user_id || null,
       assigned_user_name:
@@ -144,6 +149,7 @@ export async function getCampaignsByAccount(
         game_name,
         store_url,
         package_identifier,
+        logo_url,
         account_id,
         accounts(
           id,
@@ -174,6 +180,7 @@ export async function getCampaignsByAccount(
     game_name: campaign.games?.game_name || null,
     game_store_url: campaign.games?.store_url || null,
     game_package_identifier: campaign.games?.package_identifier || null,
+    game_logo_url: campaign.games?.logo_url || null,
     account_company: campaign.games?.accounts?.company || null,
     assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
     assigned_user_name:
@@ -196,6 +203,7 @@ export async function getAllCampaigns(): Promise<Campaign[]> {
         game_name,
         store_url,
         package_identifier,
+        logo_url,
         account_id,
         accounts(
           id,
@@ -225,6 +233,7 @@ export async function getAllCampaigns(): Promise<Campaign[]> {
     game_name: campaign.games?.game_name || null,
     game_store_url: campaign.games?.store_url || null,
     game_package_identifier: campaign.games?.package_identifier || null,
+    game_logo_url: campaign.games?.logo_url || null,
     account_company: campaign.games?.accounts?.company || null,
     assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
     assigned_user_name:
@@ -247,6 +256,7 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
         game_name,
         store_url,
         package_identifier,
+        logo_url,
         account_id,
         accounts(
           id,
@@ -277,6 +287,7 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
     game_name: campaign.games?.game_name || null,
     game_store_url: campaign.games?.store_url || null,
     game_package_identifier: campaign.games?.package_identifier || null,
+    game_logo_url: campaign.games?.logo_url || null,
     account_company: campaign.games?.accounts?.company || null,
     assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
     assigned_user_name:
@@ -320,6 +331,7 @@ export async function createCampaign(
         game_name,
         store_url,
         package_identifier,
+        logo_url,
         account_id,
         accounts(
           id,
@@ -403,6 +415,7 @@ export async function updateCampaign(
         game_name,
         store_url,
         package_identifier,
+        logo_url,
         account_id,
         accounts(
           id,
@@ -498,7 +511,11 @@ export function useCampaignManagement(accountId?: string) {
   const addCampaign = async (campaignData: CampaignFormData) => {
     try {
       const newCampaign = await createCampaign(campaignData);
+      // 즉시 optimistic 추가 (UI 반응성)
       setCampaigns((prevCampaigns) => [newCampaign, ...prevCampaigns]);
+      // 백그라운드로 list 재조회 — INSERT().select() join이 logo_url 등을
+      // 누락하는 케이스가 있어 정확한 데이터로 동기화
+      loadCampaigns();
       return newCampaign;
     } catch (err) {
       setError(
@@ -520,6 +537,8 @@ export function useCampaignManagement(accountId?: string) {
           campaign.id === campaignId ? updatedCampaign : campaign
         )
       );
+      // join 데이터 누락 케이스 대비 — 백그라운드 동기화
+      loadCampaigns();
       toast.success('Campaign updated successfully.');
       return updatedCampaign;
     } catch (err) {

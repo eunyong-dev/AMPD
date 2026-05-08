@@ -57,6 +57,12 @@ export const NAVIGATION_DATA = {
       icon: ShieldIcon,
       adminOnly: true,
     },
+    {
+      title: 'Settings',
+      url: '/settings',
+      icon: SettingsIcon,
+      adminOnly: true,
+    },
   ] as NavItem[],
 
   navClouds: [

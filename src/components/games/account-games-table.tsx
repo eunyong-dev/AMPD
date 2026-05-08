@@ -23,7 +23,6 @@ import type { Game } from '@/hooks/use-game-management';
 import type { UserProfile } from '@/lib/permissions';
 import { getPlatformDisplay } from '@/lib/utils/platform';
 import { canManageResource } from '@/lib/utils/permissions';
-import { useGameInfo } from '@/hooks/use-game-info';
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
@@ -64,14 +63,11 @@ function GameTableRow({
     accountAssignedUserId || ''
   );
 
-  // TanStack Query로 게임 정보 가져오기
-  const {
-    data: gameInfo,
-    isLoading: imageLoading,
-    error: imageError,
-  } = useGameInfo(game.store_url);
-
-  const imageUrl = gameInfo?.logo_url || null;
+  // game.logo_url DB 값만 사용. NULL이면 placeholder.
+  // 레거시 게임은 Settings → "Refresh missing logos"로 일괄 채움.
+  const imageUrl = game.logo_url || null;
+  const imageLoading = false;
+  const imageError = null;
 
   // 스토어 favicon URL 생성
   const storeFaviconUrl = useMemo(() => {

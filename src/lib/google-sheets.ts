@@ -32,13 +32,56 @@ function getSheetsClient(): sheets_v4.Sheets {
   return cachedClient;
 }
 
+// ─────────────────────────────────────────────────────────────
+// 서버 메모리 캐시
+// ─────────────────────────────────────────────────────────────
+type CacheEntry<T> = { data: T; expiresAt: number };
+
+// 시트 탭 제목은 거의 안 바뀌므로 길게 캐시
+const titleCache = new Map<string, CacheEntry<string>>();
+const TITLE_TTL_MS = 60 * 60 * 1000; // 1시간
+
+// 시트 데이터는 변경 가능성 있으므로 짧게 캐시
+const rowsCache = new Map<string, CacheEntry<SheetRow[]>>();
+const ROWS_TTL_MS = 5 * 60 * 1000; // 5분
+
+// 같은 키로 동시 진행 중인 요청 dedup
+const inflight = new Map<string, Promise<SheetRow[]>>();
+
+const getCached = <T>(map: Map<string, CacheEntry<T>>, key: string): T | null => {
+  const hit = map.get(key);
+  if (!hit) return null;
+  if (hit.expiresAt < Date.now()) {
+    map.delete(key);
+    return null;
+  }
+  return hit.data;
+};
+
+const setCached = <T>(
+  map: Map<string, CacheEntry<T>>,
+  key: string,
+  data: T,
+  ttl: number
+) => {
+  map.set(key, { data, expiresAt: Date.now() + ttl });
+};
+
 /**
  * gid(sheetId 내의 탭 ID)로 시트의 제목을 찾습니다.
+ * 1시간 캐시.
  */
 async function resolveSheetTitle(
   spreadsheetId: string,
-  gid: string
+  gid: string,
+  noCache = false
 ): Promise<string> {
+  const key = `${spreadsheetId}:${gid}`;
+  if (!noCache) {
+    const cached = getCached(titleCache, key);
+    if (cached) return cached;
+  }
+
   const sheets = getSheetsClient();
   const { data } = await sheets.spreadsheets.get({
     spreadsheetId,
@@ -46,9 +89,7 @@ async function resolveSheetTitle(
   });
 
   const gidNum = Number(gid);
-  const sheet = data.sheets?.find(
-    (s) => s.properties?.sheetId === gidNum
-  );
+  const sheet = data.sheets?.find((s) => s.properties?.sheetId === gidNum);
 
   if (!sheet?.properties?.title) {
     const available = (data.sheets ?? [])
@@ -58,6 +99,8 @@ async function resolveSheetTitle(
       `gid ${gid}에 해당하는 탭을 찾을 수 없습니다. 사용 가능한 탭: ${available || '(없음)'}`
     );
   }
+
+  setCached(titleCache, key, sheet.properties.title, TITLE_TTL_MS);
   return sheet.properties.title;
 }
 
@@ -122,19 +165,45 @@ export async function getSheetRows(params: {
   gid: string;
   fromDate?: string | null;
   toDate?: string | null;
+  /** true면 캐시 무시하고 재fetch */
+  noCache?: boolean;
 }): Promise<SheetRow[]> {
-  const { sheetId, gid, fromDate, toDate } = params;
-  const sheets = getSheetsClient();
-  const title = await resolveSheetTitle(sheetId, gid);
+  const { sheetId, gid, fromDate, toDate, noCache = false } = params;
+  const cacheKey = `${sheetId}:${gid}:${fromDate ?? ''}:${toDate ?? ''}`;
 
-  const { data } = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: `'${title.replace(/'/g, "''")}'`,
-    valueRenderOption: 'FORMATTED_VALUE',
-    dateTimeRenderOption: 'FORMATTED_STRING',
+  // 1) 캐시 hit
+  if (!noCache) {
+    const cached = getCached(rowsCache, cacheKey);
+    if (cached) return cached;
+  } else {
+    rowsCache.delete(cacheKey);
+  }
+
+  // 2) 같은 키 in-flight 요청 dedup
+  const ongoing = inflight.get(cacheKey);
+  if (ongoing) return ongoing;
+
+  // 3) 새로 fetch
+  const promise = (async () => {
+    const sheets = getSheetsClient();
+    const title = await resolveSheetTitle(sheetId, gid, noCache);
+
+    const { data } = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `'${title.replace(/'/g, "''")}'`,
+      valueRenderOption: 'FORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
+    });
+
+    const values = (data.values ?? []) as string[][];
+    const rows = rowsToObjects(values);
+    return filterByDateRange(rows, fromDate ?? null, toDate ?? null);
+  })().finally(() => {
+    inflight.delete(cacheKey);
   });
 
-  const values = (data.values ?? []) as string[][];
-  const rows = rowsToObjects(values);
-  return filterByDateRange(rows, fromDate ?? null, toDate ?? null);
+  inflight.set(cacheKey, promise);
+  const result = await promise;
+  setCached(rowsCache, cacheKey, result, ROWS_TTL_MS);
+  return result;
 }

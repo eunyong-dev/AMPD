@@ -15,6 +15,7 @@ export interface Game {
   platform: string;
   store_url: string | null;
   package_identifier: string | null;
+  logo_url: string | null;
   created_at: string | null;
   updated_at: string | null;
   // 조인된 데이터
@@ -28,6 +29,7 @@ export interface GameFormData {
   platform: string;
   store_url?: string;
   package_identifier?: string;
+  logo_url?: string;
 }
 
 // 플랫폼 옵션

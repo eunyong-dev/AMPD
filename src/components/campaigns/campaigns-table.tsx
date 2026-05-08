@@ -47,7 +47,6 @@ import {
   compareByNameAndRegion,
   REGION_PRIORITY,
 } from '@/lib/utils/campaign-sort';
-import { useGameInfo } from '@/hooks/use-game-info';
 import {
   Tooltip,
   TooltipContent,
@@ -370,7 +369,7 @@ function CampaignTableRow({
   const isManageAllowed = canManageResource(currentUserProfile, assignedUserId);
   const [copiedGameName, setCopiedGameName] = useState(false);
 
-  // 지역별 URL 생성
+  // 지역별 store URL — 링크용 (예: KR 캠페인 → KR App Store로 연결)
   const regionalUrl = useMemo(() => {
     if (campaign.game_store_url && campaign.region) {
       return convertStoreUrlByRegion(campaign.game_store_url, campaign.region);
@@ -378,18 +377,15 @@ function CampaignTableRow({
     return null;
   }, [campaign.game_store_url, campaign.region]);
 
-  // TanStack Query로 지역별 게임 이름 가져오기
-  const { data: regionalGameInfo, isLoading: gameNameLoading } =
-    useGameInfo(regionalUrl);
+  // 지역별 게임 이름: DB값만 사용. NULL이면 canonical game_name으로 fallback.
+  // 레거시 캠페인은 Settings → "Refresh missing regional names"로 일괄 채움.
+  const regionalGameName = campaign.regional_game_name || null;
+  const gameNameLoading = false;
 
-  const regionalGameName = regionalGameInfo?.game_name || null;
-
-  // TanStack Query로 게임 이미지 가져오기
-  const { data: gameInfo, isLoading: imageLoading } = useGameInfo(
-    campaign.game_store_url
-  );
-
-  const imageUrl = gameInfo?.logo_url || null;
+  // 게임 이미지: DB의 game_logo_url만 사용. NULL이면 placeholder.
+  // 레거시 게임은 Settings → "Refresh missing logos"로 일괄 채움.
+  const imageUrl = campaign.game_logo_url || null;
+  const imageLoading = false;
 
   // 스토어 favicon URL 생성
   const storeFaviconUrl = useMemo(() => {

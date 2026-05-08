@@ -16,6 +16,7 @@ import type { CampaignFormData } from '@/hooks/use-campaign-management';
 import type { Game } from '@/hooks/use-game-management';
 import { CampaignFormFields } from './campaign-form-fields';
 import { useGameImages } from './use-game-images';
+import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
 
 interface CreateCampaignFormProps {
   isOpen: boolean;
@@ -108,16 +109,45 @@ export function CreateCampaignForm({
     return true;
   };
 
+  // 캠페인의 region에 맞는 regional_game_name을 1회 fetch
+  // 실패해도 캠페인 생성은 막지 않음 (canonical game_name으로 fallback)
+  const fetchRegionalGameName = async (
+    storeUrl: string | null | undefined,
+    region: string
+  ): Promise<string | null> => {
+    if (!storeUrl || !region) return null;
+    const regionalUrl = convertStoreUrlByRegion(storeUrl, region);
+    if (!regionalUrl) return null;
+    try {
+      const res = await fetch('/api/fetch-game-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: regionalUrl }),
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json?.data?.game_name ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
     try {
       setIsSubmitting(true);
+      const game = games.find((g) => g.id === form.game_id);
+      const regionalName = await fetchRegionalGameName(
+        game?.store_url,
+        form.region
+      );
       await onCreateCampaign({
         ...form,
         name: form.name.trim(),
         description: form.description?.trim() || null,
         jira_url: form.jira_url?.trim() || null,
         daily_report_url: form.daily_report_url?.trim() || null,
+        regional_game_name: regionalName,
       });
       toast.success('Campaign created successfully.');
       onClose();

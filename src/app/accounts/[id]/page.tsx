@@ -21,6 +21,7 @@ import { AccountGamesTable } from '@/components/games/account-games-table';
 import { CampaignsTable } from '@/components/campaigns/campaigns-table';
 import { CreateCampaignForm } from '@/components/campaigns/create-campaign-form';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
+import { RefreshCampaignCacheButton } from '@/components/campaigns/refresh-campaign-cache-button';
 import { CreateSettlementForm } from '@/components/settlements/create-settlement-form';
 import { SettlementsTable } from '@/components/settlements/settlements-table';
 import { useSettlementManagement } from '@/hooks/use-settlement-management';
@@ -438,6 +439,12 @@ export default function AccountDetailPage() {
               </TabsTrigger>
             </TabsList>
 
+            <div className='flex items-center gap-2'>
+            {/* Refresh Cache (campaigns 탭에서만) */}
+            {activeTab === 'campaigns' && accountId && (
+              <RefreshCampaignCacheButton accountId={accountId} />
+            )}
+
             {/* Add Button */}
             {activeTab === 'campaigns' && accountGames.length === 0 ? (
               <TooltipProvider delayDuration={0}>
@@ -494,6 +501,7 @@ export default function AccountDetailPage() {
                   : 'Add Settlement'}
               </Button>
             )}
+            </div>
           </div>
 
           <TabsContent value='games' className='space-y-4 w-full max-w-full overflow-hidden'>
@@ -634,6 +642,7 @@ export default function AccountDetailPage() {
             id: c.id,
             name: c.name,
             game_store_url: c.game_store_url,
+            game_logo_url: c.game_logo_url,
             region: c.region,
             campaign_type: c.campaign_type,
             daily_report_url: c.daily_report_url,

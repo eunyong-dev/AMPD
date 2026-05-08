@@ -24,7 +24,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGameInfo } from '@/hooks/use-game-info';
 import {
   DateRangePicker,
   type DateRange,
@@ -36,6 +35,7 @@ export interface SettlementCampaignOption {
   id: string;
   name: string;
   game_store_url?: string | null;
+  game_logo_url?: string | null;
   region?: string | null;
   campaign_type?: string | null;
   daily_report_url?: string | null;
@@ -68,8 +68,7 @@ function CampaignCheckboxItem({
   checked: boolean;
   onToggle: () => void;
 }) {
-  const { data: gameInfo } = useGameInfo(campaign.game_store_url ?? null);
-  const logoUrl = gameInfo?.logo_url ?? null;
+  const logoUrl = campaign.game_logo_url ?? null;
 
   return (
     <DropdownMenuCheckboxItem

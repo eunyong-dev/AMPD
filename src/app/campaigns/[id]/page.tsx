@@ -93,7 +93,6 @@ import {
   REGION_OPTIONS,
 } from '@/hooks/use-campaign-management';
 import { parseSheetDate } from '@/lib/utils/sheet-formatters';
-import { useGameInfo } from '@/hooks/use-game-info';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
@@ -101,6 +100,7 @@ import { DailyReportTable } from '@/components/campaigns/campaign-detail/daily-r
 import { MonthlySummaryTable } from '@/components/campaigns/campaign-detail/monthly-summary-table';
 import { PeriodComparison } from '@/components/campaigns/campaign-detail/period-comparison';
 import { isRoasColumn, roasBgStyle, parseRoasPercent } from '@/lib/utils/roas';
+import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
 import {
   aggregateCampaignMetrics,
   filterRowsByDateRange,
@@ -108,7 +108,6 @@ import {
 } from '@/lib/utils/campaign-metrics';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { getAllGames } from '@/hooks/use-game-management';
-import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
 import { accountUrl } from '@/lib/utils/account-url';
 import { formatDateYYYYMMDD } from '@/lib/utils/date';
 import {
@@ -301,17 +300,10 @@ export default function CampaignDetailPage() {
     }
   }, [campaign, router]);
 
-  // 게임 이미지 가져오기 (캠페인 로드 후 즉시 시작)
-  const { data: gameInfo, isLoading: imageLoading } = useGameInfo(
-    campaign?.game_store_url || null,
-    {
-      enabled: !!campaign?.game_store_url,
-      staleTime: 1000 * 60 * 10, // 10분 캐시
-      gcTime: 1000 * 60 * 30, // 30분 가비지 컬렉션 방지
-    }
-  );
-
-  const imageUrl = gameInfo?.logo_url || null;
+  // 게임 이미지: DB의 game_logo_url만 사용. NULL이면 placeholder.
+  // 레거시 게임은 Settings → "Refresh missing logos"로 일괄 채움.
+  const imageUrl = campaign?.game_logo_url || null;
+  const imageLoading = false;
 
   // 이미지 프리로드 (성능 개선)
   useEffect(() => {
@@ -397,7 +389,11 @@ export default function CampaignDetailPage() {
   };
 
   // Google Sheets 데이터 가져오기 (전체를 한 번에 로드, 필터는 클라이언트에서)
-  const fetchSheetData = async (reportUrl: string) => {
+  // forceRefresh=true면 서버 캐시 무시하고 최신 데이터 fetch
+  const fetchSheetData = async (
+    reportUrl: string,
+    forceRefresh = false
+  ) => {
     setDataLoading(true);
     setDataError(null);
 
@@ -411,6 +407,7 @@ export default function CampaignDetailPage() {
         gid: params.gid,
         sheetId: params.sheetId,
       });
+      if (forceRefresh) urlParams.set('noCache', '1');
 
       const response = await fetch(
         `/api/google-sheets?${urlParams.toString()}`,
@@ -1045,7 +1042,7 @@ export default function CampaignDetailPage() {
     return mmpOption?.label || mmp || 'Unknown';
   };
 
-  // 지역별 URL 생성
+  // 지역별 store URL — 링크용
   const regionalUrl = useMemo(() => {
     if (campaign?.game_store_url && campaign?.region) {
       return convertStoreUrlByRegion(campaign.game_store_url, campaign.region);
@@ -1053,17 +1050,9 @@ export default function CampaignDetailPage() {
     return null;
   }, [campaign?.game_store_url, campaign?.region]);
 
-  // 지역별 게임 정보 가져오기
-  const { data: regionalGameInfo, isLoading: gameNameLoading } = useGameInfo(
-    regionalUrl,
-    {
-      enabled: !!regionalUrl,
-      staleTime: 1000 * 60 * 10,
-      gcTime: 1000 * 60 * 30,
-    }
-  );
-
-  const regionalGameName = regionalGameInfo?.game_name || null;
+  // 지역별 게임 이름: DB값만 사용. 레거시는 Settings에서 일괄 backfill.
+  const regionalGameName = campaign?.regional_game_name || null;
+  const gameNameLoading = false;
 
   if (loading) {
     return (
@@ -1562,7 +1551,9 @@ export default function CampaignDetailPage() {
                   variant='default'
                   size='sm'
                   className='bg-black text-white hover:bg-black/90 flex-shrink-0'
-                  onClick={() => fetchSheetData(campaign.daily_report_url!)}
+                  onClick={() =>
+                    fetchSheetData(campaign.daily_report_url!, true)
+                  }
                   disabled={dataLoading}
                 >
                   <RefreshCw
@@ -1597,7 +1588,9 @@ export default function CampaignDetailPage() {
                   <p className='text-destructive mb-2'>{dataError}</p>
                   <Button
                     variant='outline'
-                    onClick={() => fetchSheetData(campaign.daily_report_url!)}
+                    onClick={() =>
+                      fetchSheetData(campaign.daily_report_url!, true)
+                    }
                   >
                     Retry
                   </Button>
@@ -1940,7 +1933,9 @@ export default function CampaignDetailPage() {
                 error={dataError}
                 data={data ?? []}
                 headers={headers}
-                onRetry={() => fetchSheetData(campaign.daily_report_url!)}
+                onRetry={() =>
+                  fetchSheetData(campaign.daily_report_url!, true)
+                }
               />
             </TabsContent>
           </Tabs>
