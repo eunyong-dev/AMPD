@@ -49,6 +49,8 @@ export function CreateAccountForm({
     bill_to_email: '',
     bill_to_address: '',
     bill_to_due_days: 30,
+    invoice_email_to: '',
+    invoice_email_cc: '',
   });
   const [billToOpen, setBillToOpen] = useState(false);
 
@@ -96,6 +98,8 @@ export function CreateAccountForm({
       bill_to_email: '',
       bill_to_address: '',
       bill_to_due_days: 30,
+      invoice_email_to: '',
+      invoice_email_cc: '',
     });
     setBillToOpen(false);
   }, []);
@@ -130,6 +134,8 @@ export function CreateAccountForm({
         bill_to_email: newAccount.bill_to_email.trim() || null,
         bill_to_address: newAccount.bill_to_address.trim() || null,
         bill_to_due_days: newAccount.bill_to_due_days,
+        invoice_email_to: newAccount.invoice_email_to.trim() || null,
+        invoice_email_cc: newAccount.invoice_email_cc.trim() || null,
       });
 
       toast.success('광고주가 생성되었습니다');
@@ -282,6 +288,9 @@ export function CreateAccountForm({
                     }
                     autoComplete='off'
                   />
+                  <p className='text-xs text-muted-foreground'>
+                    인보이스 문서의 BILL TO 섹션에 인쇄됨
+                  </p>
                 </div>
                 <div className='space-y-2 md:col-span-2'>
                   <Label htmlFor='bill_to_address'>청구처 주소</Label>
@@ -321,6 +330,51 @@ export function CreateAccountForm({
                     인보이스 발행 시 Invoice Date 로부터 며칠 뒤를 Due Date 로
                     설정할지 (기본 30일)
                   </p>
+                </div>
+                <div className='md:col-span-2 mt-2'>
+                  <div className='text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3'>
+                    인보이스 발송 (Email)
+                  </div>
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='invoice_email_to'>
+                    받는사람 (To){' '}
+                    <span className='text-xs text-muted-foreground font-normal'>
+                      쉼표로 여러 개
+                    </span>
+                  </Label>
+                  <Input
+                    id='invoice_email_to'
+                    placeholder='billing@example.com, finance@example.com'
+                    value={newAccount.invoice_email_to}
+                    onChange={(e) =>
+                      setNewAccount((prev) => ({
+                        ...prev,
+                        invoice_email_to: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='invoice_email_cc'>
+                    참조 (CC){' '}
+                    <span className='text-xs text-muted-foreground font-normal'>
+                      쉼표로 여러 개
+                    </span>
+                  </Label>
+                  <Input
+                    id='invoice_email_cc'
+                    placeholder='manager@example.com'
+                    value={newAccount.invoice_email_cc}
+                    onChange={(e) =>
+                      setNewAccount((prev) => ({
+                        ...prev,
+                        invoice_email_cc: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
                 </div>
               </div>
             )}

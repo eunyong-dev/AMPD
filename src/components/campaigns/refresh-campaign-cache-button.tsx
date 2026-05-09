@@ -8,6 +8,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   useGameCacheRefresh,
   type PhaseProgress,
 } from '@/hooks/use-game-cache-refresh';
@@ -30,21 +36,29 @@ export function RefreshCampaignCacheButton({
 
   return (
     <Popover open={showPopover}>
-      <PopoverTrigger asChild>
-        <Button
-          variant='outline'
-          size='sm'
-          className='flex-shrink-0'
-          onClick={refresh}
-          disabled={refreshing}
-          title='이 광고주의 누락된 게임 로고와 지역별 이름을 새로고침합니다'
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}
-          />
-          캐시 새로고침
-        </Button>
-      </PopoverTrigger>
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button
+                variant='outline'
+                size='sm'
+                className='flex-shrink-0'
+                onClick={refresh}
+                disabled={refreshing}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}
+                />
+                캐시 새로고침
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>이 광고주의 누락된 게임 로고와 지역별 이름을 새로고침합니다</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent
         align='end'
         className='w-80 p-3 space-y-3'

@@ -12,8 +12,13 @@ export const signInWithGoogle = async () => {
     provider: 'google',
     options: {
       redirectTo: redirectUrl,
+      // 기본 OpenID 스코프 + Gmail 발송/서명 읽기 권한
+      scopes:
+        'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.settings.basic',
       queryParams: {
-        prompt: 'select_account',
+        // refresh_token 발급 받으려면 access_type=offline + prompt=consent 필요
+        access_type: 'offline',
+        prompt: 'consent',
         hd: 'gna.company',
       },
     },

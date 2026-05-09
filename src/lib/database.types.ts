@@ -27,6 +27,8 @@ export type Database = {
           country: string
           created_at: string | null
           id: string
+          invoice_email_cc: string | null
+          invoice_email_to: string | null
           total_campaigns: number | null
           updated_at: string | null
         }
@@ -42,6 +44,8 @@ export type Database = {
           country: string
           created_at?: string | null
           id?: string
+          invoice_email_cc?: string | null
+          invoice_email_to?: string | null
           total_campaigns?: number | null
           updated_at?: string | null
         }
@@ -57,6 +61,8 @@ export type Database = {
           country?: string
           created_at?: string | null
           id?: string
+          invoice_email_cc?: string | null
+          invoice_email_to?: string | null
           total_campaigns?: number | null
           updated_at?: string | null
         }
@@ -251,6 +257,12 @@ export type Database = {
           invoice_date: string
           invoice_no: string
           manager_no: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_cc: string | null
+          sent_message_id: string | null
+          sent_subject: string | null
+          sent_to: string | null
           settlement_id: string
         }
         Insert: {
@@ -266,6 +278,12 @@ export type Database = {
           invoice_date: string
           invoice_no: string
           manager_no: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_cc?: string | null
+          sent_message_id?: string | null
+          sent_subject?: string | null
+          sent_to?: string | null
           settlement_id: string
         }
         Update: {
@@ -281,6 +299,12 @@ export type Database = {
           invoice_date?: string
           invoice_no?: string
           manager_no?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_cc?: string | null
+          sent_message_id?: string | null
+          sent_subject?: string | null
+          sent_to?: string | null
           settlement_id?: string
         }
         Relationships: [

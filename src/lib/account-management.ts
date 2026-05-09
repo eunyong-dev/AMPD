@@ -32,6 +32,8 @@ export interface AccountProfile {
   bill_to_email?: string | null;
   bill_to_address?: string | null;
   bill_to_due_days?: number;
+  invoice_email_to?: string | null;
+  invoice_email_cc?: string | null;
 }
 
 export interface AccountInputData {
@@ -42,6 +44,8 @@ export interface AccountInputData {
   bill_to_email?: string | null;
   bill_to_address?: string | null;
   bill_to_due_days?: number;
+  invoice_email_to?: string | null;
+  invoice_email_cc?: string | null;
 }
 
 /**
@@ -105,6 +109,8 @@ export async function addAccount(
       bill_to_email: accountData.bill_to_email ?? null,
       bill_to_address: accountData.bill_to_address ?? null,
       bill_to_due_days: accountData.bill_to_due_days ?? 30,
+      invoice_email_to: accountData.invoice_email_to ?? null,
+      invoice_email_cc: accountData.invoice_email_cc ?? null,
     })
     .select()
     .single();
@@ -133,6 +139,8 @@ export async function addAccount(
     bill_to_email: data.bill_to_email ?? null,
     bill_to_address: data.bill_to_address ?? null,
     bill_to_due_days: data.bill_to_due_days ?? 30,
+    invoice_email_to: data.invoice_email_to ?? null,
+    invoice_email_cc: data.invoice_email_cc ?? null,
   };
 }
 
@@ -254,6 +262,8 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     bill_to_email: account.bill_to_email ?? null,
     bill_to_address: account.bill_to_address ?? null,
     bill_to_due_days: account.bill_to_due_days ?? 30,
+    invoice_email_to: account.invoice_email_to ?? null,
+    invoice_email_cc: account.invoice_email_cc ?? null,
   }));
 }
 
@@ -288,6 +298,8 @@ export async function updateAccount(
       bill_to_email: accountData.bill_to_email ?? null,
       bill_to_address: accountData.bill_to_address ?? null,
       bill_to_due_days: accountData.bill_to_due_days ?? 30,
+      invoice_email_to: accountData.invoice_email_to ?? null,
+      invoice_email_cc: accountData.invoice_email_cc ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', accountId)
@@ -318,6 +330,8 @@ export async function updateAccount(
     bill_to_email: data.bill_to_email ?? null,
     bill_to_address: data.bill_to_address ?? null,
     bill_to_due_days: data.bill_to_due_days ?? 30,
+    invoice_email_to: data.invoice_email_to ?? null,
+    invoice_email_cc: data.invoice_email_cc ?? null,
   };
 }
 

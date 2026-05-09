@@ -57,6 +57,8 @@ export function EditAccountForm({
     bill_to_email: '',
     bill_to_address: '',
     bill_to_due_days: 30,
+    invoice_email_to: '',
+    invoice_email_cc: '',
   });
   const [billToOpen, setBillToOpen] = useState(false);
 
@@ -85,7 +87,9 @@ export function EditAccountForm({
       const hasAnyBillTo =
         !!account.bill_to_name ||
         !!account.bill_to_email ||
-        !!account.bill_to_address;
+        !!account.bill_to_address ||
+        !!account.invoice_email_to ||
+        !!account.invoice_email_cc;
       setEditedAccount({
         company: account.company || '',
         country: account.country || '',
@@ -94,6 +98,8 @@ export function EditAccountForm({
         bill_to_email: account.bill_to_email ?? '',
         bill_to_address: account.bill_to_address ?? '',
         bill_to_due_days: account.bill_to_due_days ?? 30,
+        invoice_email_to: account.invoice_email_to ?? '',
+        invoice_email_cc: account.invoice_email_cc ?? '',
       });
       // 기존 BILL TO 정보가 있으면 펼친 상태로
       setBillToOpen(hasAnyBillTo);
@@ -109,6 +115,8 @@ export function EditAccountForm({
       bill_to_email: '',
       bill_to_address: '',
       bill_to_due_days: 30,
+      invoice_email_to: '',
+      invoice_email_cc: '',
     });
     setBillToOpen(false);
   }, []);
@@ -145,6 +153,8 @@ export function EditAccountForm({
         bill_to_email: editedAccount.bill_to_email.trim() || null,
         bill_to_address: editedAccount.bill_to_address.trim() || null,
         bill_to_due_days: editedAccount.bill_to_due_days,
+        invoice_email_to: editedAccount.invoice_email_to.trim() || null,
+        invoice_email_cc: editedAccount.invoice_email_cc.trim() || null,
       });
 
       toast.success('광고주 정보가 업데이트되었습니다');
@@ -293,6 +303,9 @@ export function EditAccountForm({
                     }
                     autoComplete='off'
                   />
+                  <p className='text-xs text-muted-foreground'>
+                    인보이스 문서의 BILL TO 섹션에 인쇄됨
+                  </p>
                 </div>
                 <div className='space-y-2 md:col-span-2'>
                   <Label htmlFor='edit-bill_to_address'>청구처 주소</Label>
@@ -334,6 +347,51 @@ export function EditAccountForm({
                     인보이스 발행 시 Invoice Date 로부터 며칠 뒤를 Due Date 로
                     설정할지 (기본 30일)
                   </p>
+                </div>
+                <div className='md:col-span-2 mt-2'>
+                  <div className='text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3'>
+                    인보이스 발송 (Email)
+                  </div>
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='edit-invoice_email_to'>
+                    받는사람 (To){' '}
+                    <span className='text-xs text-muted-foreground font-normal'>
+                      쉼표로 여러 개
+                    </span>
+                  </Label>
+                  <Input
+                    id='edit-invoice_email_to'
+                    placeholder='billing@example.com, finance@example.com'
+                    value={editedAccount.invoice_email_to}
+                    onChange={(e) =>
+                      setEditedAccount((prev) => ({
+                        ...prev,
+                        invoice_email_to: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='edit-invoice_email_cc'>
+                    참조 (CC){' '}
+                    <span className='text-xs text-muted-foreground font-normal'>
+                      쉼표로 여러 개
+                    </span>
+                  </Label>
+                  <Input
+                    id='edit-invoice_email_cc'
+                    placeholder='manager@example.com'
+                    value={editedAccount.invoice_email_cc}
+                    onChange={(e) =>
+                      setEditedAccount((prev) => ({
+                        ...prev,
+                        invoice_email_cc: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
                 </div>
               </div>
             )}
