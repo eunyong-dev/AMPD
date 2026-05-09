@@ -20,6 +20,7 @@ export type Database = {
           active_games: number | null
           assigned_user_id: string
           bill_to_address: string | null
+          bill_to_due_days: number
           bill_to_email: string | null
           bill_to_name: string | null
           company: string
@@ -34,6 +35,7 @@ export type Database = {
           active_games?: number | null
           assigned_user_id: string
           bill_to_address?: string | null
+          bill_to_due_days?: number
           bill_to_email?: string | null
           bill_to_name?: string | null
           company: string
@@ -48,6 +50,7 @@ export type Database = {
           active_games?: number | null
           assigned_user_id?: string
           bill_to_address?: string | null
+          bill_to_due_days?: number
           bill_to_email?: string | null
           bill_to_name?: string | null
           company?: string

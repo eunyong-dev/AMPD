@@ -513,23 +513,23 @@ export default function SettlementDetailPage() {
                       className='whitespace-nowrap'
                       style={{ width: '100%' }}
                     >
-                      설명
+                      Description
                     </TableHead>
-                    <TableHead className='whitespace-nowrap'>모델</TableHead>
+                    <TableHead className='whitespace-nowrap'>Model</TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
-                      단가
+                      Rate
                     </TableHead>
                     <TableHead className='whitespace-nowrap pl-10'>
                       GEO
                     </TableHead>
                     <TableHead className='whitespace-nowrap tabular-nums'>
-                      기간
+                      Duration
                     </TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
-                      수량
+                      Quantity
                     </TableHead>
                     <TableHead className='whitespace-nowrap text-right'>
-                      금액
+                      Amount
                     </TableHead>
                   </TableRow>
                 </TableHeader>

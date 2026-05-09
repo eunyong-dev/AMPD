@@ -66,8 +66,8 @@ export default function AllCampaignsPage() {
     type: true,
     dateRange: true,
     status: true,
-    jiraUrl: true,
-    dailyReportUrl: true,
+    jiraUrl: false,
+    dailyReportUrl: false,
   });
   const { profile: currentUserProfile } = useUserContext();
   const { users: activeUsers } = useUserManagement();

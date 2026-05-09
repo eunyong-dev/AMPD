@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,9 @@ export function EditAccountForm({
     bill_to_name: '',
     bill_to_email: '',
     bill_to_address: '',
+    bill_to_due_days: 30,
   });
+  const [billToOpen, setBillToOpen] = useState(false);
 
   const { users: activeUsers } = useUserManagement();
   const { user: currentUser } = useAuth();
@@ -79,6 +82,10 @@ export function EditAccountForm({
   // 폼이 열릴 때 계정 데이터로 초기화
   useEffect(() => {
     if (isOpen && account) {
+      const hasAnyBillTo =
+        !!account.bill_to_name ||
+        !!account.bill_to_email ||
+        !!account.bill_to_address;
       setEditedAccount({
         company: account.company || '',
         country: account.country || '',
@@ -86,7 +93,10 @@ export function EditAccountForm({
         bill_to_name: account.bill_to_name ?? '',
         bill_to_email: account.bill_to_email ?? '',
         bill_to_address: account.bill_to_address ?? '',
+        bill_to_due_days: account.bill_to_due_days ?? 30,
       });
+      // 기존 BILL TO 정보가 있으면 펼친 상태로
+      setBillToOpen(hasAnyBillTo);
     }
   }, [isOpen, account]);
 
@@ -98,7 +108,9 @@ export function EditAccountForm({
       bill_to_name: '',
       bill_to_email: '',
       bill_to_address: '',
+      bill_to_due_days: 30,
     });
+    setBillToOpen(false);
   }, []);
 
   // 폼이 닫힐 때 상태 초기화
@@ -132,6 +144,7 @@ export function EditAccountForm({
         bill_to_name: editedAccount.bill_to_name.trim() || null,
         bill_to_email: editedAccount.bill_to_email.trim() || null,
         bill_to_address: editedAccount.bill_to_address.trim() || null,
+        bill_to_due_days: editedAccount.bill_to_due_days,
       });
 
       toast.success('광고주 정보가 업데이트되었습니다');
@@ -231,62 +244,99 @@ export function EditAccountForm({
             </Select>
           </div>
 
-          {/* 청구 정보 (BILL TO) */}
+          {/* 청구 정보 (BILL TO) — 접기/펼치기 */}
           <div className='border-t pt-4 mt-2'>
-            <div className='text-sm font-semibold mb-3'>
-              청구 정보 (BILL TO){' '}
+            <button
+              type='button'
+              onClick={() => setBillToOpen((v) => !v)}
+              className='flex w-full items-center gap-2 text-sm font-semibold hover:text-primary transition-colors'
+            >
+              {billToOpen ? (
+                <ChevronDown className='h-4 w-4' />
+              ) : (
+                <ChevronRight className='h-4 w-4' />
+              )}
+              <span>청구 정보 (BILL TO)</span>
               <span className='text-xs text-muted-foreground font-normal'>
                 선택 입력 — 인보이스 발행 시 사용
               </span>
-            </div>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <div className='space-y-2'>
-                <Label htmlFor='edit-bill_to_name'>청구처 이름</Label>
-                <Input
-                  id='edit-bill_to_name'
-                  placeholder='청구처 이름'
-                  value={editedAccount.bill_to_name}
-                  onChange={(e) =>
-                    setEditedAccount((prev) => ({
-                      ...prev,
-                      bill_to_name: e.target.value,
-                    }))
-                  }
-                  autoComplete='off'
-                />
+            </button>
+            {billToOpen && (
+              <div className='grid gap-4 md:grid-cols-2 mt-3'>
+                <div className='space-y-2'>
+                  <Label htmlFor='edit-bill_to_name'>청구처 이름</Label>
+                  <Input
+                    id='edit-bill_to_name'
+                    placeholder='청구처 이름'
+                    value={editedAccount.bill_to_name}
+                    onChange={(e) =>
+                      setEditedAccount((prev) => ({
+                        ...prev,
+                        bill_to_name: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='edit-bill_to_email'>청구처 이메일</Label>
+                  <Input
+                    id='edit-bill_to_email'
+                    type='email'
+                    placeholder='billing@example.com'
+                    value={editedAccount.bill_to_email}
+                    onChange={(e) =>
+                      setEditedAccount((prev) => ({
+                        ...prev,
+                        bill_to_email: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
+                </div>
+                <div className='space-y-2 md:col-span-2'>
+                  <Label htmlFor='edit-bill_to_address'>청구처 주소</Label>
+                  <Input
+                    id='edit-bill_to_address'
+                    placeholder='청구처 주소'
+                    value={editedAccount.bill_to_address}
+                    onChange={(e) =>
+                      setEditedAccount((prev) => ({
+                        ...prev,
+                        bill_to_address: e.target.value,
+                      }))
+                    }
+                    autoComplete='off'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='edit-bill_to_due_days'>
+                    청구 기한 (일)
+                  </Label>
+                  <Input
+                    id='edit-bill_to_due_days'
+                    type='number'
+                    min={1}
+                    max={365}
+                    placeholder='30'
+                    value={editedAccount.bill_to_due_days}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      setEditedAccount((prev) => ({
+                        ...prev,
+                        bill_to_due_days:
+                          Number.isNaN(v) || v < 1 ? 1 : Math.min(v, 365),
+                      }));
+                    }}
+                    autoComplete='off'
+                  />
+                  <p className='text-xs text-muted-foreground'>
+                    인보이스 발행 시 Invoice Date 로부터 며칠 뒤를 Due Date 로
+                    설정할지 (기본 30일)
+                  </p>
+                </div>
               </div>
-              <div className='space-y-2'>
-                <Label htmlFor='edit-bill_to_email'>청구처 이메일</Label>
-                <Input
-                  id='edit-bill_to_email'
-                  type='email'
-                  placeholder='billing@example.com'
-                  value={editedAccount.bill_to_email}
-                  onChange={(e) =>
-                    setEditedAccount((prev) => ({
-                      ...prev,
-                      bill_to_email: e.target.value,
-                    }))
-                  }
-                  autoComplete='off'
-                />
-              </div>
-              <div className='space-y-2 md:col-span-2'>
-                <Label htmlFor='edit-bill_to_address'>청구처 주소</Label>
-                <Input
-                  id='edit-bill_to_address'
-                  placeholder='청구처 주소'
-                  value={editedAccount.bill_to_address}
-                  onChange={(e) =>
-                    setEditedAccount((prev) => ({
-                      ...prev,
-                      bill_to_address: e.target.value,
-                    }))
-                  }
-                  autoComplete='off'
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
         <DialogFooter>

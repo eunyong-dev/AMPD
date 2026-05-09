@@ -18,6 +18,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
 import type { Game } from '@/hooks/use-game-management';
 import type { UserProfile } from '@/lib/permissions';
@@ -123,6 +129,8 @@ function GameTableRow({
   };
 
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <TableRow>
       <TableCell style={{ width: '300px' }}>
         <div className='flex items-center gap-2'>
@@ -291,6 +299,17 @@ function GameTableRow({
         isAllowed={isDeleteAllowed}
       />
     </TableRow>
+      </ContextMenuTrigger>
+      <ContextMenuContent className='w-auto min-w-[140px]'>
+        <ContextMenuItem
+          onClick={() => setShowDeleteDialog(true)}
+          className='text-red-600 focus:text-red-600'
+        >
+          <TrashIcon className='mr-2 h-4 w-4' />
+          게임 삭제
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

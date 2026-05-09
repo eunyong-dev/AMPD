@@ -31,6 +31,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
 import type { Campaign } from '@/hooks/use-campaign-management';
 import type { UserProfile } from '@/lib/permissions';
@@ -421,6 +427,8 @@ function CampaignTableRow({
   }, [gameNameLoading, regionalGameName, campaign.game_name]);
 
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <TableRow>
       {columnVisibility.campaignTitle && (
         <TableCell style={{ width: COLUMN_WIDTHS.campaignTitle }}>
@@ -633,6 +641,49 @@ function CampaignTableRow({
         </DropdownMenu>
       </TableCell>
     </TableRow>
+      </ContextMenuTrigger>
+      <ContextMenuContent className='w-auto min-w-[180px]'>
+        <ContextMenuItem
+          onClick={() => handleEditCampaign(campaign)}
+          disabled={!isManageAllowed}
+        >
+          <EditIcon className='mr-2 h-4 w-4' />
+          캠페인 수정
+        </ContextMenuItem>
+        {campaign.jira_url && (
+          <ContextMenuItem
+            onClick={() =>
+              window.open(campaign.jira_url!, '_blank', 'noopener,noreferrer')
+            }
+          >
+            <ExternalLinkIcon className='mr-2 h-4 w-4' />
+            Jira 티켓 보러가기
+          </ContextMenuItem>
+        )}
+        {campaign.daily_report_url && (
+          <ContextMenuItem
+            onClick={() =>
+              window.open(
+                campaign.daily_report_url!,
+                '_blank',
+                'noopener,noreferrer'
+              )
+            }
+          >
+            <ExternalLinkIcon className='mr-2 h-4 w-4' />
+            리포트 시트 보러가기
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem
+          onClick={() => handleDeleteClick(campaign.id, isManageAllowed)}
+          disabled={!isManageAllowed}
+          className='text-red-600 focus:text-red-600'
+        >
+          <TrashIcon className='mr-2 h-4 w-4' />
+          캠페인 삭제
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -673,8 +724,8 @@ export function CampaignsTable({
     type: true,
     dateRange: true,
     status: true,
-    jiraUrl: true,
-    dailyReportUrl: true,
+    jiraUrl: false,
+    dailyReportUrl: false,
   },
 }: CampaignsTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);

@@ -31,6 +31,7 @@ export interface AccountProfile {
   bill_to_name?: string | null;
   bill_to_email?: string | null;
   bill_to_address?: string | null;
+  bill_to_due_days?: number;
 }
 
 export interface AccountInputData {
@@ -40,6 +41,7 @@ export interface AccountInputData {
   bill_to_name?: string | null;
   bill_to_email?: string | null;
   bill_to_address?: string | null;
+  bill_to_due_days?: number;
 }
 
 /**
@@ -102,6 +104,7 @@ export async function addAccount(
       bill_to_name: accountData.bill_to_name ?? null,
       bill_to_email: accountData.bill_to_email ?? null,
       bill_to_address: accountData.bill_to_address ?? null,
+      bill_to_due_days: accountData.bill_to_due_days ?? 30,
     })
     .select()
     .single();
@@ -129,6 +132,7 @@ export async function addAccount(
     bill_to_name: data.bill_to_name ?? null,
     bill_to_email: data.bill_to_email ?? null,
     bill_to_address: data.bill_to_address ?? null,
+    bill_to_due_days: data.bill_to_due_days ?? 30,
   };
 }
 
@@ -249,6 +253,7 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     bill_to_name: account.bill_to_name ?? null,
     bill_to_email: account.bill_to_email ?? null,
     bill_to_address: account.bill_to_address ?? null,
+    bill_to_due_days: account.bill_to_due_days ?? 30,
   }));
 }
 
@@ -282,6 +287,7 @@ export async function updateAccount(
       bill_to_name: accountData.bill_to_name ?? null,
       bill_to_email: accountData.bill_to_email ?? null,
       bill_to_address: accountData.bill_to_address ?? null,
+      bill_to_due_days: accountData.bill_to_due_days ?? 30,
       updated_at: new Date().toISOString(),
     })
     .eq('id', accountId)
@@ -311,6 +317,7 @@ export async function updateAccount(
     bill_to_name: data.bill_to_name ?? null,
     bill_to_email: data.bill_to_email ?? null,
     bill_to_address: data.bill_to_address ?? null,
+    bill_to_due_days: data.bill_to_due_days ?? 30,
   };
 }
 

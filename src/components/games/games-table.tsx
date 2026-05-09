@@ -23,6 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
 import type { Game } from '@/hooks/use-game-management';
 import { getPlatformDisplay } from '@/lib/utils/platform';
@@ -94,7 +100,9 @@ export function GamesTable({
         <TableBody>
           {games.map((game) => {
             return (
-              <TableRow key={game.id}>
+              <ContextMenu key={game.id}>
+                <ContextMenuTrigger asChild>
+              <TableRow>
                 <TableCell style={{ width: '32px' }}>
                   <Checkbox
                     checked={selectedGames.includes(game.id)}
@@ -177,6 +185,21 @@ export function GamesTable({
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
+                </ContextMenuTrigger>
+                <ContextMenuContent className='w-auto min-w-[140px]'>
+                  <ContextMenuItem onClick={() => handleEditGame(game.id)}>
+                    <EditIcon className='mr-2 h-4 w-4' />
+                    게임 수정
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    onClick={() => handleDeleteGame(game.id)}
+                    className='text-red-600 focus:text-red-600'
+                  >
+                    <TrashIcon className='mr-2 h-4 w-4' />
+                    게임 삭제
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           })}
         </TableBody>

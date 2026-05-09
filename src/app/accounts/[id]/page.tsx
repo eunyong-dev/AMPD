@@ -507,8 +507,8 @@ export default function AccountDetailPage() {
                   type: true,
                   dateRange: true,
                   status: true,
-                  jiraUrl: true,
-                  dailyReportUrl: true,
+                  jiraUrl: false,
+                  dailyReportUrl: false,
                 }}
               />
             ) : (

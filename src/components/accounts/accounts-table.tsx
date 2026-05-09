@@ -25,6 +25,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
 import { useUserManagement } from '@/hooks/use-user-management';
 import type { AccountProfile } from '@/lib/account-management';
@@ -146,120 +152,154 @@ export function AccountsTable({
             </TableHeader>
             <TableBody className={TABLE_STYLES.body}>
           {accounts.map((account) => {
+            const canManage = canManageResource(
+              currentUserProfile,
+              account.assigned_user_id
+            );
             return (
-              <TableRow key={account.id}>
-                <TableCell style={{ width: '200px' }} className='p-0'>
-                  <Link
-                    href={accountUrl(account.company)}
-                    className='block w-full px-2 py-2 font-medium truncate text-sm hover:text-primary hover:underline'
-                  >
-                    {account.company}
-                  </Link>
-                </TableCell>
-                <TableCell style={{ width: '120px' }}>
-                  <div className='text-sm text-muted-foreground'>
-                    {getCountryDisplay(account.country)}
-                  </div>
-                </TableCell>
-                <TableCell style={{ width: '160px' }}>
-                  <div className='flex items-center gap-1'>
-                    <UserAvatar
-                      userId={account.assigned_user_id}
-                      userName={account.assigned_user_name}
-                      activeUsers={activeUsers}
-                    />
-                    <div className='text-xs font-medium truncate'>
-                      {account.assigned_user_name}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell style={{ width: '140px' }}>
-                  <Link
-                    href={`${accountUrl(account.company)}?tab=games`}
-                    className='inline-flex items-center hover:opacity-80 cursor-pointer'
-                  >
-                    <div className='flex -space-x-2'>
-                      {account.game_logos?.slice(0, 3).map((g) => (
-                        <Avatar
-                          key={g.id}
-                          className='h-6 w-6 ring-2 ring-background'
-                        >
-                          {g.logo_url ? (
-                            <AvatarImage
-                              src={g.logo_url}
-                              alt={g.game_name ?? ''}
-                            />
-                          ) : null}
-                          <AvatarFallback className='text-[10px]'>
-                            {g.game_name?.charAt(0).toUpperCase() ?? 'G'}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                      <div className='relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-300 dark:bg-zinc-700 ring-2 ring-background text-[10px] font-semibold text-foreground'>
-                        {account.active_games || 0}
+              <ContextMenu key={account.id}>
+                <ContextMenuTrigger asChild>
+                  <TableRow>
+                    <TableCell style={{ width: '200px' }} className='p-0'>
+                      <Link
+                        href={accountUrl(account.company)}
+                        className='block w-full px-2 py-2 font-medium truncate text-sm hover:text-primary hover:underline'
+                      >
+                        {account.company}
+                      </Link>
+                    </TableCell>
+                    <TableCell style={{ width: '120px' }}>
+                      <div className='text-sm text-muted-foreground'>
+                        {getCountryDisplay(account.country)}
                       </div>
-                    </div>
-                  </Link>
-                </TableCell>
-                <TableCell style={{ width: '100px' }}>
-                  <Link href={`${accountUrl(account.company)}?tab=campaigns`}>
-                    <Badge
-                      variant='outline'
-                      className='inline-flex gap-1 px-1.5 py-0.5 text-xs text-muted-foreground [&_svg]:size-3 text-green-600 w-fit hover:text-green-700 cursor-pointer'
-                    >
-                      <CheckCircle2Icon className='text-green-500' />
-                      활성 {account.active_campaigns}
-                    </Badge>
-                  </Link>
-                </TableCell>
-                <TableCell
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant='ghost'
-                        className='flex size-8 hover:bg-muted/50'
-                        size='icon'
+                    </TableCell>
+                    <TableCell style={{ width: '160px' }}>
+                      <div className='flex items-center gap-1'>
+                        <UserAvatar
+                          userId={account.assigned_user_id}
+                          userName={account.assigned_user_name}
+                          activeUsers={activeUsers}
+                        />
+                        <div className='text-xs font-medium truncate'>
+                          {account.assigned_user_name}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell style={{ width: '140px' }}>
+                      <Link
+                        href={`${accountUrl(account.company)}?tab=games`}
+                        className='inline-flex items-center hover:opacity-80 cursor-pointer'
                       >
-                        <MoreHorizontalIcon className='h-4 w-4' />
-                        <span className='sr-only'>메뉴 열기</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align='end'
-                      className='w-auto min-w-[120px]'
-                    >
-                      {onEditAccount && (
-                        <DropdownMenuItem
-                          onClick={() => onEditAccount(account)}
-                          className='flex items-center gap-0'
-                          disabled={!canManageResource(currentUserProfile, account.assigned_user_id)}
+                        <div className='flex -space-x-2'>
+                          {account.game_logos?.slice(0, 3).map((g) => (
+                            <Avatar
+                              key={g.id}
+                              className='h-6 w-6 ring-2 ring-background'
+                            >
+                              {g.logo_url ? (
+                                <AvatarImage
+                                  src={g.logo_url}
+                                  alt={g.game_name ?? ''}
+                                />
+                              ) : null}
+                              <AvatarFallback className='text-[10px]'>
+                                {g.game_name?.charAt(0).toUpperCase() ?? 'G'}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          <div className='relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-300 dark:bg-zinc-700 ring-2 ring-background text-[10px] font-semibold text-foreground'>
+                            {account.active_games || 0}
+                          </div>
+                        </div>
+                      </Link>
+                    </TableCell>
+                    <TableCell style={{ width: '100px' }}>
+                      <Link
+                        href={`${accountUrl(account.company)}?tab=campaigns`}
+                      >
+                        <Badge
+                          variant='outline'
+                          className='inline-flex gap-1 px-1.5 py-0.5 text-xs text-muted-foreground [&_svg]:size-3 text-green-600 w-fit hover:text-green-700 cursor-pointer'
                         >
-                          <PencilIcon className='mr-1 h-4 w-4' />
-                          광고주 수정
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        onClick={() =>
-                          handleDeleteClick(
-                            account.id,
-                            account.company,
-                            account.assigned_user_id
-                          )
-                        }
-                        className='text-red-600 focus:text-red-600 flex items-center gap-0'
-                      >
-                        <TrashIcon className='mr-1 h-4 w-4' />
-                        광고주 삭제
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
+                          <CheckCircle2Icon className='text-green-500' />
+                          활성 {account.active_campaigns}
+                        </Badge>
+                      </Link>
+                    </TableCell>
+                    <TableCell
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                      }}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            className='flex size-8 hover:bg-muted/50'
+                            size='icon'
+                          >
+                            <MoreHorizontalIcon className='h-4 w-4' />
+                            <span className='sr-only'>메뉴 열기</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align='end'
+                          className='w-auto min-w-[120px]'
+                        >
+                          {onEditAccount && (
+                            <DropdownMenuItem
+                              onClick={() => onEditAccount(account)}
+                              className='flex items-center gap-0'
+                              disabled={!canManage}
+                            >
+                              <PencilIcon className='mr-1 h-4 w-4' />
+                              광고주 수정
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleDeleteClick(
+                                account.id,
+                                account.company,
+                                account.assigned_user_id
+                              )
+                            }
+                            className='text-red-600 focus:text-red-600 flex items-center gap-0'
+                          >
+                            <TrashIcon className='mr-1 h-4 w-4' />
+                            광고주 삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                </ContextMenuTrigger>
+                <ContextMenuContent className='w-auto min-w-[140px]'>
+                  {onEditAccount && (
+                    <ContextMenuItem
+                      onClick={() => onEditAccount(account)}
+                      disabled={!canManage}
+                    >
+                      <PencilIcon className='mr-2 h-4 w-4' />
+                      광고주 수정
+                    </ContextMenuItem>
+                  )}
+                  <ContextMenuItem
+                    onClick={() =>
+                      handleDeleteClick(
+                        account.id,
+                        account.company,
+                        account.assigned_user_id
+                      )
+                    }
+                    className='text-red-600 focus:text-red-600'
+                  >
+                    <TrashIcon className='mr-2 h-4 w-4' />
+                    광고주 삭제
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
             })}
           </TableBody>

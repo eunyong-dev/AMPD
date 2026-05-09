@@ -379,9 +379,9 @@ export default function InvoiceViewPage() {
             </table>
           </div>
 
-          {/* TOTAL + Stamp (도장은 박스 우측에 살짝 겹쳐서 아래로 배치) */}
+          {/* TOTAL + Stamp (도장은 박스 우측에 살짝 겹쳐서 inline 배치 — 페이지 분리 방지) */}
           <div className='flex items-center justify-end mb-10 pr-10'>
-            <div className='relative'>
+            <div className='inline-flex items-center'>
               <div className='border-2 border-black p-3 min-w-[260px]'>
                 <div className='flex items-baseline gap-3'>
                   <div className='text-xs font-bold tracking-wider'>TOTAL</div>
@@ -397,7 +397,7 @@ export default function InvoiceViewPage() {
               {company?.stamp_url ? (
                 <div
                   aria-hidden
-                  className='absolute -right-6 top-2 pointer-events-none z-10'
+                  className='-ml-16 pointer-events-none relative z-10'
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
