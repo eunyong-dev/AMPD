@@ -15,6 +15,7 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
   manager_no?: string | null;
+  default_invoice_template_id?: string | null;
 }
 
 /**

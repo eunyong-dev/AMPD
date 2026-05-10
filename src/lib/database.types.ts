@@ -243,6 +243,89 @@ export type Database = {
           },
         ]
       }
+      invoice_email_templates: {
+        Row: {
+          id: string
+          name: string
+          subject: string
+          body: string
+          scope: 'personal' | 'shared'
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          subject: string
+          body: string
+          scope: 'personal' | 'shared'
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          subject?: string
+          body?: string
+          scope?: 'personal' | 'shared'
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoice_send_history: {
+        Row: {
+          id: string
+          invoice_id: string
+          sent_at: string
+          sent_to: string
+          sent_cc: string | null
+          sent_subject: string
+          sent_by: string | null
+          sent_by_email: string | null
+          sent_message_id: string | null
+          attachments_summary: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          sent_at?: string
+          sent_to: string
+          sent_cc?: string | null
+          sent_subject: string
+          sent_by?: string | null
+          sent_by_email?: string | null
+          sent_message_id?: string | null
+          attachments_summary?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          sent_at?: string
+          sent_to?: string
+          sent_cc?: string | null
+          sent_subject?: string
+          sent_by?: string | null
+          sent_by_email?: string | null
+          sent_message_id?: string | null
+          attachments_summary?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_send_history_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           bill_to_address: string | null
@@ -465,6 +548,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          default_invoice_template_id: string | null
           display_name: string | null
           email: string
           id: string
@@ -477,6 +561,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          default_invoice_template_id?: string | null
           display_name?: string | null
           email: string
           id?: string
@@ -489,6 +574,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          default_invoice_template_id?: string | null
           display_name?: string | null
           email?: string
           id?: string
@@ -498,7 +584,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_default_invoice_template_id_fkey"
+            columns: ["default_invoice_template_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

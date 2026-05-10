@@ -10,21 +10,21 @@ export const runtime = 'nodejs';
 // PDF 렌더링 시간 고려 — 최대 60초
 export const maxDuration = 60;
 
-interface RequestBody {
-  to: string; // 쉼표 구분
-  cc?: string;
-  subject: string;
-  bodyHtml: string;
-}
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: invoiceId } = await params;
-  const body = (await request.json()) as RequestBody;
 
-  if (!body.to?.trim() || !body.subject?.trim() || !body.bodyHtml) {
+  // FormData 로 받음 (추가 첨부파일 지원)
+  const formData = await request.formData();
+  const to = String(formData.get('to') ?? '').trim();
+  const cc = String(formData.get('cc') ?? '').trim();
+  const subject = String(formData.get('subject') ?? '').trim();
+  const bodyHtml = String(formData.get('bodyHtml') ?? '');
+  const extraFiles = formData.getAll('files') as File[];
+
+  if (!to || !subject || !bodyHtml) {
     return NextResponse.json(
       { error: 'to, subject, bodyHtml 은 필수입니다.' },
       { status: 400 }
@@ -134,7 +134,11 @@ export async function POST(
   }
 
   // 6. 파일명 — {YY}{MM}{DD}_invoice_{회사명}.pdf
-  const dateRaw = (invoice.invoice_date ?? '').replace(/-/g, '');
+  // 날짜는 정산 기간 종료일 (period_to) 기준
+  const dateRaw = (settlement.period_to ?? invoice.invoice_date ?? '').replace(
+    /-/g,
+    ''
+  );
   const yymmdd = dateRaw.length >= 8 ? dateRaw.slice(2, 8) : dateRaw;
   const companySafe =
     (invoice.bill_to_name ?? 'invoice')
@@ -143,14 +147,25 @@ export async function POST(
   const filename = `${yymmdd}_invoice_${companySafe}.pdf`;
 
   // 7. Gmail API 발송
-  const toList = parseEmails(body.to);
-  const ccList = parseEmails(body.cc);
+  const toList = parseEmails(to);
+  const ccList = parseEmails(cc);
   if (toList.length === 0) {
     return NextResponse.json(
       { error: '받는사람이 비어있습니다.' },
       { status: 400 }
     );
   }
+
+  // 추가 첨부파일 → Buffer 로 변환
+  const additionalAttachments = await Promise.all(
+    extraFiles
+      .filter((f) => f && typeof f === 'object' && 'arrayBuffer' in f)
+      .map(async (file) => ({
+        filename: file.name,
+        content: Buffer.from(await file.arrayBuffer()),
+        contentType: file.type || 'application/octet-stream',
+      }))
+  );
 
   let result;
   try {
@@ -159,14 +174,15 @@ export async function POST(
       from: fromEmail,
       to: toList,
       cc: ccList.length > 0 ? ccList : undefined,
-      subject: body.subject,
-      bodyHtml: body.bodyHtml,
+      subject,
+      bodyHtml,
       attachments: [
         {
           filename,
           content: pdfBuffer,
           contentType: 'application/pdf',
         },
+        ...additionalAttachments,
       ],
     });
   } catch (err) {
@@ -179,24 +195,49 @@ export async function POST(
   }
 
   // 8. 발송 이력 기록
+  const sentAt = new Date().toISOString();
+  const sentToStr = toList.join(', ');
+  const sentCcStr = ccList.length > 0 ? ccList.join(', ') : null;
+  const attachmentsSummary = [
+    filename,
+    ...additionalAttachments.map((a) => a.filename),
+  ].join(', ');
+
+  // 8-1. invoices 테이블의 sent_* 필드 업데이트 (최신 발송 정보 — 빠른 조회용)
   const { error: updErr } = await supabase
     .from('invoices')
     .update({
-      sent_at: new Date().toISOString(),
-      sent_to: toList.join(', '),
-      sent_cc: ccList.length > 0 ? ccList.join(', ') : null,
-      sent_subject: body.subject,
+      sent_at: sentAt,
+      sent_to: sentToStr,
+      sent_cc: sentCcStr,
+      sent_subject: subject,
       sent_by: user.id,
       sent_message_id: result.messageId,
     })
     .eq('id', invoiceId);
 
-  if (updErr) {
-    // 발송은 성공했지만 기록은 실패 — 응답에 경고
+  // 8-2. invoice_send_history 에 발송 이력 추가 (매 발송마다 1 row)
+  const { error: histErr } = await supabase
+    .from('invoice_send_history')
+    .insert({
+      invoice_id: invoiceId,
+      sent_at: sentAt,
+      sent_to: sentToStr,
+      sent_cc: sentCcStr,
+      sent_subject: subject,
+      sent_by: user.id,
+      sent_by_email: fromEmail,
+      sent_message_id: result.messageId,
+      attachments_summary: attachmentsSummary,
+    });
+
+  if (updErr || histErr) {
     return NextResponse.json({
       success: true,
       messageId: result.messageId,
-      warning: `발송은 성공했으나 이력 기록 실패: ${updErr.message}`,
+      warning: `발송은 성공했으나 이력 기록 일부 실패: ${
+        updErr?.message ?? histErr?.message
+      }`,
     });
   }
 

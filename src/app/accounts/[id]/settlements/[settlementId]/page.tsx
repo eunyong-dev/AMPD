@@ -93,6 +93,21 @@ function DescriptionCell({
   );
 }
 
+// 지역별 색상 (캠페인 페이지의 지역 카드 색상과 동일)
+const GEO_COLORS: Record<string, string> = {
+  KR: '#3b82f6',
+  JP: '#a855f7',
+  TW: '#14b8a6',
+  US: '#f97316',
+};
+
+const GEO_FLAGS: Record<string, string> = {
+  KR: '🇰🇷',
+  JP: '🇯🇵',
+  TW: '🇹🇼',
+  US: '🇺🇸',
+};
+
 const formatAmount = (n: number) =>
   `$ ${n.toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -200,6 +215,22 @@ export default function SettlementDetailPage() {
     loadInvoices();
   }, [load, loadInvoices]);
 
+  // 페이지가 다시 visible 될 때 인보이스 목록 재로드
+  // (인보이스 상세에서 발송 후 돌아왔을 때 발송 상태 갱신용)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadInvoices();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onVisibility);
+    };
+  }, [loadInvoices]);
+
   const handleDelete = async () => {
     if (!settlement) return;
     try {
@@ -225,6 +256,25 @@ export default function SettlementDetailPage() {
       (sum, l) => sum + Number(l.amount ?? 0),
       0
     );
+  }, [settlement]);
+
+  // 지역(GEO)별 총 금액 — KR/JP/TW/US 순으로 표시 (값 있는 것만)
+  const amountByGeo = useMemo(() => {
+    if (!settlement) return [];
+    const map = new Map<string, number>();
+    for (const l of settlement.lines) {
+      const geo = (l.geo ?? '').trim() || '—';
+      map.set(geo, (map.get(geo) ?? 0) + Number(l.amount ?? 0));
+    }
+    const order = ['KR', 'JP', 'TW', 'US'];
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      const ai = order.indexOf(a);
+      const bi = order.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
   }, [settlement]);
 
   // 정렬: 베이스 이름 + region(KR>JP>TW>US) 우선순위
@@ -379,17 +429,49 @@ export default function SettlementDetailPage() {
                   {settlement.period_from} ~ {settlement.period_to}
                 </span>
               </div>
-              {sortedCampaigns.length > 0 && (
-                <div className='flex flex-wrap gap-1.5 mt-3'>
-                  {sortedCampaigns.map((c) => (
-                    <Badge
-                      key={c.id}
-                      variant='outline'
-                      className='font-normal'
-                    >
-                      {c.name}
-                    </Badge>
-                  ))}
+              {amountByGeo.length > 0 && (
+                <div className='flex items-center flex-wrap gap-x-5 gap-y-2 mt-3 text-sm'>
+                  <div className='flex items-baseline gap-2'>
+                    <span className='text-xs font-medium text-muted-foreground'>
+                      Total
+                    </span>
+                    <span className='text-base font-bold tabular-nums'>
+                      ${linesTotal.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                  <div className='h-4 w-px bg-border' />
+                  {amountByGeo.map(([geo, amount]) => {
+                    const pct =
+                      linesTotal > 0 ? (amount / linesTotal) * 100 : 0;
+                    return (
+                      <div
+                        key={geo}
+                        className='flex items-baseline gap-1.5'
+                      >
+                        <span
+                          className='inline-block h-2 w-2 rounded-full'
+                          style={{
+                            backgroundColor: GEO_COLORS[geo] ?? '#94a3b8',
+                          }}
+                        />
+                        <span className='text-xs font-semibold text-muted-foreground'>
+                          {GEO_FLAGS[geo] ?? ''} {geo}
+                        </span>
+                        <span className='font-semibold tabular-nums'>
+                          ${amount.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                        <span className='text-xs text-muted-foreground tabular-nums'>
+                          ({pct.toFixed(0)}%)
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -433,6 +515,9 @@ export default function SettlementDetailPage() {
                     <TableHead className='whitespace-nowrap tabular-nums'>
                       Due Date
                     </TableHead>
+                    <TableHead className='whitespace-nowrap'>
+                      발송 상태
+                    </TableHead>
                     <TableHead
                       className='whitespace-nowrap text-right'
                       style={{ width: 100 }}
@@ -452,6 +537,30 @@ export default function SettlementDetailPage() {
                       </TableCell>
                       <TableCell className='tabular-nums'>
                         {inv.due_date}
+                      </TableCell>
+                      <TableCell>
+                        {inv.sent_at ? (
+                          <Badge
+                            variant='outline'
+                            className='gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/30'
+                          >
+                            <span className='h-1.5 w-1.5 rounded-full bg-emerald-500' />
+                            발송됨{' '}
+                            <span className='text-[10px] opacity-80'>
+                              {new Date(inv.sent_at).toLocaleDateString(
+                                'ko-KR'
+                              )}
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant='outline'
+                            className='gap-1 text-muted-foreground'
+                          >
+                            <span className='h-1.5 w-1.5 rounded-full bg-muted-foreground/40' />
+                            미발송
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className='text-right'>
                         <Link

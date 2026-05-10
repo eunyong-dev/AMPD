@@ -50,6 +50,14 @@ export const NAVIGATION_DATA = {
     },
   ] as NavItem[],
 
+  navTools: [
+    {
+      title: '이메일 템플릿',
+      url: '/email-templates',
+      icon: FileTextIcon,
+    },
+  ] as NavItem[],
+
   navAdmin: [
     {
       title: '권한',

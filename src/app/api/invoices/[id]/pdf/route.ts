@@ -92,7 +92,11 @@ export async function GET(
   }
 
   // 파일명 — {YY}{MM}{DD}_invoice_{회사명}.pdf
-  const dateRaw = (invoice.invoice_date ?? '').replace(/-/g, '');
+  // 날짜는 정산 기간 종료일 (period_to) 기준
+  const dateRaw = (settlement.period_to ?? invoice.invoice_date ?? '').replace(
+    /-/g,
+    ''
+  );
   const yymmdd = dateRaw.length >= 8 ? dateRaw.slice(2, 8) : dateRaw;
   const companySafe =
     (invoice.bill_to_name ?? 'invoice')

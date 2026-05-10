@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Download, Trash2, Send } from 'lucide-react';
+import { Download, Trash2, Send, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
@@ -19,12 +19,15 @@ type SettlementRow = Database['public']['Tables']['settlements']['Row'];
 type SettlementLineRow =
   Database['public']['Tables']['settlement_lines']['Row'];
 type CompanyInfoRow = Database['public']['Tables']['company_info']['Row'];
+type SendHistoryRow =
+  Database['public']['Tables']['invoice_send_history']['Row'];
 
 interface InvoiceData {
   invoice: InvoiceRow;
   settlement: SettlementRow;
   lines: SettlementLineRow[];
   company: CompanyInfoRow | null;
+  history: SendHistoryRow[];
 }
 
 export default function InvoiceViewPage() {
@@ -40,6 +43,7 @@ export default function InvoiceViewPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,11 +81,20 @@ export default function InvoiceViewPage() {
         .maybeSingle();
       if (companyError) throw companyError;
 
+      // 발송 이력
+      const { data: historyData, error: historyError } = await supabase
+        .from('invoice_send_history')
+        .select('*')
+        .eq('invoice_id', invoiceId)
+        .order('sent_at', { ascending: false });
+      if (historyError) throw historyError;
+
       setData({
         invoice: invoiceData as InvoiceRow,
         settlement: settlementData as SettlementRow,
         lines: (linesData ?? []) as SettlementLineRow[],
         company: (companyData as CompanyInfoRow) ?? null,
+        history: (historyData ?? []) as SendHistoryRow[],
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : '알 수 없는 오류';
@@ -99,7 +112,12 @@ export default function InvoiceViewPage() {
   const handleDownloadPdf = async () => {
     if (!data) return;
     try {
-      const dateRaw = (data.invoice.invoice_date ?? '').replace(/-/g, '');
+      // 파일명 날짜: 정산 기간 종료일 기준
+      const dateRaw = (
+        data.settlement.period_to ??
+        data.invoice.invoice_date ??
+        ''
+      ).replace(/-/g, '');
       const yymmdd = dateRaw.length >= 8 ? dateRaw.slice(2, 8) : dateRaw;
       const companyRaw = data.invoice.bill_to_name ?? 'invoice';
       const companySafe =
@@ -168,9 +186,9 @@ export default function InvoiceViewPage() {
 
   return (
     <AccessControl>
-      <div className='relative'>
+      <div className='space-y-3'>
         {/* Action Buttons */}
-        <div className='no-print fixed top-20 right-6 z-30 flex gap-2'>
+        <div className='mx-auto max-w-[900px] flex justify-end gap-2'>
           <Button onClick={() => setSendModalOpen(true)} size='sm'>
             <Send className='h-4 w-4 mr-1.5' />
             이메일 발송
@@ -190,36 +208,71 @@ export default function InvoiceViewPage() {
           </Button>
         </div>
 
-        {/* 발송 이력 배너 */}
-        {data.invoice.sent_at && (
-          <div className='no-print mt-10 mx-auto max-w-[900px] mb-3 rounded-md border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 p-3 text-sm'>
-            <div className='font-medium text-emerald-900 dark:text-emerald-200'>
-              ✅ 이메일 발송 완료
-            </div>
-            <div className='text-emerald-800 dark:text-emerald-300 mt-1 text-xs space-y-0.5'>
-              <div>
-                <span className='font-semibold'>To:</span>{' '}
-                {data.invoice.sent_to}
-              </div>
-              {data.invoice.sent_cc && (
-                <div>
-                  <span className='font-semibold'>CC:</span>{' '}
-                  {data.invoice.sent_cc}
-                </div>
+        {/* 발송 이력 */}
+        {data.history.length > 0 && (
+          <div className='mx-auto max-w-[900px] rounded-md border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 text-sm overflow-hidden'>
+            <button
+              type='button'
+              onClick={() => setHistoryOpen((v) => !v)}
+              className='w-full flex items-center gap-2 p-3 text-left hover:bg-emerald-100/40 dark:hover:bg-emerald-950/30 transition-colors'
+            >
+              {historyOpen ? (
+                <ChevronDown className='h-4 w-4 flex-shrink-0 text-emerald-700 dark:text-emerald-300' />
+              ) : (
+                <ChevronRight className='h-4 w-4 flex-shrink-0 text-emerald-700 dark:text-emerald-300' />
               )}
-              <div>
-                <span className='font-semibold'>발송 시각:</span>{' '}
-                {new Date(data.invoice.sent_at).toLocaleString('ko-KR')}
+              <span className='font-medium text-emerald-900 dark:text-emerald-200'>
+                ✅ 이메일 발송 완료
+              </span>
+              <span className='text-xs text-emerald-700 dark:text-emerald-300'>
+                ({data.history.length}회 발송 · 최근:{' '}
+                {new Date(data.history[0].sent_at).toLocaleString('ko-KR')})
+              </span>
+            </button>
+            {historyOpen && (
+              <div className='border-t border-emerald-200 dark:border-emerald-800 divide-y divide-emerald-200 dark:divide-emerald-800'>
+                {data.history.map((h, idx) => (
+                  <div
+                    key={h.id}
+                    className='p-3 text-xs text-emerald-800 dark:text-emerald-300 space-y-0.5'
+                  >
+                    <div className='flex items-center justify-between gap-2 mb-1'>
+                      <span className='font-semibold text-emerald-900 dark:text-emerald-200'>
+                        #{data.history.length - idx} ·{' '}
+                        {new Date(h.sent_at).toLocaleString('ko-KR')}
+                      </span>
+                      {h.sent_by_email && (
+                        <span className='text-[11px]'>
+                          by {h.sent_by_email}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className='font-semibold'>제목:</span>{' '}
+                      {h.sent_subject}
+                    </div>
+                    <div>
+                      <span className='font-semibold'>To:</span> {h.sent_to}
+                    </div>
+                    {h.sent_cc && (
+                      <div>
+                        <span className='font-semibold'>CC:</span> {h.sent_cc}
+                      </div>
+                    )}
+                    {h.attachments_summary && (
+                      <div className='truncate'>
+                        <span className='font-semibold'>첨부:</span>{' '}
+                        {h.attachments_summary}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         )}
 
-        <div
-          className={`mx-auto max-w-[900px] ${
-            data.invoice.sent_at ? '' : 'mt-10'
-          }`}
-        >
+        <div className='mx-auto max-w-[900px]'>
           <div
             className='relative w-full bg-white shadow-md rounded-md border overflow-hidden'
             style={{ height: 'calc(100vh - 140px)', minHeight: '900px' }}
@@ -274,6 +327,8 @@ export default function InvoiceViewPage() {
         accountId={data.settlement.account_id}
         invoiceNo={data.invoice.invoice_no}
         invoiceDate={data.invoice.invoice_date}
+        dueDate={data.invoice.due_date}
+        periodTo={data.settlement.period_to}
         totalAmount={
           data.settlement.total_amount
             ? Number(data.settlement.total_amount)

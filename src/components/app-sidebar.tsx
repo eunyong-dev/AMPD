@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { NavDocuments } from '@/components/nav-documents';
 import { NavMain } from '@/components/nav-main';
 import { NavCampaigns } from '@/components/nav-campaigns';
+import { NavTools } from '@/components/nav-tools';
 import { NavAdmin } from '@/components/nav-admin';
 import { NavSecondary } from '@/components/nav-secondary';
 import { NavUser } from '@/components/nav-user';
@@ -91,6 +92,11 @@ export function AppSidebar({ user, onSignOut, ...props }: AppSidebarProps) {
         />
         <NavCampaigns
           items={NAVIGATION_DATA.navCampaigns}
+          pendingUrl={pendingUrl}
+          onItemClick={setPendingUrl}
+        />
+        <NavTools
+          items={NAVIGATION_DATA.navTools}
           pendingUrl={pendingUrl}
           onItemClick={setPendingUrl}
         />

@@ -21,6 +21,7 @@ const pathMap: Record<string, string> = {
   '/analytics': '분석',
   '/campaigns': '캠페인',
   '/campaigns/my': '내 캠페인',
+  '/email-templates': '이메일 템플릿',
   '/team': '팀',
   '/settings': '설정',
   '/permissions': '권한',
