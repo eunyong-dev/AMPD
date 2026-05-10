@@ -167,11 +167,35 @@ export function AppsFlyerApiKeyCard() {
   console.log(\`📋 AMPD 캠페인 \${campaigns.length}개\`);
   addLog(\`📋 캠페인 \${campaigns.length}개 발견\`);
 
-  // 날짜 유틸
-  const yyyymmdd = (d) => d.toISOString().slice(0, 10);
-  const yesterday = yyyymmdd(new Date(Date.now() - 86400000));
-  const minus30 = (dateStr) =>
-    yyyymmdd(new Date(new Date(dateStr).getTime() - 30 * 86400000));
+  // 날짜 유틸 — 캠페인 타임존 기준
+  const yyyymmddInTz = (date, tz) => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(date);
+    } catch {
+      // 잘못된 타임존이면 UTC fallback
+      return date.toISOString().slice(0, 10);
+    }
+  };
+  // 해당 타임존 기준 어제 (YYYY-MM-DD)
+  const yesterdayInTz = (tz) => {
+    const todayStr = yyyymmddInTz(new Date(), tz);
+    const [y, m, d] = todayStr.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() - 1);
+    return dt.toISOString().slice(0, 10);
+  };
+  // 주어진 YYYY-MM-DD 에서 30일 전
+  const minus30 = (dateStr) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() - 30);
+    return dt.toISOString().slice(0, 10);
+  };
 
   // AppsFlyer 응답 → 짧은 컬럼명 매핑
   const fieldMap = {
@@ -239,9 +263,10 @@ export function AppsFlyerApiKeyCard() {
       continue;
     }
 
-    // 종료일: holding 이면 end_date, 아니면 어제
+    // 종료일: holding/end 상태면 end_date, 아니면 한국시간 기준 어제 (모든 캠페인 동일)
+    const isClosed = c.status === 'holding' || c.status === 'end';
     const endDate =
-      c.status === 'holding' && c.end_date ? c.end_date : yesterday;
+      isClosed && c.end_date ? c.end_date : yesterdayInTz('Asia/Seoul');
     // 시작일: end-30일 vs 캠페인 start_date 중 늦은 쪽
     const start30 = minus30(endDate);
     const startDate =

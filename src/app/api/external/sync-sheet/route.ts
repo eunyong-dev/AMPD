@@ -73,6 +73,35 @@ function colIndexToA1(colIdx: number): string {
   return s;
 }
 
+/**
+ * 시트 셀 → 'YYYY-MM-DD' 정규화. 매칭 실패 시 null.
+ * 지원 형식:
+ *  - 'YYYY-MM-DD ...'   (예: '2026-03-11 (수)')
+ *  - 'YYYY/MM/DD'
+ *  - 시트 serial date (숫자) — 1899-12-30 epoch
+ */
+function parseDateCell(cell: unknown): string | null {
+  if (cell === null || cell === undefined || cell === '') return null;
+  if (typeof cell === 'number' && Number.isFinite(cell)) {
+    // Google Sheets serial date → JS Date
+    const ms = Math.round((cell - 25569) * 86400 * 1000);
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return null;
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  const str = String(cell).trim();
+  // 'YYYY-MM-DD' 또는 'YYYY/MM/DD' 패턴 추출
+  const m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (!m) return null;
+  const yyyy = m[1];
+  const mm = m[2].padStart(2, '0');
+  const dd = m[3].padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 interface AppsflyerRow {
   date?: string;
   installs?: number | string;
@@ -192,12 +221,14 @@ export async function POST(request: NextRequest) {
     const sheetTitle = targetSheet.properties.title;
 
     // 5) 시트 데이터 읽기 (값 + 수식 따로)
+    // FORMATTED_VALUE 로 읽어야 날짜가 "2026-03-11 (수)" 같은 표시 문자열로 옴
+    // (UNFORMATTED_VALUE 는 serial date 숫자로 반환되어 매칭 불가)
     const range = `${sheetTitle}!A1:AZ1000`;
     const [valuesRes, formulaRes] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range,
-        valueRenderOption: 'UNFORMATTED_VALUE',
+        valueRenderOption: 'FORMATTED_VALUE',
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -248,13 +279,11 @@ export async function POST(request: NextRequest) {
       if (cell === undefined || cell === null || cell === '') {
         emptyRows.push(sheetRowNum);
       } else {
-        // 'YYYY-MM-DD ...' 에서 앞 10글자만 사용
-        const dateStr = String(cell).trim().slice(0, 10);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          dateToRow.set(dateStr, sheetRowNum);
-        } else {
-          // 비표준 형식이면 빈 행으로 취급 안함 (오염 방지)
+        const parsed = parseDateCell(cell);
+        if (parsed) {
+          dateToRow.set(parsed, sheetRowNum);
         }
+        // 파싱 실패한 비표준 행은 매칭 대상에서도 빈 행에서도 제외 (오염 방지)
       }
     }
 
