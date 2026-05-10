@@ -95,7 +95,8 @@ export function CampaignFormFields({
         />
       </div>
 
-      {/* Game Selection */}
+      {/* Game + Region */}
+      <div className='grid grid-cols-2 gap-4'>
       <div className='space-y-2'>
         <Label htmlFor={id('game')}>
           게임 <span className='text-red-500'>*</span>
@@ -176,38 +177,40 @@ export function CampaignFormFields({
         </Select>
       </div>
 
-      {/* Region and MMP */}
-      <div className='grid grid-cols-2 gap-4'>
-        <div className='space-y-2'>
-          <Label htmlFor={id('region')}>
-            지역 <span className='text-red-500'>*</span>
-          </Label>
-          <Select
-            value={value.region || undefined}
-            onValueChange={(v) => onChange({ ...value, region: v })}
-          >
-            <SelectTrigger id={id('region')}>
-              <SelectValue placeholder='지역을 선택해주세요'>
-                {(() => {
-                  if (!value.region) return '';
-                  const opt = REGION_OPTIONS.find(
-                    (o) => o.value === value.region
-                  );
-                  const emoji = REGION_EMOJI[value.region] || '';
-                  return opt ? `${emoji} ${opt.label}` : '';
-                })()}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {REGION_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {REGION_EMOJI[option.value] || ''} {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Region (게임과 같은 행) */}
+      <div className='space-y-2'>
+        <Label htmlFor={id('region')}>
+          지역 <span className='text-red-500'>*</span>
+        </Label>
+        <Select
+          value={value.region || undefined}
+          onValueChange={(v) => onChange({ ...value, region: v })}
+        >
+          <SelectTrigger id={id('region')}>
+            <SelectValue placeholder='지역을 선택해주세요'>
+              {(() => {
+                if (!value.region) return '';
+                const opt = REGION_OPTIONS.find(
+                  (o) => o.value === value.region
+                );
+                const emoji = REGION_EMOJI[value.region] || '';
+                return opt ? `${emoji} ${opt.label}` : '';
+              })()}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {REGION_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {REGION_EMOJI[option.value] || ''} {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      </div>
 
+      {/* MMP + Timezone */}
+      <div className='grid grid-cols-2 gap-4'>
         <div className='space-y-2'>
           <Label htmlFor={id('mmp')}>
             MMP <span className='text-red-500'>*</span>
@@ -238,6 +241,53 @@ export function CampaignFormFields({
                   </div>
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className='space-y-2'>
+          <Label htmlFor={id('timezone')}>
+            타임존{' '}
+            <span className='text-xs text-muted-foreground font-normal'>
+              AppsFlyer 데이터 조회 기준
+            </span>
+          </Label>
+          <Select
+            value={value.timezone || undefined}
+            onValueChange={(v) => onChange({ ...value, timezone: v })}
+          >
+            <SelectTrigger id={id('timezone')} className='w-full'>
+              <SelectValue placeholder='타임존을 선택해주세요' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='Pacific/Midway'>Pacific/Midway UTC-11</SelectItem>
+              <SelectItem value='Pacific/Honolulu'>Pacific/Honolulu UTC-10</SelectItem>
+              <SelectItem value='America/Anchorage'>America/Anchorage UTC-9</SelectItem>
+              <SelectItem value='America/Los_Angeles'>America/Los_Angeles UTC-8</SelectItem>
+              <SelectItem value='America/Denver'>America/Denver UTC-7</SelectItem>
+              <SelectItem value='America/Chicago'>America/Chicago UTC-6</SelectItem>
+              <SelectItem value='America/New_York'>America/New_York UTC-5</SelectItem>
+              <SelectItem value='America/Halifax'>America/Halifax UTC-4</SelectItem>
+              <SelectItem value='America/Sao_Paulo'>America/Sao_Paulo UTC-3</SelectItem>
+              <SelectItem value='UTC'>UTC UTC±0</SelectItem>
+              <SelectItem value='Europe/London'>Europe/London UTC+0</SelectItem>
+              <SelectItem value='Europe/Paris'>Europe/Paris UTC+1</SelectItem>
+              <SelectItem value='Europe/Helsinki'>Europe/Helsinki UTC+2</SelectItem>
+              <SelectItem value='Europe/Moscow'>Europe/Moscow UTC+3</SelectItem>
+              <SelectItem value='Asia/Dubai'>Asia/Dubai UTC+4</SelectItem>
+              <SelectItem value='Asia/Karachi'>Asia/Karachi UTC+5</SelectItem>
+              <SelectItem value='Asia/Kolkata'>Asia/Kolkata UTC+5:30</SelectItem>
+              <SelectItem value='Asia/Dhaka'>Asia/Dhaka UTC+6</SelectItem>
+              <SelectItem value='Asia/Bangkok'>Asia/Bangkok UTC+7</SelectItem>
+              <SelectItem value='Asia/Shanghai'>Asia/Shanghai UTC+8</SelectItem>
+              <SelectItem value='Asia/Hong_Kong'>Asia/Hong_Kong UTC+8</SelectItem>
+              <SelectItem value='Asia/Taipei'>Asia/Taipei UTC+8</SelectItem>
+              <SelectItem value='Asia/Singapore'>Asia/Singapore UTC+8</SelectItem>
+              <SelectItem value='Asia/Seoul'>Asia/Seoul UTC+9</SelectItem>
+              <SelectItem value='Asia/Tokyo'>Asia/Tokyo UTC+9</SelectItem>
+              <SelectItem value='Australia/Sydney'>Australia/Sydney UTC+10</SelectItem>
+              <SelectItem value='Pacific/Noumea'>Pacific/Noumea UTC+11</SelectItem>
+              <SelectItem value='Pacific/Auckland'>Pacific/Auckland UTC+12</SelectItem>
             </SelectContent>
           </Select>
         </div>

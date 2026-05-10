@@ -24,6 +24,7 @@ export interface Campaign {
   jira_url: string | null;
   daily_report_url: string | null;
   regional_game_name: string | null;
+  timezone: string | null;
   created_at: string | null;
   updated_at: string | null;
   created_by: string | null;
@@ -52,6 +53,7 @@ export interface CampaignFormData {
   jira_url?: string | null;
   daily_report_url?: string | null;
   regional_game_name?: string | null;
+  timezone?: string | null;
 }
 
 export {

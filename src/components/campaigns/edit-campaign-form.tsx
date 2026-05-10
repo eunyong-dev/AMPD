@@ -45,6 +45,7 @@ const initialForm = (accountId: string): CampaignFormData => ({
   status: 'planning',
   jira_url: null,
   daily_report_url: null,
+  timezone: null,
 });
 
 export function EditCampaignForm({
@@ -76,6 +77,7 @@ export function EditCampaignForm({
         status: campaign.status,
         jira_url: campaign.jira_url || null,
         daily_report_url: campaign.daily_report_url || null,
+        timezone: campaign.timezone || null,
       });
     }
   }, [isOpen, campaign]);
@@ -120,6 +122,7 @@ export function EditCampaignForm({
         status: form.status,
         jira_url: form.jira_url?.trim() || null,
         daily_report_url: form.daily_report_url?.trim() || null,
+        timezone: form.timezone || null,
       });
       onClose();
     } catch (error) {

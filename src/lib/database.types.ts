@@ -94,6 +94,7 @@ export type Database = {
           regional_game_name: string | null
           start_date: string
           status: string
+          timezone: string | null
           updated_at: string | null
         }
         Insert: {
@@ -113,6 +114,7 @@ export type Database = {
           regional_game_name?: string | null
           start_date: string
           status: string
+          timezone?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -132,6 +134,7 @@ export type Database = {
           regional_game_name?: string | null
           start_date?: string
           status?: string
+          timezone?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -546,6 +549,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          appsflyer_api_key: string | null
           avatar_url: string | null
           created_at: string | null
           default_invoice_template_id: string | null
@@ -559,6 +563,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          appsflyer_api_key?: string | null
           avatar_url?: string | null
           created_at?: string | null
           default_invoice_template_id?: string | null
@@ -572,6 +577,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          appsflyer_api_key?: string | null
           avatar_url?: string | null
           created_at?: string | null
           default_invoice_template_id?: string | null

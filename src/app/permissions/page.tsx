@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UsersTable } from '@/components/users/users-table';
+import { AppsFlyerApiKeyCard } from '@/components/permissions/appsflyer-api-key-card';
 import { UsersIcon, ShieldIcon, UserIcon } from 'lucide-react';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useUserContext } from '@/lib/user-context';
@@ -285,6 +286,9 @@ export default function PermissionsPage() {
             />
           </div>
         )}
+
+        {/* AppsFlyer API 키 (본인 계정용) */}
+        <AppsFlyerApiKeyCard />
       </div>
       <Toaster position='top-center' />
     </AdminAccessControl>

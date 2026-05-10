@@ -16,6 +16,7 @@ export interface UserProfile {
   updated_at: string;
   manager_no?: string | null;
   default_invoice_template_id?: string | null;
+  appsflyer_api_key?: string | null;
 }
 
 /**

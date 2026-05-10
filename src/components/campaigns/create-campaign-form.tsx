@@ -39,6 +39,7 @@ const emptyForm = (accountId: string): CampaignFormData => ({
   status: '',
   jira_url: null,
   daily_report_url: null,
+  timezone: null,
 });
 
 export function CreateCampaignForm({
