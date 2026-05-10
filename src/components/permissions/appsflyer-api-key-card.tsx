@@ -107,23 +107,65 @@ export function AppsFlyerApiKeyCard() {
     }
   }, []);
 
-  // 콘솔용 스크립트 — AMPD 캠페인 리스트 fetch + AppsFlyer 성과 데이터 수집
+  // 콘솔용 스크립트 — AMPD 캠페인 리스트 fetch + AppsFlyer 성과 데이터 수집 + 시트 적재
   const consoleScript = useMemo(() => {
     if (!apiKey || !baseUrl) return '';
-    return `// AMPD → AppsFlyer 캠페인 성과 수집
+    return `// AMPD 시트 동기화
 (async () => {
+  // ========== 진행상황 UI ==========
+  const existing = document.getElementById('__ampd_sync_ui');
+  if (existing) existing.remove();
+  const ui = document.createElement('div');
+  ui.id = '__ampd_sync_ui';
+  ui.style.cssText = 'position:fixed;bottom:20px;right:20px;width:380px;background:#0f172a;color:#e2e8f0;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.4);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;z-index:2147483647;overflow:hidden;font-size:13px;';
+  ui.innerHTML = '<div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e293b;font-weight:600;"><span id="__ampd_spinner" style="display:inline-block;width:14px;height:14px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;animation:__ampd_spin 0.8s linear infinite;"></span><span style="flex:1;">AMPD 시트 동기화</span><button id="__ampd_close" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:0;">×</button></div><div id="__ampd_status" style="padding:12px 16px;color:#cbd5e1;line-height:1.5;">시작합니다...</div><div id="__ampd_log" style="max-height:200px;overflow-y:auto;padding:0 16px 12px;font-size:11px;line-height:1.6;color:#94a3b8;"></div>';
+  document.body.appendChild(ui);
+  const styleTag = document.createElement('style');
+  styleTag.textContent = '@keyframes __ampd_spin{to{transform:rotate(360deg)}}';
+  document.head.appendChild(styleTag);
+  const setStatus = (text, color) => {
+    const el = document.getElementById('__ampd_status');
+    if (el) {
+      el.textContent = text;
+      if (color) el.style.color = color;
+    }
+  };
+  const addLog = (text, color) => {
+    const el = document.getElementById('__ampd_log');
+    if (!el) return;
+    const line = document.createElement('div');
+    line.textContent = text;
+    if (color) line.style.color = color;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  };
+  const stopSpinner = (success) => {
+    const sp = document.getElementById('__ampd_spinner');
+    if (sp) {
+      sp.style.animation = '';
+      sp.style.border = '0';
+      sp.style.background = success ? '#22c55e' : '#ef4444';
+      sp.style.borderRadius = '50%';
+    }
+  };
+  document.getElementById('__ampd_close')?.addEventListener('click', () => ui.remove());
+
   console.log('🚀 시작...');
 
   // 1. AMPD 에서 본인 담당 캠페인 리스트
+  setStatus('AMPD 캠페인 리스트 로드 중...');
   const ampdRes = await fetch('${baseUrl}/api/external/campaigns', {
     headers: { 'X-API-Key': '${apiKey}' }
   });
   if (!ampdRes.ok) {
     console.error('❌ AMPD API 실패:', ampdRes.status, await ampdRes.text());
+    setStatus('❌ AMPD API 호출 실패', '#fca5a5');
+    stopSpinner(false);
     return;
   }
   const { campaigns } = await ampdRes.json();
   console.log(\`📋 AMPD 캠페인 \${campaigns.length}개\`);
+  addLog(\`📋 캠페인 \${campaigns.length}개 발견\`);
 
   // 날짜 유틸
   const yyyymmdd = (d) => d.toISOString().slice(0, 10);
@@ -184,9 +226,16 @@ export function AppsFlyerApiKeyCard() {
 
   // 2. 각 캠페인별 성과 fetch
   const results = [];
+  let processed = 0;
+  let totalMatched = 0;
+  let totalFilled = 0;
+  let totalAppended = 0;
+
   for (const c of campaigns) {
+    processed++;
     if (!c.app_package_identifier) {
       console.warn(\`⏭️  \${c.name} — 앱 패키지명 없음, 스킵\`);
+      addLog(\`⏭️ [\${processed}/\${campaigns.length}] \${c.name} — 앱 ID 없음, 스킵\`, '#fbbf24');
       continue;
     }
 
@@ -201,6 +250,7 @@ export function AppsFlyerApiKeyCard() {
     console.log(
       \`📊 \${c.name} (\${c.region} / \${c.timezone || 'UTC'}) — \${startDate} ~ \${endDate}\`
     );
+    setStatus(\`▶ [\${processed}/\${campaigns.length}] \${c.name}\`);
 
     try {
       const r = await fetch(
@@ -214,6 +264,7 @@ export function AppsFlyerApiKeyCard() {
       );
       if (!r.ok) {
         console.error(\`  ❌ \${c.name} HTTP \${r.status}\`);
+        addLog(\`❌ \${c.name} — AppsFlyer HTTP \${r.status}\`, '#fca5a5');
         continue;
       }
       const data = await r.json();
@@ -242,6 +293,48 @@ export function AppsFlyerApiKeyCard() {
       console.log(\`  → \${cleaned.length}일 데이터\`);
       console.table(cleaned);
 
+      // 시트에 적재
+      if (c.sheet_url && cleaned.length > 0) {
+        try {
+          const syncRes = await fetch('${baseUrl}/api/external/sync-sheet', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': '${apiKey}',
+            },
+            body: JSON.stringify({ sheet_url: c.sheet_url, rows: cleaned }),
+          });
+          const syncData = await syncRes.json();
+          if (!syncRes.ok) {
+            console.error(\`  ❌ 시트 적재 실패: \${syncData.error}\`);
+            addLog(\`  ❌ 시트 적재 실패: \${syncData.error}\`, '#fca5a5');
+          } else {
+            console.log(
+              \`  📥 시트 [\${syncData.sheet_title}] — 매칭 \${syncData.matched} / 신규 \${syncData.filled} / 추가 \${syncData.appended} (총 \${syncData.cells_updated} 셀)\`
+            );
+            addLog(
+              \`✅ \${c.name} — 매칭 \${syncData.matched}, 신규 \${syncData.filled}\${syncData.appended ? ', 추가 ' + syncData.appended : ''}\`,
+              '#86efac'
+            );
+            totalMatched += syncData.matched;
+            totalFilled += syncData.filled;
+            totalAppended += syncData.appended;
+            if (syncData.warnings && syncData.warnings.length > 0) {
+              syncData.warnings.forEach((w) => {
+                console.warn(\`  ⚠️ \${w}\`);
+                addLog(\`  ⚠️ \${w}\`, '#fbbf24');
+              });
+            }
+          }
+        } catch (syncErr) {
+          console.error(\`  ❌ 시트 적재 오류:\`, syncErr);
+          addLog(\`  ❌ 시트 적재 오류\`, '#fca5a5');
+        }
+      } else if (!c.sheet_url) {
+        console.warn(\`  ⏭️  sheet_url 없음 — 시트 적재 스킵\`);
+        addLog(\`  ⏭️ \${c.name} — sheet_url 없음, 스킵\`, '#fbbf24');
+      }
+
       results.push({
         campaign: c.name,
         region: c.region,
@@ -251,13 +344,22 @@ export function AppsFlyerApiKeyCard() {
         rows: cleaned,
       });
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       console.error(\`  ❌ \${c.name} 에러:\`, e);
+      addLog(\`❌ \${c.name} — \${msg}\`, '#fca5a5');
     }
   }
 
   window.ampdPerformance = results;
   console.log(\`\\n✅ 완료 — \${results.length}/\${campaigns.length} 캠페인\`);
   console.log('💡 window.ampdPerformance 에 전체 결과 저장');
+
+  setStatus(
+    \`✅ 완료 — \${results.length}/\${campaigns.length} 캠페인 (매칭 \${totalMatched} / 신규 \${totalFilled}\${totalAppended ? ' / 추가 ' + totalAppended : ''})\`,
+    '#86efac'
+  );
+  stopSpinner(true);
+  // 자동 닫지 않음 — 사용자가 × 버튼으로 직접 닫음
 })();`;
   }, [apiKey, baseUrl]);
 
@@ -364,7 +466,7 @@ export function AppsFlyerApiKeyCard() {
                   }}
                 >
                   <Code className='h-4 w-4' />
-                  AMPD 캠페인 불러오기
+                  AMPD 시트 동기화
                 </a>
                 <Button
                   variant='outline'

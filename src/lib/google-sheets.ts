@@ -25,11 +25,19 @@ function getSheetsClient(): sheets_v4.Sheets {
     email,
     // .env에 \n 문자로 escape된 개행을 실제 개행으로 복원
     key: privateKey.replace(/\\n/g, '\n'),
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    // 읽기 + 쓰기 (쓰기는 시트가 service account 에 Editor 로 공유되어 있어야 함)
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
   cachedClient = google.sheets({ version: 'v4', auth });
   return cachedClient;
+}
+
+/**
+ * 외부에서 쓰기 작업이 필요한 곳에서 사용 (sheets.spreadsheets.values.batchUpdate 등)
+ */
+export function getSheetsClientForWrite(): sheets_v4.Sheets {
+  return getSheetsClient();
 }
 
 // ─────────────────────────────────────────────────────────────
