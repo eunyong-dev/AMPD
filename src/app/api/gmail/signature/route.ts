@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { withGoogleAccessToken } from '@/lib/google-oauth';
 
 export const runtime = 'nodejs';
 
@@ -15,72 +16,54 @@ interface SendAsResponse {
   sendAs?: SendAsItem[];
 }
 
+interface SignatureResult {
+  signature: string;
+  sendAsEmail: string;
+  displayName: string;
+}
+
 /**
  * 현재 사용자의 Gmail 기본 서명을 반환.
- * 1) isPrimary 인 sendAs 의 signature 우선
- * 2) isDefault
- * 3) 첫 번째 항목
+ * provider_token 만료 시 refresh_token 으로 자동 갱신 후 재시도.
  */
 export async function GET() {
   const supabase = await createClient();
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const accessToken = session?.provider_token;
-  if (!accessToken) {
-    return NextResponse.json(
-      { error: 'Gmail 권한 토큰이 없습니다. 다시 로그인해주세요.' },
-      { status: 403 }
-    );
-  }
-
   try {
-    const res = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs',
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
-
-    if (!res.ok) {
-      const errText = await res.text();
-      // 403 인 경우 → scope 부족 메시지
-      if (res.status === 403) {
-        return NextResponse.json(
+    const result = await withGoogleAccessToken<SignatureResult>(
+      supabase,
+      async (accessToken) => {
+        const res = await fetch(
+          'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs',
           {
-            error:
-              'Gmail 서명 읽기 권한이 없습니다. 로그아웃 후 다시 로그인해서 권한을 부여해주세요.',
-          },
-          { status: 403 }
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
         );
+        if (res.status === 401 || res.status === 403) {
+          return { ok: false }; // refresh 후 재시도
+        }
+        if (!res.ok) {
+          throw new Error(`Gmail API ${res.status}: ${await res.text()}`);
+        }
+        const data = (await res.json()) as SendAsResponse;
+        const items = data.sendAs ?? [];
+        const primary =
+          items.find((s) => s.isPrimary) ??
+          items.find((s) => s.isDefault) ??
+          items[0];
+        return {
+          ok: true,
+          result: {
+            signature: primary?.signature ?? '',
+            sendAsEmail: primary?.sendAsEmail ?? '',
+            displayName: primary?.displayName ?? '',
+          },
+        };
       }
-      return NextResponse.json(
-        { error: `Gmail API ${res.status}: ${errText}` },
-        { status: 500 }
-      );
-    }
-
-    const data = (await res.json()) as SendAsResponse;
-    const items = data.sendAs ?? [];
-
-    const primary =
-      items.find((s) => s.isPrimary) ??
-      items.find((s) => s.isDefault) ??
-      items[0];
-
-    return NextResponse.json({
-      signature: primary?.signature ?? '',
-      sendAsEmail: primary?.sendAsEmail ?? '',
-      displayName: primary?.displayName ?? '',
-    });
-  } catch (err) {
-    return NextResponse.json(
-      {
-        error: `서명 조회 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`,
-      },
-      { status: 500 }
     );
+    return NextResponse.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     const params = new URLSearchParams({
@@ -39,6 +39,22 @@ export async function GET(request: Request) {
       description: error.message,
     });
     return NextResponse.redirect(`${origin}/?${params.toString()}`);
+  }
+
+  // Google refresh_token 을 user_profiles 에 저장 (Gmail API access_token 갱신용)
+  // session.provider_refresh_token 은 첫 OAuth 시에만 들어오므로 여기서 캡처해야 함
+  try {
+    const refreshToken = data.session?.provider_refresh_token;
+    const userId = data.session?.user?.id;
+    if (refreshToken && userId) {
+      await supabase
+        .from('user_profiles')
+        .update({ google_refresh_token: refreshToken })
+        .eq('user_id', userId);
+    }
+  } catch (e) {
+    // 저장 실패해도 로그인 자체는 진행
+    console.error('[auth/callback] refresh_token 저장 실패:', e);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

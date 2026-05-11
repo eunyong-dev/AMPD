@@ -30,6 +30,7 @@ interface IssueInvoiceModalProps {
   onClose: () => void;
   settlementId: string;
   accountId: string;
+  periodTo?: string | null; // 정산서 기간 종료일 — Invoice Date 기본값
   onIssued: (invoiceId: string) => void;
 }
 
@@ -63,11 +64,11 @@ const isoFromDate = (d: Date): string => {
   return `${y}-${m}-${dd}`;
 };
 
-const daysBetweenISO = (fromISO: string, toISO: string): number => {
-  if (!fromISO || !toISO) return 0;
-  const from = new Date(fromISO);
+const daysFromTodayISO = (toISO: string): number => {
+  if (!toISO) return 0;
+  const today = new Date(todayISO());
   const to = new Date(toISO);
-  const diffMs = to.getTime() - from.getTime();
+  const diffMs = to.getTime() - today.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
 };
 
@@ -88,6 +89,7 @@ export function IssueInvoiceModal({
   onClose,
   settlementId,
   accountId,
+  periodTo,
   onIssued,
 }: IssueInvoiceModalProps) {
   const [invoiceDate, setInvoiceDate] = useState<string>(todayISO());
@@ -95,8 +97,6 @@ export function IssueInvoiceModal({
   const [accountDueDays, setAccountDueDays] = useState<number>(30); // 광고주의 기본 청구 기한
   const [submitting, setSubmitting] = useState(false);
 
-  // Due Date 와 Invoice Date 의 실제 차이 (사용자가 수동 변경하면 즉시 반영)
-  const dueDays = daysBetweenISO(invoiceDate, dueDate);
   const [existingInvoice, setExistingInvoice] = useState<InvoiceRow | null>(
     null
   );
@@ -106,7 +106,9 @@ export function IssueInvoiceModal({
   useEffect(() => {
     if (!isOpen) return;
     const today = todayISO();
-    setInvoiceDate(today);
+    // Invoice Date 기본값: 정산서 기간 종료일 (있으면) / 없으면 오늘
+    setInvoiceDate(periodTo || today);
+    // Due Date 기본값: 오늘 + 30일 (광고주 설정 로드되면 그 값으로 갱신)
     setDueDate(addDaysISO(today, 30));
     setAccountDueDays(30);
     setExistingInvoice(null);
@@ -142,7 +144,7 @@ export function IssueInvoiceModal({
           if (!accountRes.data.bill_to_address?.trim()) missing.push('주소');
           setMissingBillTo(missing);
 
-          // 광고주별 청구 기한 적용
+          // 광고주별 청구 기한 적용 — Due Date 는 항상 "오늘" 기준
           const days = accountRes.data.bill_to_due_days ?? 30;
           setAccountDueDays(days);
           setDueDate(addDaysISO(today, days));
@@ -154,15 +156,10 @@ export function IssueInvoiceModal({
         setChecking(false);
       }
     })();
-  }, [isOpen, settlementId, accountId]);
+  }, [isOpen, settlementId, accountId, periodTo]);
 
-  // invoiceDate 변경 시 dueDate 자동 갱신 (광고주의 기본 청구 기한 일수 기준)
-  useEffect(() => {
-    if (!invoiceDate) return;
-    setDueDate(addDaysISO(invoiceDate, accountDueDays));
-    // accountDueDays 가 바뀌어도 동일 (모달 오픈 시 한번 적용)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceDate]);
+  // Due Date 는 invoiceDate 변경에 영향받지 않고 "오늘 + 청구기한" 으로 고정
+  // (사용자가 수동 변경한 경우는 그대로 유지됨)
 
   const handleIssue = async () => {
     if (!invoiceDate || !dueDate) {
@@ -386,7 +383,7 @@ export function IssueInvoiceModal({
               <Label htmlFor='due-date'>
                 Due Date{' '}
                 <span className='text-xs text-muted-foreground font-normal'>
-                  ({dueDays}일 후)
+                  (오늘로부터 {daysFromTodayISO(dueDate)}일 뒤)
                 </span>
               </Label>
               <Popover>

@@ -715,6 +715,7 @@ export default function SettlementDetailPage() {
           onClose={() => setShowIssueInvoice(false)}
           settlementId={settlementId}
           accountId={settlement.account_id}
+          periodTo={settlement.period_to}
           onIssued={(invoiceId) => {
             // 발행 후 인보이스 보기로 이동
             router.push(

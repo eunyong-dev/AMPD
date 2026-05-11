@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { PlusIcon, BuildingIcon, MapPinIcon, TargetIcon } from 'lucide-react';
+import { PlusIcon, BuildingIcon, MapPinIcon, TargetIcon, Pencil } from 'lucide-react';
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { useGameManagement } from '@/hooks/use-game-management';
 import { useCampaignManagement } from '@/hooks/use-campaign-management';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useUserContext } from '@/lib/user-context';
+import { EditAccountForm } from '@/components/accounts/edit-account-form';
 import { CreateGameForm } from '@/components/games/create-game-form';
 import { AccountGamesTable } from '@/components/games/account-games-table';
 import { CampaignsTable } from '@/components/campaigns/campaigns-table';
@@ -44,6 +45,7 @@ export default function AccountDetailPage() {
   const [showCreateCampaignForm, setShowCreateCampaignForm] = useState(false);
   const [showEditCampaignForm, setShowEditCampaignForm] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
+  const [showEditAccount, setShowEditAccount] = useState(false);
 
   // Settlements
   const [showCreateSettlementForm, setShowCreateSettlementForm] = useState(false);
@@ -71,6 +73,7 @@ export default function AccountDetailPage() {
     loading: accountsLoading,
     createAccount,
     removeAccount,
+    updateAccount,
   } = useAccountManagement();
   const {
     games,
@@ -274,6 +277,15 @@ export default function AccountDetailPage() {
                   {currentAccount.assigned_user_name || '미지정'}
                 </span>
               </div>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='h-7 w-7 text-muted-foreground hover:text-foreground ml-1'
+                onClick={() => setShowEditAccount(true)}
+                title='광고주 수정'
+              >
+                <Pencil className='h-3.5 w-3.5' />
+              </Button>
             </div>
           </div>
           <div className='flex items-center gap-6'>
@@ -341,6 +353,15 @@ export default function AccountDetailPage() {
           campaign={editingCampaign}
           accountId={accountId}
           games={accountGames}
+        />
+
+        <EditAccountForm
+          account={currentAccount}
+          isOpen={showEditAccount}
+          onClose={() => setShowEditAccount(false)}
+          onUpdateAccount={async (id, data) => {
+            await updateAccount(id, data);
+          }}
         />
 
         {/* Tabs */}

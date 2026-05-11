@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { generateInvoicePdf } from '@/lib/invoice-pdf';
 import { parseEmails, sendViaGmail } from '@/lib/gmail-send';
+import { withGoogleAccessToken } from '@/lib/google-oauth';
 import type { Database } from '@/lib/database.types';
 
 // puppeteer 는 Node.js runtime 에서 실행
@@ -42,16 +43,23 @@ export async function POST(
     return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   }
 
-  // 2. Gmail access_token 확인 (provider_token)
+  // 2. Gmail refresh_token 확인 (DB 또는 세션)
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('google_refresh_token')
+    .eq('user_id', user.id)
+    .single();
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  const accessToken = session?.provider_token;
-  if (!accessToken) {
+  if (
+    !profile?.google_refresh_token &&
+    !session?.provider_refresh_token
+  ) {
     return NextResponse.json(
       {
         error:
-          'Gmail 발송 권한 토큰이 없습니다. 다시 로그인해서 Gmail 권한을 부여해주세요.',
+          'Gmail 발송 권한 토큰이 없습니다. 로그아웃 후 다시 로그인해서 Gmail 권한을 부여해주세요.',
       },
       { status: 403 }
     );
@@ -169,21 +177,34 @@ export async function POST(
 
   let result;
   try {
-    result = await sendViaGmail({
-      accessToken,
-      from: fromEmail,
-      to: toList,
-      cc: ccList.length > 0 ? ccList : undefined,
-      subject,
-      bodyHtml,
-      attachments: [
-        {
-          filename,
-          content: pdfBuffer,
-          contentType: 'application/pdf',
-        },
-        ...additionalAttachments,
-      ],
+    result = await withGoogleAccessToken<{
+      messageId: string;
+      threadId: string;
+    }>(supabase, async (accessToken) => {
+      try {
+        const r = await sendViaGmail({
+          accessToken,
+          from: fromEmail,
+          to: toList,
+          cc: ccList.length > 0 ? ccList : undefined,
+          subject,
+          bodyHtml,
+          attachments: [
+            {
+              filename,
+              content: pdfBuffer,
+              contentType: 'application/pdf',
+            },
+            ...additionalAttachments,
+          ],
+        });
+        return { ok: true, result: r };
+      } catch (e) {
+        // 토큰 만료 의심 — 메시지에 401/403 있으면 retry
+        const msg = e instanceof Error ? e.message : '';
+        if (/401|403/.test(msg)) return { ok: false };
+        throw e;
+      }
     });
   } catch (err) {
     return NextResponse.json(

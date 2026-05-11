@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Download, Trash2, Send, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trash2, Send, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
@@ -108,39 +108,6 @@ export default function InvoiceViewPage() {
     load();
   }, [load]);
 
-  // PDF 다운로드 = /api/invoices/[id]/pdf 호출 → blob 으로 받아 파일 저장
-  const handleDownloadPdf = async () => {
-    if (!data) return;
-    try {
-      // 파일명 날짜: 정산 기간 종료일 기준
-      const dateRaw = (
-        data.settlement.period_to ??
-        data.invoice.invoice_date ??
-        ''
-      ).replace(/-/g, '');
-      const yymmdd = dateRaw.length >= 8 ? dateRaw.slice(2, 8) : dateRaw;
-      const companyRaw = data.invoice.bill_to_name ?? 'invoice';
-      const companySafe =
-        companyRaw.replace(/[\\/:*?"<>|]/g, '').trim() || 'invoice';
-      const filename = `${yymmdd}_invoice_${companySafe}.pdf`;
-
-      const res = await fetch(`/api/invoices/${invoiceId}/pdf`);
-      if (!res.ok) throw new Error(`PDF 생성 실패 (${res.status})`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
-      toast.error(`PDF 다운로드 실패: ${msg}`);
-    }
-  };
-
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -192,10 +159,6 @@ export default function InvoiceViewPage() {
           <Button onClick={() => setSendModalOpen(true)} size='sm'>
             <Send className='h-4 w-4 mr-1.5' />
             이메일 발송
-          </Button>
-          <Button onClick={handleDownloadPdf} size='sm' variant='outline'>
-            <Download className='h-4 w-4 mr-1.5' />
-            PDF 다운로드
           </Button>
           <Button
             onClick={() => setConfirmDeleteOpen(true)}

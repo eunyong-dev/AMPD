@@ -555,6 +555,7 @@ export type Database = {
           default_invoice_template_id: string | null
           display_name: string | null
           email: string
+          google_refresh_token: string | null
           id: string
           is_active: boolean
           manager_no: string | null
@@ -569,6 +570,7 @@ export type Database = {
           default_invoice_template_id?: string | null
           display_name?: string | null
           email: string
+          google_refresh_token?: string | null
           id?: string
           is_active?: boolean
           manager_no?: string | null
@@ -583,6 +585,7 @@ export type Database = {
           default_invoice_template_id?: string | null
           display_name?: string | null
           email?: string
+          google_refresh_token?: string | null
           id?: string
           is_active?: boolean
           manager_no?: string | null
