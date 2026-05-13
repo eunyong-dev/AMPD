@@ -752,6 +752,7 @@ export function CreateGameForm({
 
           {/* 게임 정보 필드 */}
           {renderGameInfoFields()}
+
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={onClose} size='sm'>

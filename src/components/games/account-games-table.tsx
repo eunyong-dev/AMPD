@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import { TrashIcon, MoreHorizontalIcon, Copy, Check } from 'lucide-react';
+import {
+  TrashIcon,
+  MoreHorizontalIcon,
+  Copy,
+  Check,
+  EditIcon,
+} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -25,19 +31,25 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
-import type { Game } from '@/hooks/use-game-management';
+import type { Game, GameFormData } from '@/hooks/use-game-management';
 import type { UserProfile } from '@/lib/permissions';
 import { getPlatformDisplay } from '@/lib/utils/platform';
 import { canManageResource } from '@/lib/utils/permissions';
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
+import { EditGameForm } from '@/components/games/edit-game-form';
 import { useMemo } from 'react';
 
 interface AccountGamesTableProps {
   games: Game[];
   onGameDeleted?: (gameId: string) => void;
   onDeleteGame: (gameId: string) => Promise<void>;
+  onUpdateGame?: (
+    gameId: string,
+    gameData: Partial<GameFormData>
+  ) => Promise<Game>;
+  onGameUpdated?: () => void;
   currentUserProfile?: UserProfile | null;
   accountAssignedUserId?: string;
 }
@@ -47,6 +59,11 @@ interface GameTableRowProps {
   game: Game;
   onDeleteGame: (gameId: string) => Promise<void>;
   onGameDeleted?: (gameId: string) => void;
+  onUpdateGame?: (
+    gameId: string,
+    gameData: Partial<GameFormData>
+  ) => Promise<Game>;
+  onGameUpdated?: () => void;
   handleOpenStore: (url: string) => void;
   currentUserProfile?: UserProfile | null;
   accountAssignedUserId?: string;
@@ -56,15 +73,23 @@ function GameTableRow({
   game,
   onDeleteGame,
   onGameDeleted,
+  onUpdateGame,
+  onGameUpdated,
   handleOpenStore,
   currentUserProfile,
   accountAssignedUserId,
 }: GameTableRowProps) {
   const [copiedFieldId, setCopiedFieldId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // 삭제 권한 확인
   const isDeleteAllowed = canManageResource(
+    currentUserProfile,
+    accountAssignedUserId || ''
+  );
+  // 편집 권한 확인 (삭제와 동일 정책)
+  const isEditAllowed = canManageResource(
     currentUserProfile,
     accountAssignedUserId || ''
   );
@@ -274,6 +299,15 @@ function GameTableRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end' className='w-auto min-w-[120px]'>
+            {onUpdateGame && isEditAllowed && (
+              <DropdownMenuItem
+                onClick={() => setShowEditDialog(true)}
+                className='flex items-center gap-0'
+              >
+                <EditIcon className='mr-1 h-4 w-4' />
+                게임 수정
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
               className='text-red-600 focus:text-red-600 flex items-center gap-0'
@@ -301,6 +335,12 @@ function GameTableRow({
     </TableRow>
       </ContextMenuTrigger>
       <ContextMenuContent className='w-auto min-w-[140px]'>
+        {onUpdateGame && isEditAllowed && (
+          <ContextMenuItem onClick={() => setShowEditDialog(true)}>
+            <EditIcon className='mr-2 h-4 w-4' />
+            게임 수정
+          </ContextMenuItem>
+        )}
         <ContextMenuItem
           onClick={() => setShowDeleteDialog(true)}
           className='text-red-600 focus:text-red-600'
@@ -309,6 +349,15 @@ function GameTableRow({
           게임 삭제
         </ContextMenuItem>
       </ContextMenuContent>
+      {onUpdateGame && (
+        <EditGameForm
+          isOpen={showEditDialog}
+          onClose={() => setShowEditDialog(false)}
+          game={game}
+          onUpdateGame={onUpdateGame}
+          onGameUpdated={onGameUpdated}
+        />
+      )}
     </ContextMenu>
   );
 }
@@ -317,6 +366,8 @@ export function AccountGamesTable({
   games,
   onGameDeleted,
   onDeleteGame,
+  onUpdateGame,
+  onGameUpdated,
   currentUserProfile,
   accountAssignedUserId,
 }: AccountGamesTableProps) {
@@ -347,6 +398,8 @@ export function AccountGamesTable({
                 game={game}
                 onDeleteGame={onDeleteGame}
                 onGameDeleted={onGameDeleted}
+                onUpdateGame={onUpdateGame}
+                onGameUpdated={onGameUpdated}
                 handleOpenStore={handleOpenStore}
                 currentUserProfile={currentUserProfile}
                 accountAssignedUserId={accountAssignedUserId}

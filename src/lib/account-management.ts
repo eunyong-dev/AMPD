@@ -34,6 +34,7 @@ export interface AccountProfile {
   bill_to_due_days?: number;
   invoice_email_to?: string | null;
   invoice_email_cc?: string | null;
+  adjust_account_id?: number | null;
 }
 
 export interface AccountInputData {
@@ -46,6 +47,7 @@ export interface AccountInputData {
   bill_to_due_days?: number;
   invoice_email_to?: string | null;
   invoice_email_cc?: string | null;
+  adjust_account_id?: number | null;
 }
 
 /**
@@ -111,6 +113,7 @@ export async function addAccount(
       bill_to_due_days: accountData.bill_to_due_days ?? 30,
       invoice_email_to: accountData.invoice_email_to ?? null,
       invoice_email_cc: accountData.invoice_email_cc ?? null,
+      adjust_account_id: accountData.adjust_account_id ?? null,
     })
     .select()
     .single();
@@ -141,6 +144,7 @@ export async function addAccount(
     bill_to_due_days: data.bill_to_due_days ?? 30,
     invoice_email_to: data.invoice_email_to ?? null,
     invoice_email_cc: data.invoice_email_cc ?? null,
+    adjust_account_id: data.adjust_account_id ?? null,
   };
 }
 
@@ -264,6 +268,7 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     bill_to_due_days: account.bill_to_due_days ?? 30,
     invoice_email_to: account.invoice_email_to ?? null,
     invoice_email_cc: account.invoice_email_cc ?? null,
+    adjust_account_id: account.adjust_account_id ?? null,
   }));
 }
 
@@ -300,6 +305,7 @@ export async function updateAccount(
       bill_to_due_days: accountData.bill_to_due_days ?? 30,
       invoice_email_to: accountData.invoice_email_to ?? null,
       invoice_email_cc: accountData.invoice_email_cc ?? null,
+      adjust_account_id: accountData.adjust_account_id ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', accountId)
@@ -332,6 +338,7 @@ export async function updateAccount(
     bill_to_due_days: data.bill_to_due_days ?? 30,
     invoice_email_to: data.invoice_email_to ?? null,
     invoice_email_cc: data.invoice_email_cc ?? null,
+    adjust_account_id: data.adjust_account_id ?? null,
   };
 }
 

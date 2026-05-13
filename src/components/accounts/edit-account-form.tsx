@@ -53,6 +53,7 @@ export function EditAccountForm({
     company: '',
     country: '',
     assigned_user_id: '',
+    adjust_account_id: '',
     bill_to_name: '',
     bill_to_email: '',
     bill_to_address: '',
@@ -94,6 +95,10 @@ export function EditAccountForm({
         company: account.company || '',
         country: account.country || '',
         assigned_user_id: account.assigned_user_id || '',
+        adjust_account_id:
+          account.adjust_account_id != null
+            ? String(account.adjust_account_id)
+            : '',
         bill_to_name: account.bill_to_name ?? '',
         bill_to_email: account.bill_to_email ?? '',
         bill_to_address: account.bill_to_address ?? '',
@@ -111,6 +116,7 @@ export function EditAccountForm({
       company: '',
       country: '',
       assigned_user_id: '',
+      adjust_account_id: '',
       bill_to_name: '',
       bill_to_email: '',
       bill_to_address: '',
@@ -145,10 +151,19 @@ export function EditAccountForm({
     }
 
     try {
+      // Adjust account id: 빈 문자열 → null, 숫자만 허용
+      const adjustIdRaw = editedAccount.adjust_account_id.trim();
+      const adjustIdParsed = adjustIdRaw === '' ? null : Number(adjustIdRaw);
+      if (adjustIdParsed !== null && !Number.isFinite(adjustIdParsed)) {
+        toast.error('Adjust Account ID 는 숫자여야 합니다');
+        return;
+      }
+
       await onUpdateAccount(account.id, {
         company: editedAccount.company.trim(),
         country: editedAccount.country,
         assigned_user_id: editedAccount.assigned_user_id,
+        adjust_account_id: adjustIdParsed,
         bill_to_name: editedAccount.bill_to_name.trim() || null,
         bill_to_email: editedAccount.bill_to_email.trim() || null,
         bill_to_address: editedAccount.bill_to_address.trim() || null,
@@ -252,6 +267,34 @@ export function EditAccountForm({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Adjust Account ID — Adjust MMP 캠페인 sync 용 */}
+          <div className='space-y-2'>
+            <Label htmlFor='edit-adjust-account-id'>
+              Adjust Account ID{' '}
+              <span className='text-xs text-muted-foreground font-normal'>
+                (Adjust MMP 캠페인 sync 필수)
+              </span>
+            </Label>
+            <Input
+              id='edit-adjust-account-id'
+              type='text'
+              inputMode='numeric'
+              placeholder='예: 22020'
+              value={editedAccount.adjust_account_id}
+              onChange={(e) =>
+                setEditedAccount((prev) => ({
+                  ...prev,
+                  adjust_account_id: e.target.value,
+                }))
+              }
+              autoComplete='off'
+              className='font-mono text-sm max-w-xs'
+            />
+            <p className='text-xs text-muted-foreground'>
+              Adjust 대시보드 → 어카운트 전환 시 URL/Network 에서 확인 가능
+            </p>
           </div>
 
           {/* 청구 정보 (BILL TO) — 접기/펼치기 */}

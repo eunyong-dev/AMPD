@@ -10,9 +10,16 @@ export const maxDuration = 60;
 // CORS / Origin 검증 — campaigns endpoint 와 동일 패턴
 // ─────────────────────────────────────────────────────────────
 const ALLOWED_ORIGIN_PATTERNS: (string | RegExp)[] = [
+  // AppsFlyer
   'https://hq1.appsflyer.com',
   'https://hq.appsflyer.com',
   'https://www.appsflyer.com',
+  // Adjust
+  'https://suite.adjust.com',
+  'https://dash.adjust.com',
+  'https://automate.adjust.com',
+  'https://www.adjust.com',
+  // 로컬 개발
   /^https?:\/\/localhost(:\d+)?$/,
 ];
 

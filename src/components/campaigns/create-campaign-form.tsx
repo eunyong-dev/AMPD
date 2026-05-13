@@ -40,6 +40,7 @@ const emptyForm = (accountId: string): CampaignFormData => ({
   jira_url: null,
   daily_report_url: null,
   timezone: null,
+  adjust_ad_revenue_sources: null,
 });
 
 export function CreateCampaignForm({
@@ -149,6 +150,9 @@ export function CreateCampaignForm({
         jira_url: form.jira_url?.trim() || null,
         daily_report_url: form.daily_report_url?.trim() || null,
         regional_game_name: regionalName,
+        // MMP가 Adjust가 아니면 ad_revenue_sources 는 의미 없음 → 강제로 null 저장
+        adjust_ad_revenue_sources:
+          form.mmp === 'Adjust' ? form.adjust_ad_revenue_sources ?? null : null,
       });
       toast.success('캠페인이 생성되었습니다.');
       onClose();

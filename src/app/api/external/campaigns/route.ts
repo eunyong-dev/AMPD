@@ -4,19 +4,52 @@ import type { Database } from '@/lib/database.types';
 
 export const runtime = 'nodejs';
 
-// 허용된 Origin (AppsFlyer 도메인 + 로컬 개발)
-const ALLOWED_ORIGIN_PATTERNS: (string | RegExp)[] = [
+// MMP 별 허용 Origin
+// - 북마클릿이 어느 MMP 콘솔에서 실행됐는지에 따라 응답 필터링
+const APPSFLYER_ORIGIN_PATTERNS: (string | RegExp)[] = [
   'https://hq1.appsflyer.com',
   'https://hq.appsflyer.com',
   'https://www.appsflyer.com',
-  /^https?:\/\/localhost(:\d+)?$/, // 로컬 개발
 ];
 
-function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return false;
-  return ALLOWED_ORIGIN_PATTERNS.some((p) =>
+const ADJUST_ORIGIN_PATTERNS: (string | RegExp)[] = [
+  'https://suite.adjust.com',
+  'https://dash.adjust.com',
+  'https://automate.adjust.com',
+  'https://www.adjust.com',
+];
+
+// 로컬 개발은 양쪽 모두 허용 (개발 편의)
+const LOCAL_ORIGIN_PATTERN = /^https?:\/\/localhost(:\d+)?$/;
+
+function matchesAny(
+  origin: string,
+  patterns: (string | RegExp)[]
+): boolean {
+  return patterns.some((p) =>
     typeof p === 'string' ? p === origin : p.test(origin)
   );
+}
+
+/**
+ * Origin → MMP 매핑
+ * - AppsFlyer 콘솔: 'AppsFlyer'
+ * - Adjust 콘솔: 'Adjust'
+ * - localhost: null (로컬 개발 — 전체 반환)
+ * - 그 외: undefined (차단)
+ */
+function detectMmpFromOrigin(
+  origin: string | null
+): 'AppsFlyer' | 'Adjust' | null | undefined {
+  if (!origin) return undefined;
+  if (matchesAny(origin, APPSFLYER_ORIGIN_PATTERNS)) return 'AppsFlyer';
+  if (matchesAny(origin, ADJUST_ORIGIN_PATTERNS)) return 'Adjust';
+  if (LOCAL_ORIGIN_PATTERN.test(origin)) return null;
+  return undefined;
+}
+
+function isOriginAllowed(origin: string | null): boolean {
+  return detectMmpFromOrigin(origin) !== undefined;
 }
 
 function corsHeaders(origin: string | null) {
@@ -42,21 +75,23 @@ export async function OPTIONS(request: NextRequest) {
 /**
  * GET /api/external/campaigns
  * 사용자의 API key 로 인증해서 캠페인 리스트 반환.
- * AppsFlyer 북마클릿이 호출용.
+ * AppsFlyer / Adjust 북마클릿이 호출용.
  *
  * Headers: X-API-Key
- * Returns: [{ id, name, app_package_identifier, region, start_date, end_date, status, ... }]
+ * Origin 에 따라 MMP 자동 필터 (AppsFlyer 콘솔 → AppsFlyer 캠페인만, Adjust 콘솔 → Adjust 캠페인만)
+ * Returns: [{ name, app_package_identifier, region, start_date, end_date, status, ... }]
  */
 export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin');
   const apiKey = request.headers.get('x-api-key');
 
   // Origin 검증 — 허용된 도메인에서만 호출 가능 (키 유출 시 피해 최소화)
-  if (!isOriginAllowed(origin)) {
+  const mmpFromOrigin = detectMmpFromOrigin(origin);
+  if (mmpFromOrigin === undefined) {
     return NextResponse.json(
       {
         error:
-          '허용되지 않은 Origin. AppsFlyer 콘솔/북마클릿에서만 호출 가능합니다.',
+          '허용되지 않은 Origin. AppsFlyer / Adjust 콘솔/북마클릿에서만 호출 가능합니다.',
       },
       { status: 403, headers: corsHeaders(origin) }
     );
@@ -97,10 +132,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 2) 캠페인 + 게임(앱 패키지) 정보 조회
+  // 2) 캠페인 + 게임(앱 패키지) + 광고주(adjust_account_id) 정보 조회
   // - 본인 담당 광고주 (assigned_user_id = profile.id)
-  // - AppsFlyer MMP 사용 캠페인만 (Adjust 등 제외)
-  const { data: campaigns, error: campErr } = await supabase
+  // - Origin 기반 MMP 필터: AppsFlyer 콘솔 → AppsFlyer 캠페인만, Adjust 콘솔 → Adjust 캠페인만
+  // - app_token 은 북마클릿이 package_identifier 로 Adjust /apps 응답에서 자동 매핑
+  let query = supabase
     .from('campaigns')
     .select(
       `
@@ -110,18 +146,31 @@ export async function GET(request: NextRequest) {
         end_date,
         status,
         timezone,
+        mmp,
+        adjust_ad_revenue_sources,
         daily_report_url,
         games!inner (
           package_identifier,
           accounts!inner (
-            assigned_user_id
+            id,
+            company,
+            assigned_user_id,
+            adjust_account_id
           )
         )
       `
     )
-    .eq('mmp', 'AppsFlyer')
-    .eq('games.accounts.assigned_user_id', profile.id)
-    .order('start_date', { ascending: false });
+    .eq('games.accounts.assigned_user_id', profile.id);
+
+  // localhost (개발) 에서는 전체 반환 — MMP 필터 안 함
+  if (mmpFromOrigin) {
+    query = query.eq('mmp', mmpFromOrigin);
+  }
+
+  const { data: campaigns, error: campErr } = await query.order(
+    'start_date',
+    { ascending: false }
+  );
 
   if (campErr) {
     return NextResponse.json(
@@ -134,6 +183,7 @@ export async function GET(request: NextRequest) {
   const result = (campaigns ?? []).map((c) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const game = (c as any).games;
+    const account = game?.accounts ?? null;
     return {
       name: c.name,
       region: c.region,
@@ -141,7 +191,12 @@ export async function GET(request: NextRequest) {
       start_date: c.start_date,
       end_date: c.end_date,
       timezone: c.timezone ?? null,
+      mmp: c.mmp,
       app_package_identifier: game?.package_identifier ?? null,
+      adjust_ad_revenue_sources: c.adjust_ad_revenue_sources ?? null,
+      account_id: account?.id ?? null,
+      account_company: account?.company ?? null,
+      adjust_account_id: account?.adjust_account_id ?? null,
       sheet_url: c.daily_report_url ?? null,
     };
   });
@@ -153,6 +208,7 @@ export async function GET(request: NextRequest) {
         display_name: profile.display_name,
         role: profile.role,
       },
+      mmp_filter: mmpFromOrigin ?? 'all',
       count: result.length,
       campaigns: result,
     },

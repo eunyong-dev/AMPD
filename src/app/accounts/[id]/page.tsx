@@ -80,6 +80,7 @@ export default function AccountDetailPage() {
     loading: gamesLoading,
     addGame,
     removeGame,
+    updateGame: updateGameAction,
   } = useGameManagement();
   // 현재 계정 정보 — slug(=company)로 매칭
   const currentAccount = accounts.find(
@@ -469,6 +470,7 @@ export default function AccountDetailPage() {
               <AccountGamesTable
                 games={accountGames}
                 onDeleteGame={removeGame}
+                onUpdateGame={updateGameAction}
                 currentUserProfile={currentUserProfile}
                 accountAssignedUserId={currentAccount?.assigned_user_id}
               />

@@ -46,6 +46,7 @@ const initialForm = (accountId: string): CampaignFormData => ({
   jira_url: null,
   daily_report_url: null,
   timezone: null,
+  adjust_ad_revenue_sources: null,
 });
 
 export function EditCampaignForm({
@@ -78,6 +79,7 @@ export function EditCampaignForm({
         jira_url: campaign.jira_url || null,
         daily_report_url: campaign.daily_report_url || null,
         timezone: campaign.timezone || null,
+        adjust_ad_revenue_sources: campaign.adjust_ad_revenue_sources || null,
       });
     }
   }, [isOpen, campaign]);
@@ -123,6 +125,9 @@ export function EditCampaignForm({
         jira_url: form.jira_url?.trim() || null,
         daily_report_url: form.daily_report_url?.trim() || null,
         timezone: form.timezone || null,
+        // MMP가 Adjust가 아니면 ad_revenue_sources 는 의미 없음 → 강제로 null 저장
+        adjust_ad_revenue_sources:
+          form.mmp === 'Adjust' ? form.adjust_ad_revenue_sources ?? null : null,
       });
       onClose();
     } catch (error) {

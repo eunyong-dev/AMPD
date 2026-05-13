@@ -293,6 +293,40 @@ export function CampaignFormFields({
         </div>
       </div>
 
+      {/* Adjust 광고 수익 소스 — MMP === 'Adjust' 일 때만 표시 */}
+      {value.mmp === 'Adjust' && (
+        <div className='space-y-2'>
+          <Label htmlFor={id('adjust-ad-revenue-sources')}>
+            광고 수익 소스{' '}
+            <span className='text-xs text-muted-foreground font-normal'>
+              (선택, Adjust 리포트에 광고 수익 포함 시)
+            </span>
+          </Label>
+          <Select
+            value={value.adjust_ad_revenue_sources || '__none__'}
+            onValueChange={(v) =>
+              onChange({
+                ...value,
+                adjust_ad_revenue_sources: v === '__none__' ? null : v,
+              })
+            }
+          >
+            <SelectTrigger
+              id={id('adjust-ad-revenue-sources')}
+              className='w-full'
+            >
+              <SelectValue placeholder='광고 수익 소스를 선택해주세요' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='__none__'>
+                <span className='text-muted-foreground'>사용 안 함</span>
+              </SelectItem>
+              <SelectItem value='Applovin MAX SDK'>Applovin MAX SDK</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Campaign Type and Status */}
       <div className='grid grid-cols-2 gap-4'>
         <div className='space-y-2'>

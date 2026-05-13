@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           active_campaigns: number | null
           active_games: number | null
+          adjust_account_id: number | null
           assigned_user_id: string
           bill_to_address: string | null
           bill_to_due_days: number
@@ -35,6 +36,7 @@ export type Database = {
         Insert: {
           active_campaigns?: number | null
           active_games?: number | null
+          adjust_account_id?: number | null
           assigned_user_id: string
           bill_to_address?: string | null
           bill_to_due_days?: number
@@ -52,6 +54,7 @@ export type Database = {
         Update: {
           active_campaigns?: number | null
           active_games?: number | null
+          adjust_account_id?: number | null
           assigned_user_id?: string
           bill_to_address?: string | null
           bill_to_due_days?: number
@@ -79,6 +82,7 @@ export type Database = {
       campaigns: {
         Row: {
           account_id: string
+          adjust_ad_revenue_sources: string | null
           campaign_type: string
           created_at: string | null
           created_by: string | null
@@ -99,6 +103,7 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          adjust_ad_revenue_sources?: string | null
           campaign_type: string
           created_at?: string | null
           created_by?: string | null
@@ -119,6 +124,7 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          adjust_ad_revenue_sources?: string | null
           campaign_type?: string
           created_at?: string | null
           created_by?: string | null

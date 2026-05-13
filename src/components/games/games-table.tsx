@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { toast } from 'sonner';
 import {
   TrashIcon,
@@ -8,7 +9,6 @@ import {
   ExternalLinkIcon,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -30,8 +30,9 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
-import type { Game } from '@/hooks/use-game-management';
+import type { Game, GameFormData } from '@/hooks/use-game-management';
 import { getPlatformDisplay } from '@/lib/utils/platform';
+import { EditGameForm } from '@/components/games/edit-game-form';
 
 interface GamesTableProps {
   games: Game[];
@@ -40,6 +41,11 @@ interface GamesTableProps {
   onSelectGame: (gameId: string, checked: boolean) => void;
   onGameDeleted?: (gameId: string) => void;
   onDeleteGame: (gameId: string) => Promise<void>;
+  onUpdateGame?: (
+    gameId: string,
+    gameData: Partial<GameFormData>
+  ) => Promise<Game>;
+  onGameUpdated?: () => void;
 }
 
 export function GamesTable({
@@ -49,7 +55,10 @@ export function GamesTable({
   onSelectGame,
   onGameDeleted,
   onDeleteGame,
+  onUpdateGame,
+  onGameUpdated,
 }: GamesTableProps) {
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
   const isAllSelected =
     games.length > 0 && selectedGames.length === games.length;
 
@@ -68,8 +77,12 @@ export function GamesTable({
   };
 
   const handleEditGame = (gameId: string) => {
-    // TODO: 게임 수정 모달 구현
-    // TODO: 게임 수정 기능 구현 필요
+    if (!onUpdateGame) {
+      toast.error('게임 수정 권한이 없습니다.');
+      return;
+    }
+    const target = games.find((g) => g.id === gameId);
+    if (target) setEditingGame(target);
   };
 
   const handleOpenStore = (url: string) => {
@@ -204,6 +217,15 @@ export function GamesTable({
           })}
         </TableBody>
       </Table>
+      {onUpdateGame && (
+        <EditGameForm
+          isOpen={!!editingGame}
+          onClose={() => setEditingGame(null)}
+          game={editingGame}
+          onUpdateGame={onUpdateGame}
+          onGameUpdated={onGameUpdated}
+        />
+      )}
     </div>
   );
 }

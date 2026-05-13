@@ -25,6 +25,7 @@ export interface Campaign {
   daily_report_url: string | null;
   regional_game_name: string | null;
   timezone: string | null;
+  adjust_ad_revenue_sources: string | null;
   created_at: string | null;
   updated_at: string | null;
   created_by: string | null;
@@ -54,6 +55,7 @@ export interface CampaignFormData {
   daily_report_url?: string | null;
   regional_game_name?: string | null;
   timezone?: string | null;
+  adjust_ad_revenue_sources?: string | null;
 }
 
 export {
@@ -290,7 +292,7 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
       game_store_url: campaign.games?.store_url || null,
       game_package_identifier: campaign.games?.package_identifier || null,
       game_logo_url: campaign.games?.logo_url || null,
-      account_company: campaign.games?.accounts?.company || null,
+        account_company: campaign.games?.accounts?.company || null,
       assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
       assigned_user_name:
         campaign.games?.accounts?.user_profiles?.display_name || null,
@@ -382,9 +384,11 @@ export async function createCampaign(
 
   return {
     ...data,
+    account_id: (data.games as any)?.account_id || null,
     game_name: (data.games as any)?.game_name || null,
     game_store_url: (data.games as any)?.store_url || null,
     game_package_identifier: (data.games as any)?.package_identifier || null,
+    game_logo_url: (data.games as any)?.logo_url || null,
     account_company: (data.games as any)?.accounts?.company || null,
     assigned_user_id: (data.games as any)?.accounts?.assigned_user_id || null,
     assigned_user_name:
@@ -441,9 +445,11 @@ export async function updateCampaign(
 
   return {
     ...data,
+    account_id: (data.games as any)?.account_id || null,
     game_name: (data.games as any)?.game_name || null,
     game_store_url: (data.games as any)?.store_url || null,
     game_package_identifier: (data.games as any)?.package_identifier || null,
+    game_logo_url: (data.games as any)?.logo_url || null,
     account_company: (data.games as any)?.accounts?.company || null,
     assigned_user_id: (data.games as any)?.accounts?.assigned_user_id || null,
     assigned_user_name:
