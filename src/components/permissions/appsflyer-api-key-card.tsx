@@ -618,11 +618,19 @@ export function AppsFlyerApiKeyCard() {
   };
 
   // 현재 어카운트의 apps → package_id → app_token 매핑 빌드
+  // cache-bust 파라미터로 브라우저/CDN 캐시 회피 (switch 직후 stale 응답 방지)
   const fetchPackageMap = async () => {
     try {
       const r = await fetch(
-        'https://api.adjust.com/dashboard/api/apps?ctv=false',
-        { credentials: 'include', headers: { Accept: 'application/json' } }
+        \`https://api.adjust.com/dashboard/api/apps?ctv=false&_t=\${Date.now()}\`,
+        {
+          credentials: 'include',
+          headers: {
+            Accept: 'application/json',
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        }
       );
       if (!r.ok) return null;
       const d = await r.json();
@@ -709,42 +717,82 @@ export function AppsFlyerApiKeyCard() {
       \`[\${groupIdx}/\${groups.size}] \${company} (Adjust \${adjustAccountId}) — \${groupCampaigns.length}개\`
     );
 
-    // 현재 활성 어카운트가 아니면 switch
-    if (adjustAccountId !== originalAccountId) {
+    // 어카운트 전환 + /apps 매핑 빌드 (재시도 로직 포함)
+    // 엣지 케이스: 시작 어카운트로 돌아가는 switch 의 경우 Adjust 가 stale 데이터
+    // 반환할 수 있음 (예: 시작 SHIMMER → Hello Games → SHIMMER 돌아옴).
+    // 이를 위해 switch + /apps 를 최대 3번 시도하며, 매칭 캠페인이 있을 때까지 재시도.
+    const expectedPackages = groupCampaigns
+      .map((c) => c.app_package_identifier)
+      .filter(Boolean);
+
+    let packageToToken = null;
+    let accessibleTokens = null;
+    let switchOk = false;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
       const switched = await switchAccount(adjustAccountId);
       if (!switched) {
-        console.error(\`❌ \${company} (Adjust \${adjustAccountId}) — 전환 실패\`);
-        addLog(
-          \`❌ \${company} — Adjust 어카운트 \${adjustAccountId} 전환 실패\`,
-          '#fca5a5'
+        // switch 자체 실패 — 재시도 의미 없음
+        break;
+      }
+      switchOk = true;
+      // 세션 쿠키가 안정될 시간 — 재시도마다 길게 (안전 마진)
+      await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+
+      const mapResult = await fetchPackageMap();
+      if (!mapResult || mapResult.map.size === 0) {
+        console.warn(
+          \`⚠️ \${company} (attempt \${attempt}/3) — /apps 비어있음, 재시도\`
         );
-        for (const c of groupCampaigns) {
-          skippedList.push({
-            name: c.name,
-            missing: [\`Adjust 어카운트 전환 실패 (id: \${adjustAccountId})\`],
-          });
-        }
         continue;
       }
-      // 세션 쿠키가 안정될 시간 (보통 즉시 반영되지만 안전 마진)
-      await new Promise((r) => setTimeout(r, 250));
+
+      // 매칭되는 패키지가 하나라도 있는지 확인
+      const hasMatch = expectedPackages.some((p) => mapResult.map.has(p));
+      if (hasMatch || expectedPackages.length === 0) {
+        packageToToken = mapResult.map;
+        accessibleTokens = mapResult.tokens;
+        if (attempt > 1) {
+          console.log(\`✓ \${company} — \${attempt}번째 시도에 매칭 성공\`);
+        }
+        break;
+      }
+
+      console.warn(
+        \`⚠️ \${company} (attempt \${attempt}/3) — 매칭 패키지 없음 (apps \${mapResult.map.size}개), 재시도\`
+      );
     }
 
-    // 이 어카운트의 apps 매핑 빌드
-    const mapResult = await fetchPackageMap();
-    if (!mapResult || mapResult.map.size === 0) {
-      addLog(\`⚠️ \${company} — 이 어카운트에 앱 없음\`, '#fbbf24');
+    if (!switchOk) {
+      console.error(\`❌ \${company} (Adjust \${adjustAccountId}) — 전환 실패\`);
+      addLog(
+        \`❌ \${company} — Adjust 어카운트 \${adjustAccountId} 전환 실패\`,
+        '#fca5a5'
+      );
+      for (const c of groupCampaigns) {
+        skippedList.push({
+          name: c.name,
+          missing: [\`Adjust 어카운트 전환 실패 (id: \${adjustAccountId})\`],
+        });
+      }
+      continue;
+    }
+
+    if (!packageToToken) {
+      addLog(
+        \`⚠️ \${company} — 이 어카운트에 매칭 앱 없음 (3회 재시도 모두 실패)\`,
+        '#fbbf24'
+      );
       for (const c of groupCampaigns) {
         skippedList.push({
           name: c.name,
           missing: [
-            \`Adjust 어카운트 \${adjustAccountId} 에 앱 없음 (account_id 확인 필요)\`,
+            \`Adjust 어카운트 \${adjustAccountId} 에 매칭 앱 없음 (account_id 확인 필요)\`,
           ],
         });
       }
       continue;
     }
-    const { map: packageToToken, tokens: accessibleTokens } = mapResult;
 
     addLog(
       \`📂 \${company} (Adjust \${adjustAccountId}) — \${groupCampaigns.length}개 캠페인 처리\`,
