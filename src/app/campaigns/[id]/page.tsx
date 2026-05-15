@@ -102,6 +102,7 @@ import { parseSheetDate } from '@/lib/utils/sheet-formatters';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
+import { CampaignSwitcher } from '@/components/campaigns/campaign-detail/campaign-switcher';
 import { DailyReportTable } from '@/components/campaigns/campaign-detail/daily-report-table';
 import { MonthlySummaryTable } from '@/components/campaigns/campaign-detail/monthly-summary-table';
 import { PeriodComparison } from '@/components/campaigns/campaign-detail/period-comparison';
@@ -1165,11 +1166,16 @@ export default function CampaignDetailPage() {
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                   <TableRow>
-                    {/* Campaign Name */}
+                    {/* Campaign Name — Switcher 로 다른 캠페인 빠른 전환 */}
                     <TableCell>
-                      <div className='text-sm font-medium truncate'>
-                        {campaign.name || '-'}
-                      </div>
+                      <CampaignSwitcher
+                        currentCampaign={{
+                          id: campaign.id,
+                          name: campaign.name,
+                          account_company: campaign.account_company ?? null,
+                          region: campaign.region ?? null,
+                        }}
+                      />
                     </TableCell>
 
                     {/* Account */}
