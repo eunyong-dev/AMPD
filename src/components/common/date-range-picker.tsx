@@ -94,7 +94,7 @@ export function DateRangePicker({
         >
           <CalendarIcon
             className={cn(
-              'h-4 w-4 mr-2',
+              'h-4 w-4 mr-1.5',
               hideLabelClassName?.replace(':hidden', ':mr-0')
             )}
           />

@@ -1593,7 +1593,7 @@ export default function CampaignDetailPage() {
                   onClick={() => setShowAddNoteModal(true)}
                   title='시트 비고 컬럼에 메모 기록'
                 >
-                  <StickyNote className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
+                  <StickyNote className='h-4 w-4 max-[1100px]:mr-0 mr-1.5' />
                   <span className='max-[1100px]:hidden'>비고 기록</span>
                 </Button>
                 <Button
@@ -1605,7 +1605,7 @@ export default function CampaignDetailPage() {
                     window.open(url, '_blank');
                   }}
                 >
-                  <ExternalLink className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
+                  <ExternalLink className='h-4 w-4 max-[1100px]:mr-0 mr-1.5' />
                   <span className='max-[1100px]:hidden'>시트 보기</span>
                 </Button>
                 <Button
@@ -1618,7 +1618,7 @@ export default function CampaignDetailPage() {
                   disabled={dataLoading}
                 >
                   <RefreshCw
-                    className={`h-4 w-4 max-[1100px]:mr-0 mr-2 ${
+                    className={`h-4 w-4 max-[1100px]:mr-0 mr-1.5 ${
                       dataLoading ? 'animate-spin' : ''
                     }`}
                   />
