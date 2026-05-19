@@ -1,9 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient as createServerSupabase } from '@/utils/supabase/server';
+import { createClient as createDirectSupabase } from '@supabase/supabase-js';
 import { getSheetsClientForWrite } from '@/lib/google-sheets';
+import type { Database } from '@/lib/database.types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+/**
+ * 인증 모드:
+ *  - 일반: 브라우저 세션 (Supabase cookies)
+ *  - 자동화: X-API-Key (user_profiles.appsflyer_api_key) — server-to-server / CLI 용
+ *
+ * 둘 중 하나라도 통과하면 진행.
+ */
+async function authenticate(request: NextRequest): Promise<
+  | { ok: true; via: 'session' | 'api-key'; userId: string }
+  | { ok: false; status: number; error: string }
+> {
+  // 1) API key 우선 체크
+  const apiKey = request.headers.get('x-api-key');
+  if (apiKey) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (url && anon) {
+      const direct = createDirectSupabase<Database>(url, anon, {
+        auth: { persistSession: false },
+      });
+      const { data: profile } = await direct
+        .from('user_profiles')
+        .select('id, is_active')
+        .eq('appsflyer_api_key', apiKey)
+        .single();
+      if (profile && profile.is_active) {
+        return { ok: true, via: 'api-key', userId: profile.id };
+      }
+      return { ok: false, status: 403, error: '유효하지 않은 API 키' };
+    }
+  }
+  // 2) 세션 인증 fallback
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) return { ok: true, via: 'session', userId: user.id };
+  return { ok: false, status: 401, error: '인증이 필요합니다.' };
+}
 
 /**
  * POST /api/campaigns/[id]/note
@@ -40,16 +82,13 @@ export async function POST(
     return NextResponse.json({ error: '비고 내용은 필수입니다.' }, { status: 400 });
   }
 
-  const supabase = await createClient();
-
-  // 1) 인증
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser();
-  if (userErr || !user) {
-    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+  // 1) 인증 (세션 or X-API-Key)
+  const auth = await authenticate(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+
+  const supabase = await createServerSupabase();
 
   // 2) 캠페인 조회 + 시트 URL 확인
   const { data: campaign, error: campErr } = await supabase
