@@ -11,6 +11,7 @@ import {
   MoreHorizontalIcon,
   EditIcon,
   TrashIcon,
+  StickyNote,
 } from 'lucide-react';
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
@@ -103,6 +104,7 @@ import { useUserManagement } from '@/hooks/use-user-management';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 import { CampaignSwitcher } from '@/components/campaigns/campaign-detail/campaign-switcher';
+import { AddNoteModal } from '@/components/campaigns/campaign-detail/add-note-modal';
 import { DailyReportTable } from '@/components/campaigns/campaign-detail/daily-report-table';
 import { MonthlySummaryTable } from '@/components/campaigns/campaign-detail/monthly-summary-table';
 import { PeriodComparison } from '@/components/campaigns/campaign-detail/period-comparison';
@@ -199,6 +201,7 @@ export default function CampaignDetailPage() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [showEditCampaignForm, setShowEditCampaignForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [allGames, setAllGames] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState<
     | {
@@ -1587,6 +1590,16 @@ export default function CampaignDetailPage() {
                   variant='outline'
                   size='sm'
                   className='flex-shrink-0'
+                  onClick={() => setShowAddNoteModal(true)}
+                  title='시트 비고 컬럼에 메모 기록'
+                >
+                  <StickyNote className='h-4 w-4 max-[1100px]:mr-0 mr-2' />
+                  <span className='max-[1100px]:hidden'>비고 기록</span>
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='flex-shrink-0'
                   onClick={() => {
                     const url = campaign.daily_report_url!;
                     window.open(url, '_blank');
@@ -2012,6 +2025,23 @@ export default function CampaignDetailPage() {
             games={allGames.filter(
               (game) => game.account_id === campaign.account_id
             )}
+          />
+        )}
+
+        {/* Add Note Modal — 시트 비고 컬럼에 메모 기록 */}
+        {campaign && (
+          <AddNoteModal
+            isOpen={showAddNoteModal}
+            onClose={() => setShowAddNoteModal(false)}
+            campaignId={campaign.id}
+            campaignName={campaign.name}
+            timezone={campaign.timezone}
+            onSaved={() => {
+              // 시트 데이터 새로고침해서 비고 반영
+              if (campaign.daily_report_url) {
+                fetchSheetData(campaign.daily_report_url, true);
+              }
+            }}
           />
         )}
 
