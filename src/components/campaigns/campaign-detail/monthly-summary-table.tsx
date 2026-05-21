@@ -29,7 +29,7 @@ export function MonthlySummaryTable({ rows }: MonthlySummaryTableProps) {
   const cols = Object.keys(rows[0]).filter((k) => k !== 'Month');
 
   return (
-    <TableWrapper>
+    <TableWrapper fillHeight className='h-full'>
       <Table style={{ width: 'max-content', minWidth: '100%' }}>
         <TableHeader className={TABLE_STYLES.header}>
           <TableRow>

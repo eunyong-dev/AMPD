@@ -16,20 +16,35 @@ interface TableWrapperProps {
   children: React.ReactNode;
   className?: string;
   enableHorizontalScroll?: boolean;
+  /**
+   * true: 부모 영역 높이만큼 채우고 내부에서 스크롤 (sticky 헤더 동작).
+   *       부모가 명시적 높이/flex-1 등으로 높이를 가져야 효과적.
+   * false (기본): 콘텐츠 높이만큼만 차지 (가로 스크롤만).
+   */
+  fillHeight?: boolean;
 }
 
 export function TableWrapper({
   children,
   className,
   enableHorizontalScroll = true,
+  fillHeight = false,
 }: TableWrapperProps) {
+  if (fillHeight) {
+    // sticky header 가 동작하려면 스크롤 컨테이너가 헤더의 직계 조상이어야 함
+    return (
+      <div
+        className={cn(
+          'w-full overflow-hidden rounded-xl border flex flex-col min-h-0',
+          className
+        )}
+      >
+        <div className='flex-1 min-h-0 overflow-auto'>{children}</div>
+      </div>
+    );
+  }
   return (
-    <div
-      className={cn(
-        'w-full overflow-hidden rounded-xl border',
-        className
-      )}
-    >
+    <div className={cn('w-full overflow-hidden rounded-xl border', className)}>
       {enableHorizontalScroll ? (
         <div className='overflow-x-auto'>{children}</div>
       ) : (

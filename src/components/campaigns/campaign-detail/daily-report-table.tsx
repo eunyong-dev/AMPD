@@ -76,7 +76,7 @@ export function DailyReportTable({
   const dateHeader = headers.find(isDateHeader);
 
   return (
-    <TableWrapper>
+    <TableWrapper fillHeight className='h-full'>
       <Table style={{ width: 'max-content', minWidth: '100%' }}>
         <TableHeader className={TABLE_STYLES.header}>
           <TableRow>
