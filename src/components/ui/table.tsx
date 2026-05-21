@@ -6,13 +6,14 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
+  // 주의: 이전에는 div 로 감싸서 overflow-auto 를 줬으나, 그러면 sticky 헤더가
+  // 이 wrapper 기준이 되어 외부 컨테이너 스크롤 시 함께 움직임. TableWrapper 등
+  // 부모 컴포넌트가 스크롤 처리를 담당하도록 wrapper 제거.
+  <table
+    ref={ref}
+    className={cn("w-full caption-bottom text-sm", className)}
+    {...props}
+  />
 ))
 Table.displayName = "Table"
 
