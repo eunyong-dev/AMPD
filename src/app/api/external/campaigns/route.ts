@@ -181,7 +181,6 @@ export async function GET(request: NextRequest) {
 
   // 3) 응답 정리 — 북마클릿이 쓰기 좋은 형태로
   const result = (campaigns ?? []).map((c) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const game = (c as any).games;
     const account = game?.accounts ?? null;
     return {

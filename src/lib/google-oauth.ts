@@ -50,7 +50,6 @@ async function refreshGoogleAccessToken(
  * @param testFn   access_token 으로 Google API 호출. { ok: true, result } 또는 { ok: false } 반환
  */
 export async function withGoogleAccessToken<T>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any, any, any>,
   testFn: (accessToken: string) => Promise<{ ok: boolean; result?: T }>
 ): Promise<T> {

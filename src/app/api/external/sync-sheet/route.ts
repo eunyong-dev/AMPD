@@ -348,7 +348,6 @@ export async function POST(request: NextRequest) {
 
       // 각 매핑 필드별로 값 입력 (단, 수식 셀은 SKIP)
       for (const [field, colIdx] of Object.entries(fieldToColIdx)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const value = (afRow as any)[field];
         if (value === undefined || value === null) continue;
 
