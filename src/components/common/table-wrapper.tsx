@@ -31,15 +31,17 @@ export function TableWrapper({
   fillHeight = false,
 }: TableWrapperProps) {
   if (fillHeight) {
-    // sticky header 가 동작하려면 스크롤 컨테이너가 헤더의 직계 조상이어야 함
+    // sticky header 가 동작하려면 스크롤 컨테이너가 헤더의 직계 조상이어야 함.
+    // min-w-0 으로 flex item 이 자식 폭만큼 늘어나지 않도록 막아 페이지 가로
+    // 스크롤 방지 (테이블 자체는 inner overflow-auto 로 가로 스크롤).
     return (
       <div
         className={cn(
-          'w-full overflow-hidden rounded-xl border flex flex-col min-h-0',
+          'w-full min-w-0 overflow-hidden rounded-xl border flex flex-col min-h-0',
           className
         )}
       >
-        <div className='flex-1 min-h-0 overflow-auto'>{children}</div>
+        <div className='flex-1 min-w-0 min-h-0 overflow-auto'>{children}</div>
       </div>
     );
   }

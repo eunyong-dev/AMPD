@@ -1516,7 +1516,7 @@ export default function CampaignDetailPage() {
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className='flex flex-1 flex-col min-h-0 mt-4'
+            className='flex flex-1 flex-col min-h-0 min-w-0 mt-4'
           >
             <div className='flex-shrink-0 flex items-center justify-between mb-4 gap-2 flex-wrap'>
               <TabsList className='rounded-xl h-9'>
@@ -1995,7 +1995,7 @@ export default function CampaignDetailPage() {
             {/* Monthly Summary (전체 데이터 기준) */}
             <TabsContent
               value='monthly'
-              className='flex-1 min-h-0 data-[state=active]:flex flex-col'
+              className='flex-1 min-h-0 min-w-0 data-[state=active]:flex flex-col'
             >
               <MonthlySummaryTable rows={monthlySummary ?? []} />
             </TabsContent>
@@ -2003,7 +2003,7 @@ export default function CampaignDetailPage() {
             {/* Daily Report Data */}
             <TabsContent
               value='daily'
-              className='flex-1 min-h-0 data-[state=active]:flex flex-col'
+              className='flex-1 min-h-0 min-w-0 data-[state=active]:flex flex-col'
             >
               <DailyReportTable
                 loading={dataLoading}
