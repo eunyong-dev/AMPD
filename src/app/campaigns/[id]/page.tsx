@@ -1119,9 +1119,12 @@ export default function CampaignDetailPage() {
 
   return (
     <AccessControl>
-      <div className='space-y-4 w-full overflow-x-hidden'>
-        {/* Campaign Information */}
-        <div className='space-y-4'>
+      <div
+        className='flex flex-col w-full overflow-x-hidden'
+        style={{ height: 'calc(100vh - 96px)' }}
+      >
+        {/* Campaign Information — 상단 고정 (스크롤 안 됨) */}
+        <div className='flex-shrink-0 space-y-4'>
           {/* Information Table */}
           <TableWrapper>
             <div className='overflow-x-auto'>
@@ -1510,8 +1513,12 @@ export default function CampaignDetailPage() {
 
         {/* Charts / Monthly / Daily tabs */}
         {campaign.daily_report_url ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className='flex items-center justify-between mb-4 gap-2 flex-wrap'>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className='flex flex-1 flex-col min-h-0 mt-4'
+          >
+            <div className='flex-shrink-0 flex items-center justify-between mb-4 gap-2 flex-wrap'>
               <TabsList className='rounded-xl h-9'>
                 <TabsTrigger
                   value='daily'
@@ -1629,16 +1636,21 @@ export default function CampaignDetailPage() {
 
             {/* Period Comparison */}
             {compareEnabled && comparisonMetrics && activeTab !== 'monthly' && (
-              <PeriodComparison
-                current={comparisonMetrics.current}
-                comparison={comparisonMetrics.comparison}
-                currentRange={dateRange}
-                comparisonRange={compareDateRange}
-              />
+              <div className='flex-shrink-0 mb-4'>
+                <PeriodComparison
+                  current={comparisonMetrics.current}
+                  comparison={comparisonMetrics.comparison}
+                  currentRange={dateRange}
+                  comparisonRange={compareDateRange}
+                />
+              </div>
             )}
 
             {/* Charts */}
-            <TabsContent value='charts' className='space-y-4'>
+            <TabsContent
+              value='charts'
+              className='flex-1 min-h-0 overflow-y-auto space-y-4'
+            >
               {dataLoading ? (
                 <div className='space-y-4'>
                   <Skeleton className='h-[360px] w-full' />
@@ -1983,12 +1995,12 @@ export default function CampaignDetailPage() {
             </TabsContent>
 
             {/* Monthly Summary (전체 데이터 기준) */}
-            <TabsContent value='monthly'>
+            <TabsContent value='monthly' className='flex-1 min-h-0 overflow-y-auto'>
               <MonthlySummaryTable rows={monthlySummary ?? []} />
             </TabsContent>
 
             {/* Daily Report Data */}
-            <TabsContent value='daily'>
+            <TabsContent value='daily' className='flex-1 min-h-0 overflow-y-auto'>
               <DailyReportTable
                 loading={dataLoading}
                 error={dataError}
