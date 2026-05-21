@@ -58,7 +58,10 @@ export function TableWrapper({
  * 테이블 스타일 상수
  */
 export const TABLE_STYLES = {
-  header: 'sticky top-0 z-20 bg-muted [&_th]:py-2 [&_th]:px-2 [&_th]:h-9',
+  // [&_tr]:border-b-2 : 헤더 행 하단 경계선을 굵게 (스크롤 시 body 와 시각 분리)
+  // border-border : 기본 border 보다 한 톤 진한 색상
+  header:
+    'sticky top-0 z-20 bg-muted [&_tr]:border-b-2 [&_tr]:border-border [&_th]:py-2 [&_th]:px-2 [&_th]:h-9',
   body: '[&_td]:py-2 [&_td]:px-2',
   table: 'tableLayout: fixed, width: 100%',
 } as const;
