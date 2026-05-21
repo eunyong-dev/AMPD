@@ -1,6 +1,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // 서버리스 함수 번들에서 제외 — Vercel 에서는 @sparticuz/chromium 의 binary 사용
+  // puppeteer 풀 패키지는 로컬 dev 에서만 동적 import 됨
+  serverExternalPackages: [
+    'puppeteer',
+    'puppeteer-core',
+    '@sparticuz/chromium',
+  ],
   images: {
     remotePatterns: [
       // 기본 아바타 (이메일/이름 기반)
