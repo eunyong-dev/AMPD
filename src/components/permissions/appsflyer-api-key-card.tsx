@@ -1069,7 +1069,7 @@ export function AppsFlyerApiKeyCard() {
             </p>
             <Button onClick={handleGenerate} disabled={working} size='sm'>
               <RefreshCw
-                className={`h-4 w-4 mr-1.5 ${working ? 'animate-spin' : ''}`}
+                className={`h-4 w-4 ${working ? 'animate-spin' : ''}`}
               />
               API 키 발급
             </Button>
@@ -1304,7 +1304,7 @@ export function AppsFlyerApiKeyCard() {
                 disabled={working}
               >
                 <RefreshCw
-                  className={`h-4 w-4 mr-1.5 ${working ? 'animate-spin' : ''}`}
+                  className={`h-4 w-4 ${working ? 'animate-spin' : ''}`}
                 />
                 재발급
               </Button>

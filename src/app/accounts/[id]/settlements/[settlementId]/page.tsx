@@ -482,7 +482,7 @@ export default function SettlementDetailPage() {
                 size='sm'
                 onClick={() => setShowIssueInvoice(true)}
               >
-                <FileText className='h-4 w-4 mr-1.5' />
+                <FileText className='h-4 w-4' />
                 인보이스 발행
               </Button>
               <Button
@@ -491,7 +491,7 @@ export default function SettlementDetailPage() {
                 className='text-destructive hover:bg-destructive/10 hover:text-destructive'
                 onClick={() => setShowDelete(true)}
               >
-                <Trash2 className='h-4 w-4 mr-1.5' />
+                <Trash2 className='h-4 w-4' />
                 삭제
               </Button>
             </div>
@@ -587,7 +587,7 @@ export default function SettlementDetailPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='sm'>
-                    <Copy className='h-4 w-4 mr-1.5' />
+                    <Copy className='h-4 w-4' />
                     복사
                     <ChevronDown className='h-4 w-4 ml-1' />
                   </Button>

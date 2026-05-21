@@ -246,7 +246,7 @@ export default function EmailTemplatesPage() {
             ]}
           />
           <Button onClick={openCreate} size='sm'>
-            <Plus className='h-4 w-4 mr-1.5' />
+            <Plus className='h-4 w-4' />
             새 템플릿
           </Button>
         </div>

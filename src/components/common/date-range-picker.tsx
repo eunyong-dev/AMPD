@@ -92,12 +92,7 @@ export function DateRangePicker({
             triggerClassName
           )}
         >
-          <CalendarIcon
-            className={cn(
-              'h-4 w-4 mr-1.5',
-              hideLabelClassName?.replace(':hidden', ':mr-0')
-            )}
-          />
+          <CalendarIcon className='h-4 w-4' />
           <span className={hideLabelClassName}>{triggerLabel}</span>
         </Button>
       </PopoverTrigger>

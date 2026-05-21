@@ -444,7 +444,7 @@ export function SendInvoiceModal({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={submitting}
               >
-                <Paperclip className='h-3.5 w-3.5 mr-1.5' />
+                <Paperclip className='h-3.5 w-3.5' />
                 파일 추가
               </Button>
               <input
@@ -508,7 +508,7 @@ export function SendInvoiceModal({
             onClick={handleSend}
             disabled={submitting || loadingDefaults}
           >
-            <Send className='h-4 w-4 mr-1.5' />
+            <Send className='h-4 w-4' />
             {submitting ? '발송 중...' : '발송'}
           </Button>
         </DialogFooter>

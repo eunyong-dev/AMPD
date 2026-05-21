@@ -157,7 +157,7 @@ export default function InvoiceViewPage() {
         {/* Action Buttons */}
         <div className='mx-auto max-w-[900px] flex justify-end gap-2'>
           <Button onClick={() => setSendModalOpen(true)} size='sm'>
-            <Send className='h-4 w-4 mr-1.5' />
+            <Send className='h-4 w-4' />
             이메일 발송
           </Button>
           <Button
@@ -166,7 +166,7 @@ export default function InvoiceViewPage() {
             variant='outline'
             className='text-destructive hover:bg-destructive/10 hover:text-destructive'
           >
-            <Trash2 className='h-4 w-4 mr-1.5' />
+            <Trash2 className='h-4 w-4' />
             삭제
           </Button>
         </div>
