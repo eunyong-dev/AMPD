@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, X } from 'lucide-react';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -497,36 +497,57 @@ function DateField({
   placeholder,
 }: DateFieldProps) {
   const display = formatDateDisplay(value);
+  const canClear = !required && !!value;
   return (
     <div className='space-y-2'>
       <Label htmlFor={id}>
         {label} {required && <span className='text-red-500'>*</span>}
       </Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            variant='outline'
-            className='w-full justify-start text-left font-normal'
-          >
-            <span className='flex-1 text-left'>{display ?? placeholder}</span>
-            <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className='w-auto p-0' align='start'>
-          <Calendar
-            mode='single'
-            captionLayout='dropdown'
-            selected={value ? new Date(value) : undefined}
-            onSelect={(date) => {
-              if (date) onChange(toIsoDate(date));
+      <div className='relative'>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id={id}
+              variant='outline'
+              className={`w-full justify-start text-left font-normal ${
+                canClear ? 'pr-16' : 'pr-3'
+              }`}
+            >
+              <span className='flex-1 text-left'>{display ?? placeholder}</span>
+              <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className='w-auto p-0' align='start'>
+            <Calendar
+              mode='single'
+              captionLayout='dropdown'
+              selected={value ? new Date(value) : undefined}
+              onSelect={(date) => {
+                if (date) onChange(toIsoDate(date));
+              }}
+              fromYear={1900}
+              toYear={2100}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        {/* 선택 사항 (required 아님) + 값 있을 때만 — 우측 X 버튼으로 값 제거 */}
+        {canClear && (
+          <button
+            type='button'
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onChange(null);
             }}
-            fromYear={1900}
-            toYear={2100}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+            className='absolute right-9 top-1/2 -translate-y-1/2 h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors'
+            aria-label={`${label} 지우기`}
+            title={`${label} 지우기`}
+          >
+            <X className='h-3.5 w-3.5' />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
