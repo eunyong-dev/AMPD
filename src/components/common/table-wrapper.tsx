@@ -32,8 +32,9 @@ export function TableWrapper({
 }: TableWrapperProps) {
   if (fillHeight) {
     // sticky header 가 동작하려면 스크롤 컨테이너가 헤더의 직계 조상이어야 함.
-    // min-w-0 으로 flex item 이 자식 폭만큼 늘어나지 않도록 막아 페이지 가로
-    // 스크롤 방지 (테이블 자체는 inner overflow-auto 로 가로 스크롤).
+    // - max-h-full (caller 가 전달): 내용이 짧으면 내용만큼, 길면 부모 높이까지만
+    //   차지하고 내부 스크롤 → 빈 공간 없이 sticky 헤더 동작.
+    // - min-w-0: flex item 이 자식 폭만큼 늘어나지 않게 (페이지 가로 스크롤 방지)
     return (
       <div
         className={cn(

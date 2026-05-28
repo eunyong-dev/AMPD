@@ -1993,18 +1993,12 @@ export default function CampaignDetailPage() {
             </TabsContent>
 
             {/* Monthly Summary (전체 데이터 기준) */}
-            <TabsContent
-              value='monthly'
-              className='flex-1 min-h-0 min-w-0 data-[state=active]:flex flex-col'
-            >
+            <TabsContent value='monthly' className='flex-1 min-h-0 min-w-0'>
               <MonthlySummaryTable rows={monthlySummary ?? []} />
             </TabsContent>
 
             {/* Daily Report Data */}
-            <TabsContent
-              value='daily'
-              className='flex-1 min-h-0 min-w-0 data-[state=active]:flex flex-col'
-            >
+            <TabsContent value='daily' className='flex-1 min-h-0 min-w-0'>
               <DailyReportTable
                 loading={dataLoading}
                 error={dataError}
