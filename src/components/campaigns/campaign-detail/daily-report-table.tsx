@@ -10,6 +10,12 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import {
   formatDateWithWeekday,
@@ -19,6 +25,13 @@ import {
 import { isRoasColumn, roasBgStyle } from '@/lib/utils/roas';
 
 type SheetRow = Record<string, unknown>;
+
+// 셀에 부착된 메모(hover note) 조회
+function getCellMemo(row: SheetRow, header: string): string | null {
+  const notes = row._notes as Record<string, string> | undefined;
+  if (!notes) return null;
+  return notes[header] ?? null;
+}
 
 interface DailyReportTableProps {
   loading: boolean;
@@ -76,6 +89,7 @@ export function DailyReportTable({
   const dateHeader = headers.find(isDateHeader);
 
   return (
+    <TooltipProvider delayDuration={150}>
     <TableWrapper fillHeight className='max-h-full'>
       <Table style={{ width: 'max-content', minWidth: '100%' }}>
         <TableHeader className={TABLE_STYLES.header}>
@@ -146,6 +160,8 @@ export function DailyReportTable({
                     ? String(cellValue)
                     : '-';
 
+                  const memo = getCellMemo(row, header);
+
                   return (
                     <TableCell
                       key={header}
@@ -154,7 +170,30 @@ export function DailyReportTable({
                         isRoasColumn(header) ? roasBgStyle(cellValue) : undefined
                       }
                     >
-                      {displayValue}
+                      {memo ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* 메모 있는 셀 — 우상단 삼각 표시 + 호버 시 메모 */}
+                            <span className='relative inline-flex items-center gap-1 cursor-help'>
+                              <span>
+                                {displayValue === '-' ? '' : displayValue}
+                              </span>
+                              <span
+                                aria-hidden
+                                className='h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0'
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side='top'
+                            className='max-w-xs whitespace-pre-wrap text-left'
+                          >
+                            {memo}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        displayValue
+                      )}
                     </TableCell>
                   );
                 })}
@@ -164,5 +203,6 @@ export function DailyReportTable({
         </TableBody>
       </Table>
     </TableWrapper>
+    </TooltipProvider>
   );
 }

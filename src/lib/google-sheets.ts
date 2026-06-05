@@ -112,33 +112,56 @@ async function resolveSheetTitle(
   return sheet.properties.title;
 }
 
-type SheetRow = Record<string, string>;
+// 셀 값은 string, 단 _notes 는 { [header]: 메모텍스트 } 객체.
+// _ 접두 키는 헤더/집계에서 제외됨 (page.tsx, campaign-metrics 에서 필터).
+type SheetRow = Record<string, string | Record<string, string>>;
 
 /**
  * YYYY-MM-DD 형식인지 확인 (날짜 컬럼 탐지용)
  */
-function isDateString(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+function isDateString(value: unknown): boolean {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 /**
  * 2차원 배열을 헤더 기반 객체 배열로 변환합니다.
  * Apps Script 응답 형식(`{rows: [{header: value, ...}]}`)과 호환되도록 맞춤.
+ *
+ * @param noteGrid 같은 형태의 2차원 메모 배열 (셀 hover note). 있으면 행에 _notes 부착.
  */
-function rowsToObjects(values: string[][]): SheetRow[] {
+function rowsToObjects(
+  values: string[][],
+  noteGrid?: (string | null)[][]
+): SheetRow[] {
   if (values.length === 0) return [];
   const [headerRow, ...dataRows] = values;
   const headers = headerRow.map((h) => String(h ?? '').trim());
 
   return dataRows
-    .filter((row) => row.some((cell) => cell !== '' && cell != null))
-    .map((row) => {
+    .map((row, i) => {
       const obj: SheetRow = {};
       headers.forEach((header, idx) => {
         if (!header) return;
         obj[header] = row[idx] != null ? String(row[idx]) : '';
       });
+      // 메모 부착 — noteGrid 의 원본 행 인덱스는 i+1 (헤더 1행 제외)
+      const noteRow = noteGrid?.[i + 1];
+      if (noteRow) {
+        const notes: Record<string, string> = {};
+        headers.forEach((header, idx) => {
+          if (!header) return;
+          const n = noteRow[idx];
+          if (n) notes[header] = n;
+        });
+        if (Object.keys(notes).length > 0) obj._notes = notes;
+      }
       return obj;
+    })
+    .filter((obj) => {
+      // 값이 하나라도 있거나 메모가 있는 행만 유지
+      return Object.keys(obj).some(
+        (k) => k !== '_notes' && obj[k] !== ''
+      );
     });
 }
 
@@ -191,20 +214,41 @@ export async function getSheetRows(params: {
   const ongoing = inflight.get(cacheKey);
   if (ongoing) return ongoing;
 
-  // 3) 새로 fetch
+  // 3) 새로 fetch — 값(formatted) + 셀 메모(note) 병렬 조회
   const promise = (async () => {
     const sheets = getSheetsClient();
     const title = await resolveSheetTitle(sheetId, gid, noCache);
+    const quotedRange = `'${title.replace(/'/g, "''")}'`;
 
-    const { data } = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: `'${title.replace(/'/g, "''")}'`,
-      valueRenderOption: 'FORMATTED_VALUE',
-      dateTimeRenderOption: 'FORMATTED_STRING',
-    });
+    const [valuesRes, gridRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: quotedRange,
+        valueRenderOption: 'FORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
+      }),
+      // 셀 메모(note)만 grid data 로 조회 (fields 마스크로 응답 경량화)
+      sheets.spreadsheets
+        .get({
+          spreadsheetId: sheetId,
+          ranges: [quotedRange],
+          fields: 'sheets.data.rowData.values.note',
+        })
+        .catch(() => null), // 메모 조회 실패해도 값은 반환
+    ]);
 
-    const values = (data.values ?? []) as string[][];
-    const rows = rowsToObjects(values);
+    const values = (valuesRes.data.values ?? []) as string[][];
+
+    // 메모 grid 빌드: noteGrid[rowIdx][colIdx] = note text | null
+    let noteGrid: (string | null)[][] | undefined;
+    const rowData = gridRes?.data.sheets?.[0]?.data?.[0]?.rowData;
+    if (Array.isArray(rowData)) {
+      noteGrid = rowData.map((r) =>
+        (r.values ?? []).map((c) => c.note ?? null)
+      );
+    }
+
+    const rows = rowsToObjects(values, noteGrid);
     return filterByDateRange(rows, fromDate ?? null, toDate ?? null);
   })().finally(() => {
     inflight.delete(cacheKey);

@@ -620,10 +620,10 @@ export default function CampaignDetailPage() {
     };
   }, [compareEnabled, allData, data, compareDateRange]);
 
-  // 테이블 헤더 생성
+  // 테이블 헤더 생성 (_ 접두 내부 키 — _notes 등 — 제외)
   const headers = useMemo(() => {
     if (!data || data.length === 0) return [];
-    return Object.keys(data[0]);
+    return Object.keys(data[0]).filter((k) => !k.startsWith('_'));
   }, [data]);
 
   // 월간 집계. Date Range 필터와 무관하게 전체 데이터(allData) 기준.
@@ -660,7 +660,7 @@ export default function CampaignDetailPage() {
     };
 
     const dataColumns = Object.keys(allData[0]).filter(
-      (h) => h !== dateHeader
+      (h) => h !== dateHeader && !h.startsWith('_')
     );
 
     // 컬럼별 표시 형식 감지 (첫 유효 값 기준)
@@ -739,6 +739,7 @@ export default function CampaignDetailPage() {
         const entry: Record<string, string | number> = { date: label };
         for (const [key, raw] of Object.entries(row)) {
           if (key === dateHeader) continue;
+          if (key.startsWith('_')) continue; // _notes 등 내부 키 제외
           // 비고/note 컬럼은 텍스트 그대로 보존 (차트 marker / 툴팁 표시용)
           if (
             key === '비고' ||
