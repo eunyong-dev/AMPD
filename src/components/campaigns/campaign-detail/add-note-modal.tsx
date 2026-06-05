@@ -23,6 +23,10 @@ import {
 
 type ChangeType = 'note' | 'cpi';
 
+// 비고 카테고리 — 다중 선택. 선택 시 비고 앞에 [태그] 형태로 prepend.
+const NOTE_CATEGORIES = ['히든퀘스트', '타임퀘스트', '기타'] as const;
+type NoteCategory = (typeof NOTE_CATEGORIES)[number];
+
 interface AddNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -103,6 +107,7 @@ export function AddNoteModal({
 }: AddNoteModalProps) {
   const [date, setDate] = useState<string>(() => todayInTz(timezone));
   const [type, setType] = useState<ChangeType>('note');
+  const [categories, setCategories] = useState<NoteCategory[]>([]);
   const [note, setNote] = useState<string>(defaultNote);
   const [cpi, setCpi] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -112,10 +117,25 @@ export function AddNoteModal({
     if (isOpen) {
       setDate(todayInTz(timezone));
       setType('note');
+      setCategories([]);
       setNote(defaultNote);
       setCpi('');
     }
   }, [isOpen, timezone, defaultNote]);
+
+  const toggleCategory = (c: NoteCategory) => {
+    setCategories((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+    );
+  };
+
+  // 카테고리 태그를 비고 앞에 붙임 — "[히든퀘스트, 타임퀘스트] 내용"
+  const composeNote = (raw: string): string => {
+    const body = raw.trim();
+    if (categories.length === 0) return body;
+    const tag = `[${categories.join(', ')}]`;
+    return body ? `${tag} ${body}` : tag;
+  };
 
   // 선택한 날짜의 현재 CPI 값 (rows 에서 조회)
   const currentCpi = useMemo<string | null>(() => {
@@ -131,8 +151,8 @@ export function AddNoteModal({
 
   const handleSubmit = async () => {
     // 입력 검증
-    if (type === 'note' && !note.trim()) {
-      toast.error('비고 내용을 입력해주세요.');
+    if (type === 'note' && !note.trim() && categories.length === 0) {
+      toast.error('카테고리를 선택하거나 비고 내용을 입력해주세요.');
       return;
     }
     if (type === 'cpi') {
@@ -145,10 +165,12 @@ export function AddNoteModal({
 
     try {
       setSubmitting(true);
+      // 카테고리 태그를 비고 앞에 붙임 (note/cpi 둘 다 적용)
+      const composedNote = composeNote(note);
       const payload =
         type === 'cpi'
-          ? { date, type: 'cpi', cpi: Number(cpi), note: note.trim() }
-          : { date, type: 'note', note: note.trim() };
+          ? { date, type: 'cpi', cpi: Number(cpi), note: composedNote }
+          : { date, type: 'note', note: composedNote };
 
       const res = await fetch(`/api/campaigns/${campaignId}/note`, {
         method: 'POST',
@@ -285,6 +307,35 @@ export function AddNoteModal({
               </p>
             </div>
           )}
+
+          {/* 카테고리 다중 선택 — 비고 앞에 [태그] 로 붙음 */}
+          <div className='space-y-2'>
+            <Label>
+              카테고리{' '}
+              <span className='text-xs text-muted-foreground font-normal'>
+                (다중 선택)
+              </span>
+            </Label>
+            <div className='flex flex-wrap gap-2'>
+              {NOTE_CATEGORIES.map((c) => {
+                const active = categories.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type='button'
+                    onClick={() => toggleCategory(c)}
+                    className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                      active
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* 비고 내용 — note 타입은 필수, cpi 타입은 선택(추가 메모) */}
           <div className='space-y-2'>
