@@ -404,11 +404,9 @@ export async function updateCampaign(
   campaignData: Partial<CampaignFormData>
 ): Promise<Campaign> {
   const supabase = createClient();
-  const updatePayload: any = {
-    ...campaignData,
-    end_date:
-      campaignData.end_date === null ? undefined : campaignData.end_date,
-  };
+  // end_date 는 null 그대로 전달해야 컬럼이 비워짐 (undefined 로 바꾸면 Supabase 가
+  // 필드를 생략 → 기존 종료일 유지되는 버그). end_date 키가 아예 없으면 변경 안 함.
+  const updatePayload: any = { ...campaignData };
 
   const { data, error } = await supabase
     .from('campaigns')
