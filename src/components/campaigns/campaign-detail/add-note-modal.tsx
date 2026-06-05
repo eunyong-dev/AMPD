@@ -23,8 +23,13 @@ import {
 
 type ChangeType = 'note' | 'cpi';
 
-// 비고 카테고리 — 다중 선택. 선택 시 비고 앞에 [태그] 형태로 prepend.
-const NOTE_CATEGORIES = ['히든퀘스트', '타임퀘스트', '기타'] as const;
+// 비고 카테고리 — 다중 선택. 선택 시 비고 셀에 텍스트로 기록.
+const NOTE_CATEGORIES = [
+  '히든퀘스트',
+  '타임퀘스트',
+  '타겟팅',
+  '기타',
+] as const;
 type NoteCategory = (typeof NOTE_CATEGORIES)[number];
 
 interface AddNoteModalProps {
