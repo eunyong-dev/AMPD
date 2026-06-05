@@ -79,20 +79,24 @@ function colIndexToA1(colIdx: number): string {
 interface RequestBody {
   date?: string;
   type?: 'note' | 'cpi'; // 기본 'note' (하위호환)
-  note?: string;
   cpi?: number | string; // type='cpi' 일 때 새 단가
+  categories?: string[]; // 비고 컬럼 셀에 텍스트로 기록 (히든퀘스트 등)
+  note?: string; // 비고 셀 메모(hover note)로 기록
 }
 
 /**
  * POST /api/campaigns/[id]/note
  *
  * 캠페인의 daily report 시트에 변경 사항 기록.
- *  - type='note' (기본): 비고 컬럼에 메모 append (덮어쓰지 않음)
- *  - type='cpi': CPI 컬럼의 해당 날짜 단가를 변경 + 비고에 변경 이력 자동 기록
+ *  - categories → 비고 컬럼 셀에 텍스트로 기록 (테이블에 보임)
+ *  - note → 비고 셀 메모(hover note)로 기록 (셀에 마우스 올리면 보임)
+ *  - type='cpi': CPI 컬럼 단가 변경 + 비고 셀에 "CPI old→new" 텍스트 추가
+ *
+ * 셀 값(텍스트)과 셀 메모는 같은 비고 셀에 공존. 둘 다 기존 내용에 append.
  *
  * Body:
- *  - { date, note }                    — 비고 기록
- *  - { date, type:'cpi', cpi, note? }  — 단가 변경 (+ 선택 메모)
+ *  - { date, categories?, note? }              — 비고 기록
+ *  - { date, type:'cpi', cpi, categories?, note? } — 단가 변경
  */
 export async function POST(
   request: NextRequest,
@@ -109,7 +113,10 @@ export async function POST(
 
   const date = String(body.date ?? '').trim();
   const type = body.type === 'cpi' ? 'cpi' : 'note';
-  const note = String(body.note ?? '').trim();
+  const note = String(body.note ?? '').trim(); // 셀 메모(hover note)로
+  const categories = Array.isArray(body.categories)
+    ? body.categories.map((c) => String(c).trim()).filter(Boolean)
+    : [];
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json(
@@ -129,9 +136,10 @@ export async function POST(
       );
     }
   } else {
-    if (!note) {
+    // note 타입: 카테고리 또는 메모 중 하나는 있어야 함
+    if (categories.length === 0 && !note) {
       return NextResponse.json(
-        { error: '비고 내용은 필수입니다.' },
+        { error: '카테고리 또는 비고 내용 중 하나는 입력해야 합니다.' },
         { status: 400 }
       );
     }
@@ -193,6 +201,7 @@ export async function POST(
       );
     }
     const sheetTitle = targetSheet.properties.title;
+    const sheetNumericId = targetSheet.properties.sheetId; // 셀 메모 updateCells 용
 
     // 5) 시트 읽기 (값 + 수식 별도 — CPI 셀에 수식 있으면 보호)
     const range = `${sheetTitle}!A1:AZ1000`;
@@ -265,11 +274,10 @@ export async function POST(
     }
     const rowZeroIdx = targetRowNum - 1;
 
-    // batchUpdate 로 모을 셀 업데이트들
-    const data: { range: string; values: (string | number)[][] }[] = [];
+    // ── 셀 값(비고 컬럼) 업데이트 모음 (values.batchUpdate) ──
+    const valueData: { range: string; values: (string | number)[][] }[] = [];
 
-    // ── type: 'cpi' — CPI 셀 변경 + 비고에 변경 이력 기록 ──
-    let noteToWrite = note;
+    // ── type: 'cpi' — CPI 셀 변경 ──
     let oldCpiDisplay: string | null = null;
     if (type === 'cpi') {
       // CPI 셀에 수식 있으면 보호 (덮어쓰면 수식 깨짐)
@@ -286,60 +294,103 @@ export async function POST(
           { status: 400 }
         );
       }
-
-      // 기존 CPI 값 (표시용 — "$1.50 → $1.30" 이력)
+      // 기존 CPI 값 (표시용)
       oldCpiDisplay = String(grid[rowZeroIdx]?.[cpiColIdx] ?? '').trim();
-
       // CPI 셀 업데이트
-      data.push({
+      valueData.push({
         range: `${sheetTitle}!${colIndexToA1(cpiColIdx)}${targetRowNum}`,
         values: [[cpiValue as number]],
       });
-
-      // 비고에 변경 이력 자동 작성 (사용자 메모 있으면 뒤에 덧붙임)
-      const arrow = oldCpiDisplay
-        ? `CPI 단가 변경: ${oldCpiDisplay} → $${cpiValue}`
-        : `CPI 단가 설정: $${cpiValue}`;
-      noteToWrite = note ? `${arrow} (${note})` : arrow;
     }
 
-    // ── 비고 셀 업데이트 (note 또는 cpi 둘 다 비고에 기록) ──
-    // 비고 컬럼이 있고 수식이 아닐 때만 기록 (cpi 타입은 비고 없어도 진행)
-    let appended = false;
-    if (noteToWrite && noteColIdx !== -1) {
-      const noteFormula = formulaGrid[rowZeroIdx]?.[noteColIdx];
-      const noteIsFormula =
-        typeof noteFormula === 'string' && noteFormula.trim().startsWith('=');
-      if (!noteIsFormula) {
-        const existingNote = String(
-          grid[rowZeroIdx]?.[noteColIdx] ?? ''
-        ).trim();
-        const newNote = existingNote
-          ? `${existingNote}\n${noteToWrite}`
-          : noteToWrite;
-        appended = !!existingNote;
-        data.push({
-          range: `${sheetTitle}!${colIndexToA1(noteColIdx)}${targetRowNum}`,
-          values: [[newNote]],
+    // ── 비고 셀 텍스트 = 카테고리 + (cpi 요약). 셀에 직접 보임 ──
+    const cellTextParts: string[] = [];
+    if (categories.length > 0) cellTextParts.push(categories.join(', '));
+    if (type === 'cpi') {
+      cellTextParts.push(
+        oldCpiDisplay
+          ? `CPI ${oldCpiDisplay}→$${cpiValue}`
+          : `CPI $${cpiValue}`
+      );
+    }
+    const cellText = cellTextParts.join(' · ');
+
+    // 비고 셀 텍스트 업데이트 (컬럼 존재 + 수식 아닐 때만, append)
+    let cellTextAppended = false;
+    const noteFormula =
+      noteColIdx !== -1 ? formulaGrid[rowZeroIdx]?.[noteColIdx] : undefined;
+    const noteIsFormula =
+      typeof noteFormula === 'string' && noteFormula.trim().startsWith('=');
+    if (cellText && noteColIdx !== -1 && !noteIsFormula) {
+      const existing = String(grid[rowZeroIdx]?.[noteColIdx] ?? '').trim();
+      const merged = existing ? `${existing}\n${cellText}` : cellText;
+      cellTextAppended = !!existing;
+      valueData.push({
+        range: `${sheetTitle}!${colIndexToA1(noteColIdx)}${targetRowNum}`,
+        values: [[merged]],
+      });
+    }
+
+    // 셀 값 batchUpdate 실행
+    if (valueData.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: { valueInputOption: 'USER_ENTERED', data: valueData },
+      });
+    }
+
+    // ── 비고 셀 메모(hover note) 업데이트 — 자유 텍스트 ──
+    // 비고 컬럼이 있고 메모 내용이 있을 때만. 기존 메모에 줄바꿈으로 append.
+    let memoWritten = false;
+    if (note && noteColIdx !== -1 && sheetNumericId != null) {
+      const cellA1 = `${sheetTitle}!${colIndexToA1(noteColIdx)}${targetRowNum}`;
+      // 기존 셀 메모 읽기 (append 위해)
+      let existingMemo = '';
+      try {
+        const memoRead = await sheets.spreadsheets.get({
+          spreadsheetId,
+          ranges: [cellA1],
+          fields: 'sheets.data.rowData.values.note',
         });
+        existingMemo =
+          memoRead.data.sheets?.[0]?.data?.[0]?.rowData?.[0]?.values?.[0]
+            ?.note ?? '';
+      } catch {
+        // 메모 읽기 실패해도 새로 작성은 진행
       }
+      const mergedMemo = existingMemo
+        ? `${existingMemo}\n${note}`
+        : note;
+
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              updateCells: {
+                range: {
+                  sheetId: sheetNumericId,
+                  startRowIndex: rowZeroIdx,
+                  endRowIndex: rowZeroIdx + 1,
+                  startColumnIndex: noteColIdx,
+                  endColumnIndex: noteColIdx + 1,
+                },
+                rows: [{ values: [{ note: mergedMemo }] }],
+                fields: 'note',
+              },
+            },
+          ],
+        },
+      });
+      memoWritten = true;
     }
 
-    if (data.length === 0) {
+    if (valueData.length === 0 && !memoWritten) {
       return NextResponse.json(
         { error: '기록할 내용이 없습니다.' },
         { status: 400 }
       );
     }
-
-    // 8) batch update
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        valueInputOption: 'USER_ENTERED',
-        data,
-      },
-    });
 
     return NextResponse.json({
       success: true,
@@ -347,11 +398,12 @@ export async function POST(
       campaign_name: campaign.name,
       sheet_title: sheetTitle,
       date,
-      appended,
+      cell_text: cellText || null,
+      cell_text_appended: cellTextAppended,
+      memo_written: memoWritten,
       ...(type === 'cpi'
         ? { old_cpi: oldCpiDisplay, new_cpi: cpiValue }
         : {}),
-      note_written: noteToWrite,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : '알 수 없는 오류';

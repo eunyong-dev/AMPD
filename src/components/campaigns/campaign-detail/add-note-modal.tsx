@@ -129,14 +129,6 @@ export function AddNoteModal({
     );
   };
 
-  // 카테고리 태그를 비고 앞에 붙임 — "[히든퀘스트, 타임퀘스트] 내용"
-  const composeNote = (raw: string): string => {
-    const body = raw.trim();
-    if (categories.length === 0) return body;
-    const tag = `[${categories.join(', ')}]`;
-    return body ? `${tag} ${body}` : tag;
-  };
-
   // 선택한 날짜의 현재 CPI 값 (rows 에서 조회)
   const currentCpi = useMemo<string | null>(() => {
     if (!rows || rows.length === 0) return null;
@@ -165,12 +157,17 @@ export function AddNoteModal({
 
     try {
       setSubmitting(true);
-      // 카테고리 태그를 비고 앞에 붙임 (note/cpi 둘 다 적용)
-      const composedNote = composeNote(note);
+      // 카테고리 → 비고 셀 텍스트, note → 비고 셀 메모(hover)
       const payload =
         type === 'cpi'
-          ? { date, type: 'cpi', cpi: Number(cpi), note: composedNote }
-          : { date, type: 'note', note: composedNote };
+          ? {
+              date,
+              type: 'cpi',
+              cpi: Number(cpi),
+              categories,
+              note: note.trim(),
+            }
+          : { date, type: 'note', categories, note: note.trim() };
 
       const res = await fetch(`/api/campaigns/${campaignId}/note`, {
         method: 'POST',
@@ -186,9 +183,7 @@ export function AddNoteModal({
           ? `CPI 단가가 변경되었습니다${
               data.old_cpi ? ` (${data.old_cpi} → $${data.new_cpi})` : ''
             }`
-          : data.appended
-          ? '기존 비고에 추가되었습니다.'
-          : '비고가 기록되었습니다.'
+          : '변경 사항이 기록되었습니다.'
       );
       onSaved?.();
       onClose();
@@ -337,25 +332,25 @@ export function AddNoteModal({
             </div>
           </div>
 
-          {/* 비고 내용 — note 타입은 필수, cpi 타입은 선택(추가 메모) */}
+          {/* 비고 내용 — 셀 메모(hover note)로 기록됨 */}
           <div className='space-y-2'>
             <Label htmlFor='note-content'>
-              {type === 'cpi' ? '추가 메모 (선택)' : '비고 내용'}
+              비고 내용{' '}
+              <span className='text-xs text-muted-foreground font-normal'>
+                (셀 메모로 기록)
+              </span>
             </Label>
             <textarea
               id='note-content'
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={
-                type === 'cpi'
-                  ? '예: ROAS 하락으로 단가 조정'
-                  : '예: 히든퀘스트 完成等級120 보상 20,000젬으로 변경'
-              }
-              rows={type === 'cpi' ? 2 : 5}
+              placeholder='예: 히든퀘스트 完成等級120 보상 20,000젬으로 변경'
+              rows={type === 'cpi' ? 3 : 5}
               className='flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y'
             />
             <p className='text-xs text-muted-foreground'>
-              같은 날짜에 기존 비고가 있으면 줄바꿈으로 추가됩니다 (덮어쓰지 않음).
+              비고 셀에 마우스를 올리면 보이는 메모로 기록됩니다. 카테고리는 셀에
+              직접 텍스트로 표시됩니다.
             </p>
           </div>
         </div>
