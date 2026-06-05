@@ -737,16 +737,16 @@ export default function CampaignDetailPage() {
         if (!d) return null;
         const label = `${d.getMonth() + 1}/${d.getDate()}`;
         const entry: Record<string, string | number> = { date: label };
+        const isNoteKey = (key: string) =>
+          key === '비고' ||
+          key.toLowerCase() === 'note' ||
+          key.toLowerCase() === 'memo' ||
+          key.toLowerCase() === 'remark';
         for (const [key, raw] of Object.entries(row)) {
           if (key === dateHeader) continue;
           if (key.startsWith('_')) continue; // _notes 등 내부 키 제외
           // 비고/note 컬럼은 텍스트 그대로 보존 (차트 marker / 툴팁 표시용)
-          if (
-            key === '비고' ||
-            key.toLowerCase() === 'note' ||
-            key.toLowerCase() === 'memo' ||
-            key.toLowerCase() === 'remark'
-          ) {
+          if (isNoteKey(key)) {
             const text = raw == null ? '' : String(raw).trim();
             if (text) entry['note'] = text;
             continue;
@@ -754,6 +754,18 @@ export default function CampaignDetailPage() {
           const n = parseRoasPercent(raw);
           if (n === null) continue;
           entry[key] = isRoasColumn(key) ? +(n * 100).toFixed(2) : n;
+        }
+        // 셀 메모(hover note) → 차트 툴팁용 (비고 컬럼의 메모)
+        const cellNotes = (row as SheetData)._notes as
+          | Record<string, string>
+          | undefined;
+        if (cellNotes) {
+          for (const [k, memo] of Object.entries(cellNotes)) {
+            if (isNoteKey(k) && memo && String(memo).trim()) {
+              entry['memo'] = String(memo).trim();
+              break;
+            }
+          }
         }
         return entry;
       })
@@ -834,6 +846,16 @@ export default function CampaignDetailPage() {
           .map((r) => String(r['비고'] ?? '').trim())
           .filter((n) => n);
         if (notes.length > 0) out['note'] = notes.join(' / ');
+        // 그 주의 셀 메모들을 모아 결합
+        const memos = rows
+          .map((r) => {
+            const cn = (r as SheetData)._notes as
+              | Record<string, string>
+              | undefined;
+            return cn ? String(cn['비고'] ?? '').trim() : '';
+          })
+          .filter((m) => m);
+        if (memos.length > 0) out['memo'] = memos.join('\n');
 
         // ROAS 재계산 (% 단위)
         if (sums['Cost'] > 0) {
@@ -919,6 +941,16 @@ export default function CampaignDetailPage() {
           .map((r) => String(r['비고'] ?? '').trim())
           .filter((n) => n);
         if (notes.length > 0) out['note'] = notes.join(' / ');
+        // 그 달의 셀 메모들을 모아 결합
+        const memos = rows
+          .map((r) => {
+            const cn = (r as SheetData)._notes as
+              | Record<string, string>
+              | undefined;
+            return cn ? String(cn['비고'] ?? '').trim() : '';
+          })
+          .filter((m) => m);
+        if (memos.length > 0) out['memo'] = memos.join('\n');
 
         if (sums['Cost'] > 0) {
           out['ROAS'] = +((sums['Revenue'] / sums['Cost']) * 100).toFixed(2);
@@ -956,10 +988,10 @@ export default function CampaignDetailPage() {
       ? weeklyChartData
       : dailyChartData;
 
-  // 비고 마커 — 비고 있는 포인트만 노란 점, 나머지는 안 보임
+  // 비고 마커 — 비고(셀 텍스트) 또는 메모(셀 hover note) 있는 포인트만 노란 점
   const renderNoteDot = (props: any) => {
     const { cx, cy, payload, key, index } = props;
-    const hasNote = Boolean(payload?.note);
+    const hasNote = Boolean(payload?.note || payload?.memo);
     return (
       <circle
         key={key ?? `dot-${index}`}
@@ -973,7 +1005,7 @@ export default function CampaignDetailPage() {
     );
   };
 
-  // 툴팁 — 기본 ChartTooltipContent + 비고 있으면 하단에 메모 박스 추가
+  // 툴팁 — 기본 ChartTooltipContent + 비고/메모 있으면 하단에 박스 추가
   const renderTooltipWithNote = (
     props: any,
     formatter: (value: any, name: any) => [string, string]
@@ -981,6 +1013,7 @@ export default function CampaignDetailPage() {
     const { active, payload, label } = props;
     if (!active || !payload || payload.length === 0) return null;
     const note = payload[0]?.payload?.note as string | undefined;
+    const memo = payload[0]?.payload?.memo as string | undefined;
     return (
       <div className='overflow-hidden rounded-lg border bg-background shadow-xl'>
         <ChartTooltipContent
@@ -991,9 +1024,12 @@ export default function CampaignDetailPage() {
           formatter={formatter}
           className='border-0 shadow-none'
         />
-        {note ? (
-          <div className='border-t bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-200'>
-            📝 {note}
+        {note || memo ? (
+          <div className='border-t bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-200 space-y-0.5'>
+            {note ? <div>🏷️ {note}</div> : null}
+            {memo ? (
+              <div className='whitespace-pre-wrap'>📝 {memo}</div>
+            ) : null}
           </div>
         ) : null}
       </div>
