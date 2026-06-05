@@ -177,7 +177,7 @@ function filterByDateRange(
 
   const findDateValue = (row: SheetRow): string | null => {
     for (const value of Object.values(row)) {
-      if (isDateString(value)) return value;
+      if (typeof value === 'string' && isDateString(value)) return value;
     }
     return null;
   };
