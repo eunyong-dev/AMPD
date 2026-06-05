@@ -117,16 +117,29 @@ export function AddNoteModal({
   const [cpi, setCpi] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
 
-  // 모달 열릴 때마다 초기화
+  // 시트에 존재하는 가장 최근 날짜 (기본 날짜로 사용 — 오늘 행이 아직 없을 수 있음)
+  const latestSheetDate = useMemo<string | null>(() => {
+    if (!rows || rows.length === 0) return null;
+    const dateKey = findDateKey(rows[0]);
+    if (!dateKey) return null;
+    let max: string | null = null;
+    for (const r of rows) {
+      const d = normalizeRowDate(r[dateKey]);
+      if (d && (!max || d > max)) max = d;
+    }
+    return max;
+  }, [rows]);
+
+  // 모달 열릴 때마다 초기화 — 기본 날짜는 시트 최근일 (없으면 오늘)
   useEffect(() => {
     if (isOpen) {
-      setDate(todayInTz(timezone));
+      setDate(latestSheetDate ?? todayInTz(timezone));
       setType('note');
       setCategories([]);
       setNote(defaultNote);
       setCpi('');
     }
-  }, [isOpen, timezone, defaultNote]);
+  }, [isOpen, timezone, defaultNote, latestSheetDate]);
 
   const toggleCategory = (c: NoteCategory) => {
     setCategories((prev) =>
