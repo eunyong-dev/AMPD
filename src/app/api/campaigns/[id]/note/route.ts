@@ -47,15 +47,52 @@ async function authenticate(request: NextRequest): Promise<
   return { ok: false, status: 401, error: '인증이 필요합니다.' };
 }
 
+// 시트 셀 → 'YYYY-MM-DD' (sync-sheet 와 동일 로직)
+function parseDateCell(cell: unknown): string | null {
+  if (cell === null || cell === undefined || cell === '') return null;
+  if (typeof cell === 'number' && Number.isFinite(cell)) {
+    const ms = Math.round((cell - 25569) * 86400 * 1000);
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return null;
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  const str = String(cell).trim();
+  const m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (!m) return null;
+  return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+}
+
+// 0-based 컬럼 인덱스 → A1 표기 (A, B, ... Z, AA, AB)
+function colIndexToA1(colIdx: number): string {
+  let n = colIdx;
+  let s = '';
+  while (n >= 0) {
+    s = String.fromCharCode((n % 26) + 65) + s;
+    n = Math.floor(n / 26) - 1;
+  }
+  return s;
+}
+
+interface RequestBody {
+  date?: string;
+  type?: 'note' | 'cpi'; // 기본 'note' (하위호환)
+  note?: string;
+  cpi?: number | string; // type='cpi' 일 때 새 단가
+}
+
 /**
  * POST /api/campaigns/[id]/note
  *
- * 캠페인의 daily report 시트의 비고(notes) 컬럼에 메모 기록.
- * - 같은 날짜에 기존 비고가 있으면 줄바꿈으로 append (덮어쓰지 않음)
- * - 비고 컬럼이 시트에 없으면 에러
- * - 해당 날짜 행이 없으면 에러
+ * 캠페인의 daily report 시트에 변경 사항 기록.
+ *  - type='note' (기본): 비고 컬럼에 메모 append (덮어쓰지 않음)
+ *  - type='cpi': CPI 컬럼의 해당 날짜 단가를 변경 + 비고에 변경 이력 자동 기록
  *
- * Body: { date: 'YYYY-MM-DD', note: string }
+ * Body:
+ *  - { date, note }                    — 비고 기록
+ *  - { date, type:'cpi', cpi, note? }  — 단가 변경 (+ 선택 메모)
  */
 export async function POST(
   request: NextRequest,
@@ -63,23 +100,41 @@ export async function POST(
 ) {
   const { id: campaignId } = await params;
 
-  let body: { date?: string; note?: string };
+  let body: RequestBody;
   try {
-    body = (await request.json()) as { date?: string; note?: string };
+    body = (await request.json()) as RequestBody;
   } catch {
     return NextResponse.json({ error: '잘못된 JSON' }, { status: 400 });
   }
 
   const date = String(body.date ?? '').trim();
+  const type = body.type === 'cpi' ? 'cpi' : 'note';
   const note = String(body.note ?? '').trim();
+
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json(
       { error: 'date 는 YYYY-MM-DD 형식이어야 합니다.' },
       { status: 400 }
     );
   }
-  if (!note) {
-    return NextResponse.json({ error: '비고 내용은 필수입니다.' }, { status: 400 });
+
+  // 타입별 입력 검증
+  let cpiValue: number | null = null;
+  if (type === 'cpi') {
+    cpiValue = Number(body.cpi);
+    if (!Number.isFinite(cpiValue) || cpiValue < 0) {
+      return NextResponse.json(
+        { error: 'cpi 는 0 이상의 숫자여야 합니다.' },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (!note) {
+      return NextResponse.json(
+        { error: '비고 내용은 필수입니다.' },
+        { status: 400 }
+      );
+    }
   }
 
   // 1) 인증 (세션 or X-API-Key)
@@ -139,14 +194,22 @@ export async function POST(
     }
     const sheetTitle = targetSheet.properties.title;
 
-    // 5) 시트 읽기 (FORMATTED_VALUE)
+    // 5) 시트 읽기 (값 + 수식 별도 — CPI 셀에 수식 있으면 보호)
     const range = `${sheetTitle}!A1:AZ1000`;
-    const valuesRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-      valueRenderOption: 'FORMATTED_VALUE',
-    });
+    const [valuesRes, formulaRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range,
+        valueRenderOption: 'FORMATTED_VALUE',
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range,
+        valueRenderOption: 'FORMULA',
+      }),
+    ]);
     const grid = (valuesRes.data.values ?? []) as (string | number)[][];
+    const formulaGrid = (formulaRes.data.values ?? []) as (string | number)[][];
     if (grid.length === 0) {
       return NextResponse.json(
         { error: '시트가 비어있습니다.' },
@@ -154,7 +217,7 @@ export async function POST(
       );
     }
 
-    // 6) 헤더에서 Date / 비고 컬럼 찾기
+    // 6) 헤더에서 Date / 비고 / CPI 컬럼 찾기
     const normalize = (s: string) =>
       s.trim().toLowerCase().replace(/\s+/g, ' ');
     const headerRow = grid[0].map((h) => normalize(String(h ?? '')));
@@ -166,35 +229,26 @@ export async function POST(
         { status: 400 }
       );
     }
-    // 비고 또는 note/notes/memo — 여러 명명 대응
     const noteColIdx = headerRow.findIndex((h) =>
       ['비고', 'note', 'notes', 'memo'].includes(h)
     );
-    if (noteColIdx === -1) {
+    const cpiColIdx = headerRow.findIndex((h) => h === 'cpi');
+
+    // note 타입은 비고 컬럼 필수. cpi 타입은 비고 없어도 CPI 만 변경 가능.
+    if (type === 'note' && noteColIdx === -1) {
       return NextResponse.json(
         { error: '비고/note 컬럼을 찾을 수 없습니다.' },
         { status: 400 }
       );
     }
+    if (type === 'cpi' && cpiColIdx === -1) {
+      return NextResponse.json(
+        { error: 'CPI 컬럼을 찾을 수 없습니다.' },
+        { status: 400 }
+      );
+    }
 
-    // 7) 날짜 행 찾기 (sync-sheet 와 동일한 parseDateCell 로직)
-    const parseDateCell = (cell: unknown): string | null => {
-      if (cell === null || cell === undefined || cell === '') return null;
-      if (typeof cell === 'number' && Number.isFinite(cell)) {
-        const ms = Math.round((cell - 25569) * 86400 * 1000);
-        const d = new Date(ms);
-        if (Number.isNaN(d.getTime())) return null;
-        const yyyy = d.getUTCFullYear();
-        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(d.getUTCDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-      }
-      const str = String(cell).trim();
-      const m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-      if (!m) return null;
-      return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
-    };
-
+    // 7) 날짜 행 찾기
     let targetRowNum = -1; // 1-based sheet row number
     for (let r = 1; r < grid.length; r++) {
       const parsed = parseDateCell(grid[r]?.[dateColIdx]);
@@ -209,49 +263,101 @@ export async function POST(
         { status: 404 }
       );
     }
+    const rowZeroIdx = targetRowNum - 1;
 
-    // 8) 기존 비고 읽기 + append
-    const existingNote = String(grid[targetRowNum - 1]?.[noteColIdx] ?? '').trim();
-    const newNote = existingNote
-      ? `${existingNote}\n${note}`
-      : note;
+    // batchUpdate 로 모을 셀 업데이트들
+    const data: { range: string; values: (string | number)[][] }[] = [];
 
-    // A1 표기로 셀 위치 계산
-    const colIndexToA1 = (colIdx: number): string => {
-      let n = colIdx;
-      let s = '';
-      while (n >= 0) {
-        s = String.fromCharCode((n % 26) + 65) + s;
-        n = Math.floor(n / 26) - 1;
+    // ── type: 'cpi' — CPI 셀 변경 + 비고에 변경 이력 기록 ──
+    let noteToWrite = note;
+    let oldCpiDisplay: string | null = null;
+    if (type === 'cpi') {
+      // CPI 셀에 수식 있으면 보호 (덮어쓰면 수식 깨짐)
+      const cpiFormula = formulaGrid[rowZeroIdx]?.[cpiColIdx];
+      if (
+        typeof cpiFormula === 'string' &&
+        cpiFormula.trim().startsWith('=')
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'CPI 셀에 수식이 있어 변경할 수 없습니다. 시트에서 직접 수정해주세요.',
+          },
+          { status: 400 }
+        );
       }
-      return s;
-    };
-    const cellA1 = `${sheetTitle}!${colIndexToA1(noteColIdx)}${targetRowNum}`;
 
-    // 9) 비고 셀 업데이트
-    await sheets.spreadsheets.values.update({
+      // 기존 CPI 값 (표시용 — "$1.50 → $1.30" 이력)
+      oldCpiDisplay = String(grid[rowZeroIdx]?.[cpiColIdx] ?? '').trim();
+
+      // CPI 셀 업데이트
+      data.push({
+        range: `${sheetTitle}!${colIndexToA1(cpiColIdx)}${targetRowNum}`,
+        values: [[cpiValue as number]],
+      });
+
+      // 비고에 변경 이력 자동 작성 (사용자 메모 있으면 뒤에 덧붙임)
+      const arrow = oldCpiDisplay
+        ? `CPI 단가 변경: ${oldCpiDisplay} → $${cpiValue}`
+        : `CPI 단가 설정: $${cpiValue}`;
+      noteToWrite = note ? `${arrow} (${note})` : arrow;
+    }
+
+    // ── 비고 셀 업데이트 (note 또는 cpi 둘 다 비고에 기록) ──
+    // 비고 컬럼이 있고 수식이 아닐 때만 기록 (cpi 타입은 비고 없어도 진행)
+    let appended = false;
+    if (noteToWrite && noteColIdx !== -1) {
+      const noteFormula = formulaGrid[rowZeroIdx]?.[noteColIdx];
+      const noteIsFormula =
+        typeof noteFormula === 'string' && noteFormula.trim().startsWith('=');
+      if (!noteIsFormula) {
+        const existingNote = String(
+          grid[rowZeroIdx]?.[noteColIdx] ?? ''
+        ).trim();
+        const newNote = existingNote
+          ? `${existingNote}\n${noteToWrite}`
+          : noteToWrite;
+        appended = !!existingNote;
+        data.push({
+          range: `${sheetTitle}!${colIndexToA1(noteColIdx)}${targetRowNum}`,
+          values: [[newNote]],
+        });
+      }
+    }
+
+    if (data.length === 0) {
+      return NextResponse.json(
+        { error: '기록할 내용이 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 8) batch update
+    await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
-      range: cellA1,
-      valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[newNote]],
+        valueInputOption: 'USER_ENTERED',
+        data,
       },
     });
 
     return NextResponse.json({
       success: true,
+      type,
       campaign_name: campaign.name,
       sheet_title: sheetTitle,
       date,
-      cell: cellA1,
-      appended: !!existingNote,
-      note_after: newNote,
+      appended,
+      ...(type === 'cpi'
+        ? { old_cpi: oldCpiDisplay, new_cpi: cpiValue }
+        : {}),
+      note_written: noteToWrite,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : '알 수 없는 오류';
     console.error('[campaigns/:id/note] 에러:', err);
     return NextResponse.json(
-      { error: `비고 기록 실패: ${msg}` },
+      { error: `기록 실패: ${msg}` },
       { status: 500 }
     );
   }

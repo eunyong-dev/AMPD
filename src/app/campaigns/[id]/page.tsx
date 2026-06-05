@@ -1598,10 +1598,10 @@ export default function CampaignDetailPage() {
                   size='sm'
                   className='flex-shrink-0'
                   onClick={() => setShowAddNoteModal(true)}
-                  title='시트 비고 컬럼에 메모 기록'
+                  title='비고 기록 / CPI 단가 변경'
                 >
                   <StickyNote className='h-4 w-4' />
-                  <span className='max-[1100px]:hidden'>비고 기록</span>
+                  <span className='max-[1100px]:hidden'>변경 기록</span>
                 </Button>
                 <Button
                   variant='outline'
@@ -2046,8 +2046,9 @@ export default function CampaignDetailPage() {
             campaignId={campaign.id}
             campaignName={campaign.name}
             timezone={campaign.timezone}
+            rows={allData ?? undefined}
             onSaved={() => {
-              // 시트 데이터 새로고침해서 비고 반영
+              // 시트 데이터 새로고침해서 변경 사항 반영
               if (campaign.daily_report_url) {
                 fetchSheetData(campaign.daily_report_url, true);
               }
