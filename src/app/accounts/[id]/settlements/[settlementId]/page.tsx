@@ -687,7 +687,7 @@ export default function SettlementDetailPage() {
                       colSpan={6}
                       className='whitespace-nowrap text-right font-semibold'
                     >
-                      합계
+                      Total
                     </TableCell>
                     <TableCell
                       className='whitespace-nowrap text-right tabular-nums font-bold'
