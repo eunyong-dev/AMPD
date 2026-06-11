@@ -40,6 +40,36 @@ export function getSheetsClientForWrite(): sheets_v4.Sheets {
   return getSheetsClient();
 }
 
+/**
+ * Google Sheets API 호출을 429(quota 초과) 시 지수 백오프로 재시도.
+ * 분당 읽기 한도(사용자당 ~60회/분) 초과 시 잠시 대기 후 재시도.
+ */
+export async function sheetsApiWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 4
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastErr = err;
+      const e = err as { code?: number; response?: { status?: number } };
+      const code = e?.code ?? e?.response?.status;
+      const isQuota =
+        code === 429 ||
+        /quota|rate limit|too many requests/i.test(
+          err instanceof Error ? err.message : ''
+        );
+      if (!isQuota || attempt === maxRetries) throw err;
+      // 1.5s, 3s, 6s, 12s ... (+지터)
+      const delay = 1500 * 2 ** attempt + Math.floor(Math.random() * 500);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
 // ─────────────────────────────────────────────────────────────
 // 서버 메모리 캐시
 // ─────────────────────────────────────────────────────────────
@@ -214,39 +244,29 @@ export async function getSheetRows(params: {
   const ongoing = inflight.get(cacheKey);
   if (ongoing) return ongoing;
 
-  // 3) 새로 fetch — 값(formatted) + 셀 메모(note) 병렬 조회
+  // 3) 새로 fetch — 값(formattedValue) + 셀 메모(note)를 한 번의 호출로 조회.
+  //    (이전엔 values.get + spreadsheets.get 2회 → 읽기 quota 부담. 1회로 통합)
   const promise = (async () => {
     const sheets = getSheetsClient();
     const title = await resolveSheetTitle(sheetId, gid, noCache);
     const quotedRange = `'${title.replace(/'/g, "''")}'`;
 
-    const [valuesRes, gridRes] = await Promise.all([
-      sheets.spreadsheets.values.get({
+    const gridRes = await sheetsApiWithRetry(() =>
+      sheets.spreadsheets.get({
         spreadsheetId: sheetId,
-        range: quotedRange,
-        valueRenderOption: 'FORMATTED_VALUE',
-        dateTimeRenderOption: 'FORMATTED_STRING',
-      }),
-      // 셀 메모(note)만 grid data 로 조회 (fields 마스크로 응답 경량화)
-      sheets.spreadsheets
-        .get({
-          spreadsheetId: sheetId,
-          ranges: [quotedRange],
-          fields: 'sheets.data.rowData.values.note',
-        })
-        .catch(() => null), // 메모 조회 실패해도 값은 반환
-    ]);
+        ranges: [quotedRange],
+        // formattedValue = 표시값, note = 셀 메모. 둘 다 한 응답에서 추출
+        fields: 'sheets.data.rowData.values(formattedValue,note)',
+      })
+    );
 
-    const values = (valuesRes.data.values ?? []) as string[][];
-
-    // 메모 grid 빌드: noteGrid[rowIdx][colIdx] = note text | null
-    let noteGrid: (string | null)[][] | undefined;
-    const rowData = gridRes?.data.sheets?.[0]?.data?.[0]?.rowData;
-    if (Array.isArray(rowData)) {
-      noteGrid = rowData.map((r) =>
-        (r.values ?? []).map((c) => c.note ?? null)
-      );
-    }
+    const rowData = gridRes.data.sheets?.[0]?.data?.[0]?.rowData ?? [];
+    const values: string[][] = rowData.map((r) =>
+      (r.values ?? []).map((c) => c.formattedValue ?? '')
+    );
+    const noteGrid: (string | null)[][] = rowData.map((r) =>
+      (r.values ?? []).map((c) => c.note ?? null)
+    );
 
     const rows = rowsToObjects(values, noteGrid);
     return filterByDateRange(rows, fromDate ?? null, toDate ?? null);

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getSheetsClientForWrite } from '@/lib/google-sheets';
+import {
+  getSheetsClientForWrite,
+  sheetsApiWithRetry,
+} from '@/lib/google-sheets';
 import type { Database } from '@/lib/database.types';
 
 export const runtime = 'nodejs';
@@ -212,8 +215,10 @@ export async function POST(request: NextRequest) {
   try {
     const sheets = getSheetsClientForWrite();
 
-    // 4) 탭 정보 조회 (gid → title)
-    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    // 4) 탭 정보 조회 (gid → title) — quota 초과 시 재시도
+    const meta = await sheetsApiWithRetry(() =>
+      sheets.spreadsheets.get({ spreadsheetId })
+    );
     const allSheets = meta.data.sheets ?? [];
     const targetSheet =
       gid !== null
@@ -232,16 +237,20 @@ export async function POST(request: NextRequest) {
     // (UNFORMATTED_VALUE 는 serial date 숫자로 반환되어 매칭 불가)
     const range = `${sheetTitle}!A1:AZ1000`;
     const [valuesRes, formulaRes] = await Promise.all([
-      sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range,
-        valueRenderOption: 'FORMATTED_VALUE',
-      }),
-      sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range,
-        valueRenderOption: 'FORMULA',
-      }),
+      sheetsApiWithRetry(() =>
+        sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+          valueRenderOption: 'FORMATTED_VALUE',
+        })
+      ),
+      sheetsApiWithRetry(() =>
+        sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+          valueRenderOption: 'FORMULA',
+        })
+      ),
     ]);
     const valuesGrid = (valuesRes.data.values ?? []) as (string | number)[][];
     const formulaGrid = (formulaRes.data.values ?? []) as (string | number)[][];
@@ -374,15 +383,17 @@ export async function POST(request: NextRequest) {
       else result.appended++;
     }
 
-    // 8) batch update
+    // 8) batch update — quota 초과 시 재시도
     if (batchData.length > 0) {
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          valueInputOption: 'USER_ENTERED',
-          data: batchData,
-        },
-      });
+      await sheetsApiWithRetry(() =>
+        sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: batchData,
+          },
+        })
+      );
     }
 
     return NextResponse.json(
