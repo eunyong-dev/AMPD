@@ -109,7 +109,7 @@ const setCached = <T>(
  * gid(sheetId 내의 탭 ID)로 시트의 제목을 찾습니다.
  * 1시간 캐시.
  */
-async function resolveSheetTitle(
+export async function resolveSheetTitle(
   spreadsheetId: string,
   gid: string,
   noCache = false
@@ -121,10 +121,12 @@ async function resolveSheetTitle(
   }
 
   const sheets = getSheetsClient();
-  const { data } = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: 'sheets(properties(sheetId,title))',
-  });
+  const { data } = await sheetsApiWithRetry(() =>
+    sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets(properties(sheetId,title))',
+    })
+  );
 
   const gidNum = Number(gid);
   const sheet = data.sheets?.find((s) => s.properties?.sheetId === gidNum);

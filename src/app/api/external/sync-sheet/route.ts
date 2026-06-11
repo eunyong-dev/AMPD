@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   getSheetsClientForWrite,
   sheetsApiWithRetry,
+  resolveSheetTitle,
 } from '@/lib/google-sheets';
 import type { Database } from '@/lib/database.types';
 
@@ -215,22 +216,17 @@ export async function POST(request: NextRequest) {
   try {
     const sheets = getSheetsClientForWrite();
 
-    // 4) 탭 정보 조회 (gid → title) — quota 초과 시 재시도
-    const meta = await sheetsApiWithRetry(() =>
-      sheets.spreadsheets.get({ spreadsheetId })
-    );
-    const allSheets = meta.data.sheets ?? [];
-    const targetSheet =
-      gid !== null
-        ? allSheets.find((s) => s.properties?.sheetId === gid)
-        : allSheets[0];
-    if (!targetSheet || !targetSheet.properties?.title) {
+    // 4) 탭 제목 조회 (gid → title) — 캐시됨(1시간). 같은 스프레드시트의 여러
+    //    캠페인을 연속 동기화할 때 메타 읽기가 1회로 줄어듦 (quota 절감).
+    let sheetTitle: string;
+    try {
+      sheetTitle = await resolveSheetTitle(spreadsheetId, String(gid ?? 0));
+    } catch {
       return NextResponse.json(
         { error: `gid=${gid} 인 탭을 찾을 수 없습니다.` },
         { status: 404, headers: corsHeaders(origin) }
       );
     }
-    const sheetTitle = targetSheet.properties.title;
 
     // 5) 시트 데이터 읽기 (값 + 수식 따로)
     // FORMATTED_VALUE 로 읽어야 날짜가 "2026-03-11 (수)" 같은 표시 문자열로 옴

@@ -329,41 +329,68 @@ export function AppsFlyerApiKeyCard() {
       console.table(cleaned);
 
       // 시트에 적재 — 위에서 sheet_url 누락 캠페인은 이미 스킵됨
+      // quota(분당 읽기 한도) 초과 시 대기 후 재시도 (될 때까지 최대 5회)
       if (cleaned.length > 0) {
-        try {
-          const syncRes = await fetch('${baseUrl}/api/external/sync-sheet', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-Key': '${apiKey}',
-            },
-            body: JSON.stringify({ sheet_url: c.sheet_url, rows: cleaned }),
-          });
-          const syncData = await syncRes.json();
-          if (!syncRes.ok) {
-            console.error(\`  ❌ 시트 적재 실패: \${syncData.error}\`);
-            addLog(\`  ❌ 시트 적재 실패: \${syncData.error}\`, '#fca5a5');
-          } else {
-            console.log(
-              \`  📥 시트 [\${syncData.sheet_title}] — 매칭 \${syncData.matched} / 신규 \${syncData.filled} / 추가 \${syncData.appended} (총 \${syncData.cells_updated} 셀)\`
-            );
-            addLog(
-              \`✅ \${c.name} — 매칭 \${syncData.matched}, 신규 \${syncData.filled}\${syncData.appended ? ', 추가 ' + syncData.appended : ''}\`,
-              '#86efac'
-            );
-            totalMatched += syncData.matched;
-            totalFilled += syncData.filled;
-            totalAppended += syncData.appended;
-            if (syncData.warnings && syncData.warnings.length > 0) {
-              syncData.warnings.forEach((w) => {
-                console.warn(\`  ⚠️ \${w}\`);
-                addLog(\`  ⚠️ \${w}\`, '#fbbf24');
-              });
+        let syncData = null;
+        let syncOk = false;
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          try {
+            const syncRes = await fetch('${baseUrl}/api/external/sync-sheet', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': '${apiKey}',
+              },
+              body: JSON.stringify({ sheet_url: c.sheet_url, rows: cleaned }),
+            });
+            syncData = await syncRes.json();
+            if (syncRes.ok) {
+              syncOk = true;
+              break;
+            }
+            const isQuota =
+              syncRes.status === 429 ||
+              /quota|read requests|rate limit/i.test(syncData.error || '');
+            if (isQuota && attempt < 5) {
+              const waitMs = 10000 * attempt; // 10s,20s,30s,40s
+              addLog(
+                \`  ⏳ \${c.name} — 시트 quota 초과, \${waitMs / 1000}초 후 재시도 (\${attempt}/4)\`,
+                '#fbbf24'
+              );
+              await new Promise((r) => setTimeout(r, waitMs));
+              continue;
+            }
+            break; // quota 외 에러는 중단
+          } catch (syncErr) {
+            console.error('  ❌ 시트 적재 오류:', syncErr);
+            if (attempt < 5) {
+              await new Promise((r) => setTimeout(r, 5000));
+              continue;
             }
           }
-        } catch (syncErr) {
-          console.error(\`  ❌ 시트 적재 오류:\`, syncErr);
-          addLog(\`  ❌ 시트 적재 오류\`, '#fca5a5');
+        }
+        if (syncOk && syncData) {
+          console.log(
+            \`  📥 시트 [\${syncData.sheet_title}] — 매칭 \${syncData.matched} / 신규 \${syncData.filled} / 추가 \${syncData.appended}\`
+          );
+          addLog(
+            \`✅ \${c.name} — 매칭 \${syncData.matched}, 신규 \${syncData.filled}\${syncData.appended ? ', 추가 ' + syncData.appended : ''}\`,
+            '#86efac'
+          );
+          totalMatched += syncData.matched;
+          totalFilled += syncData.filled;
+          totalAppended += syncData.appended;
+          if (syncData.warnings && syncData.warnings.length > 0) {
+            syncData.warnings.forEach((w) => {
+              console.warn(\`  ⚠️ \${w}\`);
+              addLog(\`  ⚠️ \${w}\`, '#fbbf24');
+            });
+          }
+        } else {
+          addLog(
+            \`  ❌ 시트 적재 실패: \${(syncData && syncData.error) || '알 수 없음'}\`,
+            '#fca5a5'
+          );
         }
       }
 
@@ -925,41 +952,68 @@ export function AppsFlyerApiKeyCard() {
       console.table(cleaned);
 
       // 시트에 적재 — 위에서 sheet_url 누락 캠페인은 이미 스킵됨
+      // quota(분당 읽기 한도) 초과 시 대기 후 재시도 (될 때까지 최대 5회)
       if (cleaned.length > 0) {
-        try {
-          const syncRes = await fetch('${baseUrl}/api/external/sync-sheet', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-Key': '${apiKey}',
-            },
-            body: JSON.stringify({ sheet_url: c.sheet_url, rows: cleaned }),
-          });
-          const syncData = await syncRes.json();
-          if (!syncRes.ok) {
-            console.error(\`  ❌ 시트 적재 실패: \${syncData.error}\`);
-            addLog(\`  ❌ 시트 적재 실패: \${syncData.error}\`, '#fca5a5');
-          } else {
-            console.log(
-              \`  📥 시트 [\${syncData.sheet_title}] — 매칭 \${syncData.matched} / 신규 \${syncData.filled} / 추가 \${syncData.appended} (총 \${syncData.cells_updated} 셀)\`
-            );
-            addLog(
-              \`✅ \${c.name} — 매칭 \${syncData.matched}, 신규 \${syncData.filled}\${syncData.appended ? ', 추가 ' + syncData.appended : ''}\`,
-              '#86efac'
-            );
-            totalMatched += syncData.matched;
-            totalFilled += syncData.filled;
-            totalAppended += syncData.appended;
-            if (syncData.warnings && syncData.warnings.length > 0) {
-              syncData.warnings.forEach((w) => {
-                console.warn(\`  ⚠️ \${w}\`);
-                addLog(\`  ⚠️ \${w}\`, '#fbbf24');
-              });
+        let syncData = null;
+        let syncOk = false;
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          try {
+            const syncRes = await fetch('${baseUrl}/api/external/sync-sheet', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': '${apiKey}',
+              },
+              body: JSON.stringify({ sheet_url: c.sheet_url, rows: cleaned }),
+            });
+            syncData = await syncRes.json();
+            if (syncRes.ok) {
+              syncOk = true;
+              break;
+            }
+            const isQuota =
+              syncRes.status === 429 ||
+              /quota|read requests|rate limit/i.test(syncData.error || '');
+            if (isQuota && attempt < 5) {
+              const waitMs = 10000 * attempt; // 10s,20s,30s,40s
+              addLog(
+                \`  ⏳ \${c.name} — 시트 quota 초과, \${waitMs / 1000}초 후 재시도 (\${attempt}/4)\`,
+                '#fbbf24'
+              );
+              await new Promise((r) => setTimeout(r, waitMs));
+              continue;
+            }
+            break; // quota 외 에러는 중단
+          } catch (syncErr) {
+            console.error('  ❌ 시트 적재 오류:', syncErr);
+            if (attempt < 5) {
+              await new Promise((r) => setTimeout(r, 5000));
+              continue;
             }
           }
-        } catch (syncErr) {
-          console.error(\`  ❌ 시트 적재 오류:\`, syncErr);
-          addLog(\`  ❌ 시트 적재 오류\`, '#fca5a5');
+        }
+        if (syncOk && syncData) {
+          console.log(
+            \`  📥 시트 [\${syncData.sheet_title}] — 매칭 \${syncData.matched} / 신규 \${syncData.filled} / 추가 \${syncData.appended}\`
+          );
+          addLog(
+            \`✅ \${c.name} — 매칭 \${syncData.matched}, 신규 \${syncData.filled}\${syncData.appended ? ', 추가 ' + syncData.appended : ''}\`,
+            '#86efac'
+          );
+          totalMatched += syncData.matched;
+          totalFilled += syncData.filled;
+          totalAppended += syncData.appended;
+          if (syncData.warnings && syncData.warnings.length > 0) {
+            syncData.warnings.forEach((w) => {
+              console.warn(\`  ⚠️ \${w}\`);
+              addLog(\`  ⚠️ \${w}\`, '#fbbf24');
+            });
+          }
+        } else {
+          addLog(
+            \`  ❌ 시트 적재 실패: \${(syncData && syncData.error) || '알 수 없음'}\`,
+            '#fca5a5'
+          );
         }
       }
 
