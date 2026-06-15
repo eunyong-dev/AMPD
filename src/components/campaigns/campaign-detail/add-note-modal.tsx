@@ -203,6 +203,10 @@ export function AddNoteModal({
             }`
           : '변경 사항이 기록되었습니다.'
       );
+      // CPI 셀이 수식이었으면 값으로 대체됐음을 안내
+      if (type === 'cpi' && data.cpi_was_formula) {
+        toast.info('CPI 셀의 수식이 입력한 값으로 대체되었습니다.');
+      }
       onSaved?.();
       onClose();
     } catch (err) {

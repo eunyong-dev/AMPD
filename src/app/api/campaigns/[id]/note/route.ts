@@ -279,24 +279,15 @@ export async function POST(
 
     // ── type: 'cpi' — CPI 셀 변경 ──
     let oldCpiDisplay: string | null = null;
+    let cpiWasFormula = false;
     if (type === 'cpi') {
-      // CPI 셀에 수식 있으면 보호 (덮어쓰면 수식 깨짐)
+      // CPI 셀이 수식이어도 덮어씀 (단가 변경이 기능 목적). 수식이었으면 안내용 플래그.
       const cpiFormula = formulaGrid[rowZeroIdx]?.[cpiColIdx];
-      if (
-        typeof cpiFormula === 'string' &&
-        cpiFormula.trim().startsWith('=')
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              'CPI 셀에 수식이 있어 변경할 수 없습니다. 시트에서 직접 수정해주세요.',
-          },
-          { status: 400 }
-        );
-      }
+      cpiWasFormula =
+        typeof cpiFormula === 'string' && cpiFormula.trim().startsWith('=');
       // 기존 CPI 값 (표시용)
       oldCpiDisplay = String(grid[rowZeroIdx]?.[cpiColIdx] ?? '').trim();
-      // CPI 셀 업데이트
+      // CPI 셀 업데이트 (수식 → 정적값으로 대체)
       valueData.push({
         range: `${sheetTitle}!${colIndexToA1(cpiColIdx)}${targetRowNum}`,
         values: [[cpiValue as number]],
@@ -402,7 +393,11 @@ export async function POST(
       cell_text_appended: cellTextAppended,
       memo_written: memoWritten,
       ...(type === 'cpi'
-        ? { old_cpi: oldCpiDisplay, new_cpi: cpiValue }
+        ? {
+            old_cpi: oldCpiDisplay,
+            new_cpi: cpiValue,
+            cpi_was_formula: cpiWasFormula,
+          }
         : {}),
     });
   } catch (err) {
