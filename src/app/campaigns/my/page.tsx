@@ -367,14 +367,14 @@ export default function MyCampaignsPage() {
                     className='w-auto justify-between flex-shrink-0'
                   >
                     <GlobeIcon className='h-4 w-4' />
-                    <span className='hidden filter-break:inline ml-2'>
+                    <span className='hidden filter-break:inline'>
                       {selectedRegions.length === 0
                         ? '전체 지역'
                         : selectedRegions.includes('all')
                         ? '전체 지역'
                         : `${selectedRegions.length}개 선택`}
                     </span>
-                    <ChevronDownIcon className='hidden filter-break:block ml-2 h-4 w-4' />
+                    <ChevronDownIcon className='hidden filter-break:block h-4 w-4' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className='w-[180px]'>
@@ -413,7 +413,7 @@ export default function MyCampaignsPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='sm' className='flex-shrink-0'>
                     <ColumnsIcon className='h-4 w-4' />
-                    <span className='hidden filter-break:inline ml-2'>
+                    <span className='hidden filter-break:inline'>
                       컬럼 설정
                     </span>
                   </Button>
