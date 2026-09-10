@@ -54,6 +54,8 @@ type SortKey = 'advertiser' | 'latest' | 'oldest';
 
 // 내부 캠페인 페이지와 동일한 탭 순서
 const TAB_ORDER: StatusTab[] = ['all', 'planning', 'ongoing', 'holding', 'end'];
+// 기본 탭: 진행중 — URL 에 status 가 없으면 진행중, 전체는 ?status=all
+const DEFAULT_TAB: StatusTab = 'ongoing';
 const REGION_ORDER = ['KR', 'JP', 'TW', 'US'];
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -116,7 +118,7 @@ export default function PublicCampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [tab, setTab] = useState<StatusTab>('all');
+  const [tab, setTab] = useState<StatusTab>(DEFAULT_TAB);
   const [advertisers, setAdvertisers] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>('advertiser');
@@ -140,7 +142,7 @@ export default function PublicCampaignsPage() {
     const url = new URL(window.location.href);
     const p = url.searchParams;
     ['status', 'advertiser', 'region', 'sort'].forEach((k) => p.delete(k));
-    if (tab !== 'all') p.set('status', tab);
+    if (tab !== DEFAULT_TAB) p.set('status', tab);
     advertisers.forEach((a) => p.append('advertiser', a));
     regions.forEach((r) => p.append('region', r));
     if (sort !== 'advertiser') p.set('sort', sort);
