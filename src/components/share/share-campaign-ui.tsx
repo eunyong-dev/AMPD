@@ -47,12 +47,13 @@ export const REGION_FLAG: Record<string, string> = {
 export const fmtPeriod = (from: string | null, to: string | null) =>
   from ? `${from} ~ ${to ?? ''}` : '-';
 
-// 목록의 필터 쿼리(?status=&advertiser=...) — 성과 뷰어에서 같은 필터로 돌아가기 위해 탭 세션에 기억
+// 목록의 필터 쿼리(?status=&advertiser=...) — 성과 뷰어에서 같은 필터로 돌아가기 위해 기억.
+// 탭 단위(sessionStorage)가 아니라 브라우저 단위(localStorage) → 캠페인을 새 탭으로 열어도 유지
 const LIST_QUERY_KEY = 'share:campaigns:listQuery';
 
 export function rememberShareListQuery(search: string) {
   try {
-    sessionStorage.setItem(LIST_QUERY_KEY, search);
+    localStorage.setItem(LIST_QUERY_KEY, search);
   } catch {
     // 저장소 접근 불가(프라이빗 모드 등) — 기본 목록으로 돌아가면 됨
   }
@@ -63,7 +64,7 @@ export function useShareListHref() {
   const [href, setHref] = useState('/share/campaigns');
   useEffect(() => {
     try {
-      const q = sessionStorage.getItem(LIST_QUERY_KEY);
+      const q = localStorage.getItem(LIST_QUERY_KEY);
       if (q && q.startsWith('?')) setHref(`/share/campaigns${q}`);
     } catch {
       // 저장소 접근 불가 — 기본 목록 주소 유지
