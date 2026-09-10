@@ -20,9 +20,11 @@ export interface PublicCampaign {
   status: string | null;
   start_date: string | null;
   end_date: string | null;
+  /** 지역별 게임명 (스토어 표시용 공개 정보) */
+  regional_game_name: string | null;
   game: PublicGame | null;
   account: { company: string | null } | null;
 }
 
 export const PUBLIC_CAMPAIGN_SELECT =
-  'id, name, region, mmp, campaign_type, status, start_date, end_date, game:games(game_name, logo_url, store_url, package_identifier), account:accounts(company)';
+  'id, name, region, mmp, campaign_type, status, start_date, end_date, regional_game_name, game:games(game_name, logo_url, store_url, package_identifier), account:accounts(company)';
