@@ -25,6 +25,7 @@ import {
   StatusBadge,
   REGION_FLAG,
   fmtPeriod,
+  useShareListHref,
   type PublicCampaign,
 } from '@/components/share/share-campaign-ui';
 import { parseSheetDate as parseSheetDateRaw } from '@/lib/utils/sheet-formatters';
@@ -80,6 +81,7 @@ function InfoItem({
 export default function SharedCampaignViewerPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
+  const listHref = useShareListHref(); // 마지막으로 본 목록 필터로 돌아가기
 
   const [campaign, setCampaign] = useState<PublicCampaign | null>(null);
   const [allRows, setAllRows] = useState<Row[] | null>(null);
@@ -225,7 +227,7 @@ export default function SharedCampaignViewerPage() {
         <p className='text-sm text-muted-foreground'>{fatal}</p>
         <div className='flex gap-2'>
           <Button variant='outline' asChild>
-            <Link href='/share/campaigns'>
+            <Link href={listHref}>
               <ArrowLeft className='h-4 w-4' />
               캠페인 현황
             </Link>
@@ -246,7 +248,7 @@ export default function SharedCampaignViewerPage() {
         {/* 헤더 */}
         <div className='flex-shrink-0'>
           <Link
-            href='/share/campaigns'
+            href={listHref}
             className='inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground'
           >
             <ArrowLeft className='h-4 w-4' />

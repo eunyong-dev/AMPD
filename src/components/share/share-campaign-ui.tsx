@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 
 import type { PublicGame } from '@/lib/share/public-campaign';
@@ -40,6 +40,31 @@ export const REGION_FLAG: Record<string, string> = {
 
 export const fmtPeriod = (from: string | null, to: string | null) =>
   from ? `${from} ~ ${to ?? ''}` : '-';
+
+// 목록의 필터 쿼리(?status=&advertiser=...) — 성과 뷰어에서 같은 필터로 돌아가기 위해 탭 세션에 기억
+const LIST_QUERY_KEY = 'share:campaigns:listQuery';
+
+export function rememberShareListQuery(search: string) {
+  try {
+    sessionStorage.setItem(LIST_QUERY_KEY, search);
+  } catch {
+    // 저장소 접근 불가(프라이빗 모드 등) — 기본 목록으로 돌아가면 됨
+  }
+}
+
+/** "← 캠페인 현황" 링크 주소 — 마지막으로 본 목록 필터 유지 */
+export function useShareListHref() {
+  const [href, setHref] = useState('/share/campaigns');
+  useEffect(() => {
+    try {
+      const q = sessionStorage.getItem(LIST_QUERY_KEY);
+      if (q && q.startsWith('?')) setHref(`/share/campaigns${q}`);
+    } catch {
+      // 저장소 접근 불가 — 기본 목록 주소 유지
+    }
+  }, []);
+  return href;
+}
 
 export function StatusBadge({ status }: { status: string | null }) {
   const s = STATUS[status ?? ''] ?? {
