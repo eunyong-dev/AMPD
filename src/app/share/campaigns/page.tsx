@@ -117,7 +117,7 @@ export default function PublicCampaignsPage() {
         <header className='mb-6'>
           <h1 className='text-2xl font-bold text-foreground'>캠페인 현황</h1>
           <p className='mt-1 text-sm text-muted-foreground'>
-            GNA Company · 총{' '}
+            Moon · 총{' '}
             <span className='font-semibold text-foreground'>{rows.length}</span>
             개 캠페인
           </p>
