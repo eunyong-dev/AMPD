@@ -53,15 +53,11 @@ import {
   compareByNameAndRegion,
   REGION_PRIORITY,
 } from '@/lib/utils/campaign-sort';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
+import { MmpIcon } from '@/components/common/mmp-icon';
 import { accountUrl } from '@/lib/utils/account-url';
 import Link from 'next/link';
 
@@ -214,60 +210,6 @@ const GameNameCell = React.memo(
   }
 );
 GameNameCell.displayName = 'GameNameCell';
-
-// 컴포넌트: MMP Icon
-interface MMPIconProps {
-  mmp: string | null;
-}
-
-const MMPIcon = React.memo(({ mmp }: MMPIconProps) => {
-  if (mmp === 'Adjust') {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className='flex items-center justify-center w-5 h-5 flex-shrink-0 mx-auto'>
-            <Image
-              src='/Adjust Logo.svg'
-              alt='Adjust'
-              width={20}
-              height={20}
-              className='object-contain'
-              unoptimized
-            />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Adjust</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  if (mmp === 'AppsFlyer') {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className='flex items-center justify-center w-5 h-5 flex-shrink-0 mx-auto'>
-            <Image
-              src='/AppsFlyer Logo.svg'
-              alt='AppsFlyer'
-              width={20}
-              height={20}
-              className='object-contain w-auto h-auto'
-              unoptimized
-            />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>AppsFlyer</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return null;
-});
-MMPIcon.displayName = 'MMPIcon';
 
 // 컴포넌트: Status Badge
 interface StatusBadgeProps {
@@ -561,7 +503,7 @@ function CampaignTableRow({
       )}
       {columnVisibility.mmp && (
         <TableCell style={{ width: COLUMN_WIDTHS.mmp }} className='text-center'>
-          <MMPIcon mmp={campaign.mmp} />
+          <MmpIcon mmp={campaign.mmp} />
         </TableCell>
       )}
       {columnVisibility.type && (

@@ -15,6 +15,7 @@ export const CAMPAIGN_TYPE_OPTIONS = [{ value: 'CPI', label: 'CPI' }] as const;
 export const MMP_OPTIONS = [
   { value: 'AppsFlyer', label: 'AppsFlyer' },
   { value: 'Adjust', label: 'Adjust' },
+  { value: 'Tenjin', label: 'Tenjin' },
 ] as const;
 
 export const REGION_OPTIONS = [

@@ -102,6 +102,7 @@ import {
 import { parseSheetDate } from '@/lib/utils/sheet-formatters';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
+import { MmpIcon } from '@/components/common/mmp-icon';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 import { CampaignSwitcher } from '@/components/campaigns/campaign-detail/campaign-switcher';
 import { AddNoteModal } from '@/components/campaigns/campaign-detail/add-note-modal';
@@ -120,12 +121,6 @@ import { DeleteConfirmationDialog } from '@/components/common/delete-confirmatio
 import { getAllGames } from '@/hooks/use-game-management';
 import { accountUrl } from '@/lib/utils/account-url';
 import { formatDateYYYYMMDD } from '@/lib/utils/date';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface SheetData {
   [key: string]: any;
@@ -1275,47 +1270,7 @@ export default function CampaignDetailPage() {
 
                     {/* MMP */}
                     <TableCell className='text-center'>
-                      {campaign.mmp === 'Adjust' ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className='flex items-center justify-center w-5 h-5 flex-shrink-0 mx-auto'>
-                                <Image
-                                  src='/Adjust Logo.svg'
-                                  alt='Adjust'
-                                  width={20}
-                                  height={20}
-                                  className='object-contain'
-                                  unoptimized
-                                />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Adjust</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : campaign.mmp === 'AppsFlyer' ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className='flex items-center justify-center w-5 h-5 flex-shrink-0 mx-auto'>
-                                <Image
-                                  src='/AppsFlyer Logo.svg'
-                                  alt='AppsFlyer'
-                                  width={20}
-                                  height={20}
-                                  className='object-contain w-auto h-auto'
-                                  unoptimized
-                                />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>AppsFlyer</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : null}
+                      <MmpIcon mmp={campaign.mmp} />
                     </TableCell>
 
                     {/* Type */}

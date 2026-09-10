@@ -28,6 +28,7 @@ import {
 import type { CampaignFormData } from '@/hooks/use-campaign-management';
 import type { Game } from '@/hooks/use-game-management';
 import { PLATFORM_OPTIONS } from '@/hooks/use-game-management';
+import { MmpLogo } from '@/components/common/mmp-icon';
 
 const REGION_EMOJI: Record<string, string> = {
   KR: '🇰🇷',
@@ -222,7 +223,7 @@ export function CampaignFormFields({
             <SelectTrigger id={id('mmp')} className='w-full'>
               {value.mmp ? (
                 <div className='flex items-center gap-2 flex-1'>
-                  <MmpIcon mmp={value.mmp} />
+                  <MmpLogo mmp={value.mmp} />
                   <span className='flex-1 text-left'>
                     {MMP_OPTIONS.find((opt) => opt.value === value.mmp)?.label ||
                       'MMP를 선택해주세요'}
@@ -236,7 +237,7 @@ export function CampaignFormFields({
               {MMP_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   <div className='flex items-center gap-2'>
-                    <MmpIcon mmp={option.value} />
+                    <MmpLogo mmp={option.value} />
                     <span>{option.label}</span>
                   </div>
                 </SelectItem>
@@ -444,39 +445,6 @@ export function CampaignFormFields({
       </div>
     </div>
   );
-}
-
-function MmpIcon({ mmp }: { mmp: string }) {
-  if (mmp === 'Adjust') {
-    return (
-      <div className='flex items-center justify-center w-5 h-5'>
-        <Image
-          src='/Adjust Logo.svg'
-          alt='Adjust'
-          width={20}
-          height={20}
-          className='object-contain'
-          unoptimized
-        />
-      </div>
-    );
-  }
-  if (mmp === 'AppsFlyer') {
-    return (
-      <div className='flex items-center justify-center w-5 h-5'>
-        <Image
-          src='/AppsFlyer Logo.svg'
-          alt='AppsFlyer'
-          width={20}
-          height={20}
-          className='object-contain'
-          style={{ width: 'auto', height: 'auto' }}
-          unoptimized
-        />
-      </div>
-    );
-  }
-  return null;
 }
 
 interface DateFieldProps {
