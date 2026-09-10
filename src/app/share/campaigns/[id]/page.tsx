@@ -11,7 +11,10 @@ import {
   type CampaignInfo,
 } from '@/components/campaigns/campaign-detail/campaign-info-table';
 import { CampaignPerformance } from '@/components/campaigns/campaign-detail/campaign-performance';
+import { CampaignSwitcher } from '@/components/campaigns/campaign-detail/campaign-switcher';
 import {
+  loadPublicSwitcherCampaigns,
+  shareCampaignHref,
   useShareListHref,
   type PublicCampaign,
 } from '@/components/share/share-campaign-ui';
@@ -70,6 +73,9 @@ export default function SharedCampaignViewerPage() {
     (async () => {
       setLoading(true);
       setFatal(null);
+      // 다른 캠페인으로 전환 시 이전 캠페인 정보가 남아 보이지 않게 초기화
+      setCampaign(null);
+      setAllRows(null);
       try {
         const res = await fetch(
           `/api/share/campaigns/${encodeURIComponent(id)}`
@@ -136,7 +142,22 @@ export default function SharedCampaignViewerPage() {
           {loading && !campaign ? (
             <Skeleton className='h-[90px] w-full rounded-xl' />
           ) : campaign ? (
-            <CampaignInfoTable campaign={toCampaignInfo(campaign)} />
+            <CampaignInfoTable
+              campaign={toCampaignInfo(campaign)}
+              // 캠페인명 — 내부 상세와 같은 전환 드롭다운 (공개 목록 기준, 공개 뷰어로 이동)
+              nameCell={
+                <CampaignSwitcher
+                  currentCampaign={{
+                    id: campaign.id,
+                    name: campaign.name,
+                    account_company: campaign.account?.company ?? null,
+                    region: campaign.region,
+                  }}
+                  loadList={loadPublicSwitcherCampaigns}
+                  hrefFor={shareCampaignHref}
+                />
+              }
+            />
           ) : null}
         </div>
 
@@ -147,6 +168,8 @@ export default function SharedCampaignViewerPage() {
           </div>
         ) : (
           <CampaignPerformance
+            // 캠페인이 바뀌면 탭·기간 선택 초기화 (내부 상세와 동일)
+            key={id}
             allData={allRows}
             loading={loading}
             error={reportError}

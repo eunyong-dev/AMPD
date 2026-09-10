@@ -6,6 +6,7 @@
  * - 선택 시 해당 캠페인 상세 페이지로 이동
  *
  * 권한 정책 — 관리자는 전체, AM 은 본인 담당 만 (`getCampaignList` 로 분기됨)
+ * 공개 뷰어 — loadList(공개 목록 조회) + hrefFor(/share/campaigns/[id]) 를 넘겨 로그인 없이 사용
  */
 
 import {
@@ -38,9 +39,13 @@ interface CampaignSwitcherProps {
     account_company?: string | null;
     region?: string | null;
   };
+  /** 리스트 로더 — 지정 시 권한별 조회 대신 사용 (공개 뷰어) */
+  loadList?: () => Promise<CampaignListItem[]>;
+  /** 선택 시 이동할 주소 — 기본: 내부 상세 /campaigns/[id] */
+  hrefFor?: (id: string) => string;
 }
 
-interface CampaignListItem {
+export interface CampaignListItem {
   id: string;
   name: string;
   account_company: string | null;
@@ -57,7 +62,11 @@ const STATUS_DOT_COLOR: Record<string, string> = {
   end: 'bg-gray-400',
 };
 
-export function CampaignSwitcher({ currentCampaign }: CampaignSwitcherProps) {
+export function CampaignSwitcher({
+  currentCampaign,
+  loadList,
+  hrefFor,
+}: CampaignSwitcherProps) {
   const router = useRouter();
   const { profile } = useUserContext();
   const [open, setOpen] = useState(false);
@@ -69,24 +78,33 @@ export function CampaignSwitcher({ currentCampaign }: CampaignSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  // 권한별 캠페인 리스트 fetch (popover 처음 열릴 때만)
+  // 캠페인 리스트 fetch (popover 처음 열릴 때만)
+  // - loadList 가 있으면 그것으로 (공개 뷰어: 로그인 없이 공개 목록)
+  // - 없으면 권한별 (관리자 전체 / AM 본인 담당)
   const loadCampaigns = useCallback(async () => {
-    if (!profile) return;
+    if (!loadList && !profile) return;
     setLoading(true);
     try {
-      const list =
-        profile.role === 'admin'
-          ? await getAllCampaigns()
-          : await getMyCampaigns(profile.id);
-      const compact: CampaignListItem[] = list.map((c) => ({
-        id: c.id,
-        name: c.name,
-        account_company: c.account_company ?? null,
-        region: c.region ?? null,
-        status: c.status,
-        game_logo_url: c.game_logo_url ?? null,
-        game_name: c.game_name ?? null,
-      }));
+      let compact: CampaignListItem[];
+      if (loadList) {
+        compact = await loadList();
+      } else if (profile) {
+        const list =
+          profile.role === 'admin'
+            ? await getAllCampaigns()
+            : await getMyCampaigns(profile.id);
+        compact = list.map((c) => ({
+          id: c.id,
+          name: c.name,
+          account_company: c.account_company ?? null,
+          region: c.region ?? null,
+          status: c.status,
+          game_logo_url: c.game_logo_url ?? null,
+          game_name: c.game_name ?? null,
+        }));
+      } else {
+        return;
+      }
       // 정렬: 광고주 → status 우선순위 → 게임명 → 지역 우선순위(KR→JP→TW→US...)
       const statusOrder: Record<string, number> = {
         ongoing: 0,
@@ -129,7 +147,7 @@ export function CampaignSwitcher({ currentCampaign }: CampaignSwitcherProps) {
     } finally {
       setLoading(false);
     }
-  }, [profile]);
+  }, [profile, loadList]);
 
   // popover 열릴 때 fetch + input focus
   useEffect(() => {
@@ -187,9 +205,9 @@ export function CampaignSwitcher({ currentCampaign }: CampaignSwitcherProps) {
         return;
       }
       setOpen(false);
-      router.push(`/campaigns/${id}`);
+      router.push(hrefFor ? hrefFor(id) : `/campaigns/${id}`);
     },
-    [currentCampaign.id, router]
+    [currentCampaign.id, router, hrefFor]
   );
 
   // 키보드 네비게이션 (input 에서 발생) — Popover 의 기본 focus 가두기 회피

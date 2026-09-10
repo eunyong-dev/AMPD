@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 
-import type { PublicGame } from '@/lib/share/public-campaign';
+import { createClient } from '@/utils/supabase/client';
+import type { CampaignListItem } from '@/components/campaigns/campaign-detail/campaign-switcher';
+import {
+  PUBLIC_CAMPAIGN_SELECT,
+  type PublicCampaign,
+  type PublicGame,
+} from '@/lib/share/public-campaign';
 
 // 데이터 계약(타입/select)은 서버 API 와 공유 — 'use client' 가 없는 모듈에 정의
 export {
@@ -65,6 +71,28 @@ export function useShareListHref() {
   }, []);
   return href;
 }
+
+/** 캠페인 전환(CampaignSwitcher) 공개 모드 — 로그인 없이, 공개 목록과 같은 필드만 조회 */
+export async function loadPublicSwitcherCampaigns(): Promise<
+  CampaignListItem[]
+> {
+  const { data, error } = await createClient()
+    .from('campaigns')
+    .select(PUBLIC_CAMPAIGN_SELECT);
+  if (error) throw error;
+  return ((data ?? []) as unknown as PublicCampaign[]).map((c) => ({
+    id: c.id,
+    name: c.name,
+    account_company: c.account?.company ?? null,
+    region: c.region,
+    status: c.status ?? '',
+    game_logo_url: c.game?.logo_url ?? null,
+    game_name: c.game?.game_name ?? null,
+  }));
+}
+
+/** 공개 성과 뷰어 주소 */
+export const shareCampaignHref = (id: string) => `/share/campaigns/${id}`;
 
 export function StatusBadge({ status }: { status: string | null }) {
   const s = STATUS[status ?? ''] ?? {
