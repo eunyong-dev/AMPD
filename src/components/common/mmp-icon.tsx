@@ -15,6 +15,8 @@ const MMP_LOGOS: Record<string, { src: string; cls: string }> = {
     src: '/AppsFlyer Logo.svg',
     cls: 'h-auto w-auto object-contain',
   },
+  // 투명 배경 심볼(PNG, 원본 96px, 워드마크 제거) → 박스 크기로 고정
+  Singular: { src: '/Singular Logo.png', cls: 'h-5 w-5 object-contain' },
   // 정사각 앱 아이콘(PNG, 원본 96px) → 박스 크기로 고정 + 모서리 라운드
   Tenjin: { src: '/Tenjin Logo.png', cls: 'h-5 w-5 rounded object-cover' },
 };
@@ -49,7 +51,7 @@ export function MmpLogo({ mmp }: { mmp: string | null }) {
 
 /**
  * MMP 로고 아이콘 (hover 시 이름 툴팁).
- * 로고가 없는 MMP(Singular, Other 등)는 텍스트로 표시.
+ * 로고가 없는 MMP(Branch, Kochava, Other 등)는 텍스트로 표시.
  */
 export function MmpIcon({ mmp }: { mmp: string | null }) {
   if (!mmp || !MMP_LOGOS[mmp]) {
