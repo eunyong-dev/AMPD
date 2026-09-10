@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import {
   Table,
@@ -16,71 +17,24 @@ import {
   type FilterTabOption,
 } from '@/components/common/filter-tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface PublicCampaign {
-  id: string;
-  name: string;
-  region: string | null;
-  mmp: string | null;
-  campaign_type: string | null;
-  status: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  game: { game_name: string | null; logo_url: string | null } | null;
-  account: { company: string | null } | null;
-}
+import { MmpIcon } from '@/components/common/mmp-icon';
+import {
+  GameCell,
+  StatusBadge,
+  STATUS,
+  REGION_FLAG,
+  fmtPeriod,
+  PUBLIC_CAMPAIGN_SELECT,
+  type PublicCampaign,
+} from '@/components/share/share-campaign-ui';
 
 type StatusTab = 'all' | 'planning' | 'ongoing' | 'holding' | 'end';
-
-const STATUS: Record<string, { label: string; cls: string }> = {
-  planning: {
-    label: '계획',
-    cls: 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/30 dark:border-amber-900',
-  },
-  ongoing: {
-    label: '진행중',
-    cls: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/30 dark:border-emerald-900',
-  },
-  holding: {
-    label: '홀딩',
-    cls: 'text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-950/30 dark:border-red-900',
-  },
-  end: {
-    label: '종료',
-    cls: 'text-muted-foreground bg-muted border-border',
-  },
-};
-
-const REGION_FLAG: Record<string, string> = {
-  KR: '🇰🇷',
-  JP: '🇯🇵',
-  TW: '🇹🇼',
-  US: '🇺🇸',
-};
 
 // 내부 캠페인 페이지와 동일한 탭 순서
 const TAB_ORDER: StatusTab[] = ['all', 'planning', 'ongoing', 'holding', 'end'];
 
 const isStatusTab = (v: string | null): v is StatusTab =>
   !!v && (TAB_ORDER as string[]).includes(v);
-
-function StatusBadge({ status }: { status: string | null }) {
-  const s = STATUS[status ?? ''] ?? {
-    label: status ?? '-',
-    cls: 'text-muted-foreground bg-muted border-border',
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${s.cls}`}
-    >
-      <span className='h-1.5 w-1.5 rounded-full bg-current opacity-70' />
-      {s.label}
-    </span>
-  );
-}
-
-const fmtPeriod = (from: string | null, to: string | null) =>
-  from ? `${from} ~ ${to ?? ''}` : '-';
 
 export default function PublicCampaignsPage() {
   const [rows, setRows] = useState<PublicCampaign[]>([]);
@@ -109,15 +63,12 @@ export default function PublicCampaignsPage() {
         const supabase = createClient();
         const { data, error } = await supabase
           .from('campaigns')
-          .select(
-            'id, name, region, mmp, campaign_type, status, start_date, end_date, game:games(game_name, logo_url), account:accounts(company)'
-          );
+          .select(PUBLIC_CAMPAIGN_SELECT);
         if (error) throw error;
         setRows((data ?? []) as unknown as PublicCampaign[]);
       } catch (e) {
-        setError(
-          e instanceof Error ? e.message : '캠페인을 불러오지 못했습니다.'
-        );
+        console.error('[share] 캠페인 목록 조회 실패:', e);
+        setError('캠페인을 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
@@ -202,10 +153,13 @@ export default function PublicCampaignsPage() {
             <Table style={{ width: '100%' }}>
               <TableHeader className={TABLE_STYLES.header}>
                 <TableRow>
+                  <TableHead className='whitespace-nowrap'>캠페인</TableHead>
                   <TableHead className='whitespace-nowrap'>광고주</TableHead>
                   <TableHead className='whitespace-nowrap'>게임</TableHead>
                   <TableHead className='whitespace-nowrap'>지역</TableHead>
-                  <TableHead className='whitespace-nowrap'>MMP</TableHead>
+                  <TableHead className='whitespace-nowrap text-center'>
+                    MMP
+                  </TableHead>
                   <TableHead className='whitespace-nowrap'>타입</TableHead>
                   <TableHead className='whitespace-nowrap tabular-nums'>
                     기간
@@ -216,29 +170,25 @@ export default function PublicCampaignsPage() {
               <TableBody className={TABLE_STYLES.body}>
                 {filtered.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className='whitespace-nowrap font-medium'>
-                      {r.account?.company ?? '-'}
+                    <TableCell className='whitespace-nowrap'>
+                      <Link
+                        href={`/share/campaigns/${r.id}`}
+                        className='font-medium text-foreground transition-colors hover:text-primary hover:underline'
+                      >
+                        {r.name}
+                      </Link>
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
-                      <span className='inline-flex items-center gap-2 align-middle'>
-                        {r.game?.logo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={r.game.logo_url}
-                            alt=''
-                            className='h-6 w-6 flex-shrink-0 rounded border border-border object-cover'
-                          />
-                        ) : (
-                          <span className='h-6 w-6 flex-shrink-0 rounded border border-border bg-muted' />
-                        )}
-                        {r.game?.game_name ?? r.name}
-                      </span>
+                      {r.account?.company ?? '-'}
+                    </TableCell>
+                    <TableCell className='max-w-[260px] whitespace-nowrap'>
+                      <GameCell game={r.game} fallbackName={r.name} />
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
                       {REGION_FLAG[r.region ?? ''] ?? ''} {r.region ?? '-'}
                     </TableCell>
-                    <TableCell className='whitespace-nowrap'>
-                      {r.mmp ?? '-'}
+                    <TableCell className='whitespace-nowrap text-center'>
+                      <MmpIcon mmp={r.mmp} />
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
                       {r.campaign_type ?? '-'}
@@ -257,7 +207,8 @@ export default function PublicCampaignsPage() {
         )}
 
         <p className='mt-6 text-center text-xs text-muted-foreground'>
-          이 페이지는 공유용 열람 페이지입니다.
+          이 페이지는 공유용 열람 페이지입니다. 캠페인명을 누르면 성과를 볼 수
+          있습니다.
         </p>
       </div>
     </div>
