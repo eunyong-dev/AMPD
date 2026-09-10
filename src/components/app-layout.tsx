@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserContext } from '@/lib/user-context';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -33,6 +34,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   } = useUserContext();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<ParsedError | null>(null);
+  const pathname = usePathname();
 
   const globalLoading = authLoading || profileLoading;
 
@@ -85,6 +87,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   const clearLoginError = useCallback(() => {
     setLoginError(null);
   }, []);
+
+  // 공개 경로(/share/*)는 로그인 게이트·사이드바 없이 그대로 렌더 (비로그인 열람용)
+  if (pathname?.startsWith('/share')) {
+    return <>{children}</>;
+  }
 
   // 전역 로딩 스피너
   if (globalLoading) {
