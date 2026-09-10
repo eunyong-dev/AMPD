@@ -11,6 +11,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
+import {
+  FilterTabs,
+  type FilterTabOption,
+} from '@/components/common/filter-tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface PublicCampaign {
@@ -25,6 +29,8 @@ interface PublicCampaign {
   game: { game_name: string | null; logo_url: string | null } | null;
   account: { company: string | null } | null;
 }
+
+type StatusTab = 'all' | 'planning' | 'ongoing' | 'holding' | 'end';
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   planning: {
@@ -52,7 +58,11 @@ const REGION_FLAG: Record<string, string> = {
   US: '🇺🇸',
 };
 
-const STATUS_ORDER = ['ongoing', 'planning', 'holding', 'end'];
+// 내부 캠페인 페이지와 동일한 탭 순서
+const TAB_ORDER: StatusTab[] = ['all', 'planning', 'ongoing', 'holding', 'end'];
+
+const isStatusTab = (v: string | null): v is StatusTab =>
+  !!v && (TAB_ORDER as string[]).includes(v);
 
 function StatusBadge({ status }: { status: string | null }) {
   const s = STATUS[status ?? ''] ?? {
@@ -76,6 +86,22 @@ export default function PublicCampaignsPage() {
   const [rows, setRows] = useState<PublicCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<StatusTab>('all');
+
+  // 공유 링크의 ?status= 로 초기 탭 복원 (useSearchParams 대신 window 사용 → Suspense 불필요)
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get('status');
+    if (isStatusTab(s)) setTab(s);
+  }, []);
+
+  const changeTab = (next: StatusTab) => {
+    setTab(next);
+    // 현재 탭을 URL 에 반영 → 그 상태 그대로 링크 공유 가능 (히스토리 누적 없이 교체)
+    const url = new URL(window.location.href);
+    if (next === 'all') url.searchParams.delete('status');
+    else url.searchParams.set('status', next);
+    window.history.replaceState(null, '', url.pathname + url.search);
+  };
 
   useEffect(() => {
     (async () => {
@@ -89,7 +115,9 @@ export default function PublicCampaignsPage() {
         if (error) throw error;
         setRows((data ?? []) as unknown as PublicCampaign[]);
       } catch (e) {
-        setError(e instanceof Error ? e.message : '캠페인을 불러오지 못했습니다.');
+        setError(
+          e instanceof Error ? e.message : '캠페인을 불러오지 못했습니다.'
+        );
       } finally {
         setLoading(false);
       }
@@ -117,37 +145,41 @@ export default function PublicCampaignsPage() {
     return m;
   }, [rows]);
 
+  const filtered = useMemo(
+    () => (tab === 'all' ? sorted : sorted.filter((r) => r.status === tab)),
+    [sorted, tab]
+  );
+
+  // 탭 옵션 (개수 표시). 계획은 0건이면 숨김 — 단 현재 선택된 탭이면 유지
+  const tabOptions: FilterTabOption<StatusTab>[] = TAB_ORDER.filter(
+    (k) => k !== 'planning' || (counts.planning ?? 0) > 0 || tab === 'planning'
+  ).map((k) => {
+    const name = k === 'all' ? '전체' : STATUS[k].label;
+    const n = k === 'all' ? rows.length : counts[k] ?? 0;
+    // 로딩 중엔 개수 생략 → "0" 깜빡임 방지
+    return { value: k, label: loading ? name : `${name} ${n}` };
+  });
+
   return (
     <div className='min-h-screen bg-background'>
       <div className='mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6'>
         <header className='mb-6'>
-          <div className='flex flex-wrap items-end justify-between gap-3'>
-            <div>
-              <h1 className='text-2xl font-bold text-foreground'>
-                캠페인 현황
-              </h1>
-              <p className='mt-1 text-sm text-muted-foreground'>
-                GNA Company · 총{' '}
-                <span className='font-semibold text-foreground'>
-                  {rows.length}
-                </span>
-                개 캠페인
-              </p>
-            </div>
-            {/* 상태 요약 */}
-            <div className='flex flex-wrap items-center gap-2'>
-              {STATUS_ORDER.filter((k) => counts[k]).map((k) => (
-                <span
-                  key={k}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS[k].cls}`}
-                >
-                  {STATUS[k].label}
-                  <span className='font-bold tabular-nums'>{counts[k]}</span>
-                </span>
-              ))}
-            </div>
-          </div>
+          <h1 className='text-2xl font-bold text-foreground'>캠페인 현황</h1>
+          <p className='mt-1 text-sm text-muted-foreground'>
+            GNA Company · 총{' '}
+            <span className='font-semibold text-foreground'>{rows.length}</span>
+            개 캠페인
+          </p>
         </header>
+
+        {/* 상태 탭 */}
+        <div className='mb-4 overflow-x-auto py-1'>
+          <FilterTabs<StatusTab>
+            value={tab}
+            onValueChange={changeTab}
+            options={tabOptions}
+          />
+        </div>
 
         {loading ? (
           <div className='space-y-2'>
@@ -159,9 +191,11 @@ export default function PublicCampaignsPage() {
           <div className='rounded-xl border py-12 text-center text-sm text-destructive'>
             {error}
           </div>
-        ) : rows.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className='rounded-xl border py-12 text-center text-sm text-muted-foreground'>
-            표시할 캠페인이 없습니다.
+            {rows.length === 0
+              ? '표시할 캠페인이 없습니다.'
+              : '해당 상태의 캠페인이 없습니다.'}
           </div>
         ) : (
           <TableWrapper>
@@ -180,7 +214,7 @@ export default function PublicCampaignsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody className={TABLE_STYLES.body}>
-                {sorted.map((r) => (
+                {filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className='whitespace-nowrap font-medium'>
                       {r.account?.company ?? '-'}
@@ -201,8 +235,7 @@ export default function PublicCampaignsPage() {
                       </span>
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
-                      {REGION_FLAG[r.region ?? ''] ?? ''}{' '}
-                      {r.region ?? '-'}
+                      {REGION_FLAG[r.region ?? ''] ?? ''} {r.region ?? '-'}
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
                       {r.mmp ?? '-'}
