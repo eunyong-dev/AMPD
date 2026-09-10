@@ -101,10 +101,8 @@ export default function PublicCampaignsPage() {
     [sorted, tab]
   );
 
-  // 탭 옵션 (개수 표시). 계획은 0건이면 숨김 — 단 현재 선택된 탭이면 유지
-  const tabOptions: FilterTabOption<StatusTab>[] = TAB_ORDER.filter(
-    (k) => k !== 'planning' || (counts.planning ?? 0) > 0 || tab === 'planning'
-  ).map((k) => {
+  // 탭 옵션 (개수 표시) — 0건이어도 5개 탭 모두 항상 표시 (내부 캠페인 페이지와 동일)
+  const tabOptions: FilterTabOption<StatusTab>[] = TAB_ORDER.map((k) => {
     const name = k === 'all' ? '전체' : STATUS[k].label;
     const n = k === 'all' ? rows.length : counts[k] ?? 0;
     // 로딩 중엔 개수 생략 → "0" 깜빡임 방지
