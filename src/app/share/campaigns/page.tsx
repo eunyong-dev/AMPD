@@ -44,10 +44,12 @@ import {
   STATUS,
   REGION_FLAG,
   fmtPeriod,
-  PUBLIC_CAMPAIGN_SELECT,
+  PUBLIC_CAMPAIGN_DETAIL_SELECT,
   rememberShareListQuery,
   type PublicCampaign,
+  type PublicCampaignDetail,
 } from '@/components/share/share-campaign-ui';
+import { ReportSheetLink } from '@/components/common/report-sheet-link';
 
 type StatusTab = 'all' | 'planning' | 'ongoing' | 'holding' | 'end';
 type SortKey = 'advertiser' | 'latest' | 'oldest';
@@ -114,7 +116,7 @@ const CHECK_CLS =
   'pointer-events-none data-[state=checked]:bg-black data-[state=checked]:border-black';
 
 export default function PublicCampaignsPage() {
-  const [rows, setRows] = useState<PublicCampaign[]>([]);
+  const [rows, setRows] = useState<PublicCampaignDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,9 +159,9 @@ export default function PublicCampaignsPage() {
         const supabase = createClient();
         const { data, error } = await supabase
           .from('campaigns')
-          .select(PUBLIC_CAMPAIGN_SELECT);
+          .select(PUBLIC_CAMPAIGN_DETAIL_SELECT); // 시트 연결 여부(아이콘)까지
         if (error) throw error;
-        setRows((data ?? []) as unknown as PublicCampaign[]);
+        setRows((data ?? []) as unknown as PublicCampaignDetail[]);
       } catch (e) {
         console.error('[share] 캠페인 목록 조회 실패:', e);
         setError('캠페인을 불러오지 못했습니다.');
@@ -491,12 +493,16 @@ export default function PublicCampaignsPage() {
                 {view.list.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className='whitespace-nowrap'>
-                      <Link
-                        href={`/share/campaigns/${r.id}`}
-                        className='font-medium text-foreground transition-colors hover:text-primary hover:underline'
-                      >
-                        {r.name}
-                      </Link>
+                      <div className='flex items-center gap-1'>
+                        <Link
+                          href={`/share/campaigns/${r.id}`}
+                          className='font-medium text-foreground transition-colors hover:text-primary hover:underline'
+                        >
+                          {r.name}
+                        </Link>
+                        {/* 리포트 시트가 연결된 캠페인만 — 바로 열기 */}
+                        <ReportSheetLink url={r.daily_report_url} />
+                      </div>
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
                       {r.account?.company ?? '-'}

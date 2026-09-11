@@ -58,6 +58,7 @@ import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { MmpIcon } from '@/components/common/mmp-icon';
+import { ReportSheetLink } from '@/components/common/report-sheet-link';
 import { accountUrl } from '@/lib/utils/account-url';
 import Link from 'next/link';
 
@@ -374,12 +375,16 @@ function CampaignTableRow({
     <TableRow>
       {columnVisibility.campaignTitle && (
         <TableCell style={{ width: COLUMN_WIDTHS.campaignTitle }}>
-          <Link
-            href={`/campaigns/${campaign.id}`}
-            className='font-medium truncate text-sm text-primary hover:underline block'
-          >
-            {campaign.name}
-          </Link>
+          <div className='flex items-center gap-1 min-w-0'>
+            <Link
+              href={`/campaigns/${campaign.id}`}
+              className='font-medium truncate text-sm text-primary hover:underline min-w-0'
+            >
+              {campaign.name}
+            </Link>
+            {/* 리포트 시트가 연결된 캠페인만 — 바로 열기 */}
+            <ReportSheetLink url={campaign.daily_report_url} />
+          </div>
         </TableCell>
       )}
       {columnVisibility.account && (
@@ -629,6 +634,14 @@ function CampaignTableRow({
   );
 }
 
+// 헤더 클릭 정렬 컬럼 + 첫 클릭 방향 (기간은 최신순부터)
+type SortColumn = 'name' | 'region' | 'date';
+const SORT_FIRST_DIR: Record<SortColumn, 'asc' | 'desc'> = {
+  name: 'asc',
+  region: 'asc',
+  date: 'desc',
+};
+
 // Campaigns Table
 interface CampaignsTableProps {
   campaigns: Campaign[];
@@ -674,21 +687,25 @@ export function CampaignsTable({
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [deleteIsAllowed, setDeleteIsAllowed] = useState(false);
   // 정렬 상태 — 한 번에 한 컬럼만 활성. 기본값: name asc (KR>JP>TW>US tiebreak)
-  type SortColumn = 'name' | 'region';
   const [sortColumn, setSortColumn] = useState<SortColumn | null>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const cycleSort = useCallback((col: SortColumn) => {
-    setSortColumn((prev) => {
-      if (prev !== col) {
-        setSortDir('asc');
-        return col;
+  // 같은 컬럼 재클릭: 첫 방향 → 반대 방향 → 정렬 해제 (기간은 최신순부터)
+  const cycleSort = useCallback(
+    (col: SortColumn) => {
+      const first = SORT_FIRST_DIR[col];
+      if (sortColumn !== col) {
+        setSortColumn(col);
+        setSortDir(first);
+      } else if (sortDir === first) {
+        setSortDir(first === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortColumn(null);
+        setSortDir(first);
       }
-      // 같은 컬럼 재클릭: asc → desc → null 사이클
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-      return prev === col && sortDir === 'desc' ? null : col;
-    });
-  }, [sortDir]);
+    },
+    [sortColumn, sortDir]
+  );
 
   const sortedCampaigns = useMemo(() => {
     if (!sortColumn && !groupByAccount) return campaigns;
@@ -696,6 +713,18 @@ export function CampaignsTable({
 
     const innerCompare = (a: Campaign, b: Campaign): number => {
       if (!sortColumn) return 0;
+      if (sortColumn === 'date') {
+        // 시작일 기준. 시작일 없는 캠페인은 방향과 무관하게 항상 뒤로, 같은 날짜는 이름순
+        const x = a.start_date;
+        const y = b.start_date;
+        if (x !== y) {
+          if (!x) return 1;
+          if (!y) return -1;
+          const c = x.localeCompare(y);
+          return sortDir === 'asc' ? c : -c;
+        }
+        return compareByNameAndRegion(a, b);
+      }
       let cmp = 0;
       if (sortColumn === 'name') {
         cmp = compareByNameAndRegion(a, b);
@@ -852,7 +881,15 @@ export function CampaignsTable({
                 )}
                 {columnVisibility.dateRange && (
                   <TableHead style={{ width: COLUMN_WIDTHS.dateRange }}>
-                    기간
+                    <button
+                      type='button'
+                      onClick={() => cycleSort('date')}
+                      title='시작일 기준 정렬 (최신순 → 오래된순 → 해제)'
+                      className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
+                    >
+                      기간
+                      {renderSortIcon('date')}
+                    </button>
                   </TableHead>
                 )}
                 {columnVisibility.status && (

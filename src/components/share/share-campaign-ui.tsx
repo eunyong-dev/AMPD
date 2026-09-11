@@ -14,6 +14,7 @@ import {
 // 데이터 계약(타입/select)은 서버 API 와 공유 — 'use client' 가 없는 모듈에 정의
 export {
   PUBLIC_CAMPAIGN_SELECT,
+  PUBLIC_CAMPAIGN_DETAIL_SELECT,
   type PublicGame,
   type PublicCampaign,
   type PublicCampaignDetail,
