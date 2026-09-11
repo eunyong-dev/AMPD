@@ -717,7 +717,9 @@ export function CampaignsTable({
   );
 
   const sortedCampaigns = useMemo(() => {
-    if (!sortColumn && !groupByAccount) return campaigns;
+    // 기간(최신순/오래된순) 정렬은 광고주 그룹 없이 전체 기준 — 그룹을 유지하면 그룹 안에서만 정렬돼 최신순이 안 보임
+    const useGroup = groupByAccount && sortColumn !== 'date';
+    if (!sortColumn && !useGroup) return campaigns;
     const copy = [...campaigns];
 
     const innerCompare = (a: Campaign, b: Campaign): number => {
@@ -747,8 +749,8 @@ export function CampaignsTable({
     };
 
     copy.sort((a, b) => {
-      // 1차: 광고주 그룹핑 (요청 시) — 그룹 자체 정렬 방향은 항상 asc
-      if (groupByAccount) {
+      // 1차: 광고주 그룹핑 (요청 시, 기간 정렬 제외) — 그룹 자체 정렬 방향은 항상 asc
+      if (useGroup) {
         const aCompany = a.account_company ?? '';
         const bCompany = b.account_company ?? '';
         const groupCmp = aCompany.localeCompare(bCompany, 'ko-KR', {
