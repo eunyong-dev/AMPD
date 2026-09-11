@@ -58,7 +58,7 @@ import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { MmpIcon } from '@/components/common/mmp-icon';
-import { ReportSheetLink } from '@/components/common/report-sheet-link';
+import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
 import { accountUrl } from '@/lib/utils/account-url';
 import Link from 'next/link';
 
@@ -375,16 +375,14 @@ function CampaignTableRow({
     <TableRow>
       {columnVisibility.campaignTitle && (
         <TableCell style={{ width: COLUMN_WIDTHS.campaignTitle }}>
-          <div className='flex items-center gap-1 min-w-0'>
-            <Link
-              href={`/campaigns/${campaign.id}`}
-              className='font-medium truncate text-sm text-primary hover:underline min-w-0'
-            >
-              {campaign.name}
-            </Link>
-            {/* 리포트 시트가 연결된 캠페인만 — 바로 열기 */}
-            <ReportSheetLink url={campaign.daily_report_url} />
-          </div>
+          <Link
+            href={`/campaigns/${campaign.id}`}
+            className='flex items-center gap-1 min-w-0 font-medium text-sm text-primary hover:underline'
+          >
+            <span className='truncate'>{campaign.name}</span>
+            {/* 리포트 시트가 연결된 캠페인 표시 */}
+            <ReportSheetBadge connected={!!campaign.daily_report_url} />
+          </Link>
         </TableCell>
       )}
       {columnVisibility.account && (

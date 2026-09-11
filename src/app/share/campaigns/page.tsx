@@ -49,7 +49,7 @@ import {
   type PublicCampaign,
   type PublicCampaignDetail,
 } from '@/components/share/share-campaign-ui';
-import { ReportSheetLink } from '@/components/common/report-sheet-link';
+import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
 
 type StatusTab = 'all' | 'planning' | 'ongoing' | 'holding' | 'end';
 type SortKey = 'advertiser' | 'latest' | 'oldest';
@@ -493,16 +493,14 @@ export default function PublicCampaignsPage() {
                 {view.list.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className='whitespace-nowrap'>
-                      <div className='flex items-center gap-1'>
-                        <Link
-                          href={`/share/campaigns/${r.id}`}
-                          className='font-medium text-foreground transition-colors hover:text-primary hover:underline'
-                        >
-                          {r.name}
-                        </Link>
-                        {/* 리포트 시트가 연결된 캠페인만 — 바로 열기 */}
-                        <ReportSheetLink url={r.daily_report_url} />
-                      </div>
+                      <Link
+                        href={`/share/campaigns/${r.id}`}
+                        className='inline-flex items-center gap-1 font-medium text-foreground transition-colors hover:text-primary hover:underline'
+                      >
+                        {r.name}
+                        {/* 리포트 시트가 연결된 캠페인 표시 */}
+                        <ReportSheetBadge connected={!!r.daily_report_url} />
+                      </Link>
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
                       {r.account?.company ?? '-'}
