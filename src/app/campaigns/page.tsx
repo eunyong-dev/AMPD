@@ -50,7 +50,8 @@ export default function AllCampaignsPage() {
   const [showEditCampaignForm, setShowEditCampaignForm] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [allGames, setAllGames] = useState<any[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  // 기본 탭: 진행중 (공개 캠페인 현황과 동일)
+  const [statusFilter, setStatusFilter] = useState<string>('ongoing');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
