@@ -102,6 +102,9 @@ export function CampaignPerformance({
     DateRange | undefined
   >(undefined);
 
+  // 처음 불러오는 중 (데이터 없음) — 새로고침 중에는 기존 화면 유지
+  const initialLoading = loading && !allData;
+
   // 오래된 날짜부터 정렬 + 첫/마지막 날짜 (프리셋·기본 30일 기준)
   const { rows, dateHeader, firstDate, lastDate } = useMemo(() => {
     const src = allData ?? [];
@@ -256,6 +259,19 @@ export function CampaignPerformance({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className={className}>
       <div className='flex-shrink-0 flex items-center justify-between gap-2 flex-wrap'>
+        {initialLoading ? (
+          // 처음 불러오는 동안은 탭·기간 선택도 스켈레톤 (데이터 기준 프리셋이 아직 없음)
+          <>
+            <Skeleton className='h-9 w-[153px] rounded-xl' />
+            <div className='flex items-center gap-2'>
+              <Skeleton className='h-9 w-[107px] rounded-xl' />
+              {toolbarActions && (
+                <Skeleton className='h-9 w-[320px] max-w-[40vw] rounded-xl' />
+              )}
+            </div>
+          </>
+        ) : (
+        <>
         <TabsList className='rounded-xl h-9'>
           <TabsTrigger value='daily' className={TAB_TRIGGER_CLS}>
             일간
@@ -323,6 +339,8 @@ export function CampaignPerformance({
           )}
           {toolbarActions}
         </div>
+        </>
+        )}
       </div>
 
       {/* Period Comparison */}

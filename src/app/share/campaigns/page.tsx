@@ -238,8 +238,7 @@ export default function PublicCampaignsPage() {
   const tabOptions: FilterTabOption<StatusTab>[] = TAB_ORDER.map((k) => {
     const name = k === 'all' ? '전체' : STATUS[k].label;
     const n = k === 'all' ? view.total : view.statusCounts[k] ?? 0;
-    // 로딩 중엔 개수 생략 → "0" 깜빡임 방지
-    return { value: k, label: loading ? name : `${name} ${n}` };
+    return { value: k, label: `${name} ${n}` };
   });
 
   const filtersActive = advertisers.length > 0 || regions.length > 0;
@@ -264,14 +263,28 @@ export default function PublicCampaignsPage() {
       <div className='mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6'>
         <header className='mb-6'>
           <h1 className='text-2xl font-bold text-foreground'>캠페인 현황</h1>
-          <p className='mt-1 text-sm text-muted-foreground'>
-            Moon · 총{' '}
-            <span className='font-semibold text-foreground'>{rows.length}</span>
-            개 캠페인
-          </p>
+          {loading ? (
+            <Skeleton className='mt-1 h-5 w-40' />
+          ) : (
+            <p className='mt-1 text-sm text-muted-foreground'>
+              Moon · 총{' '}
+              <span className='font-semibold text-foreground'>{rows.length}</span>
+              개 캠페인
+            </p>
+          )}
         </header>
 
-        {/* 상태 탭 + 필터 */}
+        {/* 상태 탭 + 필터 — 처음 불러오는 동안은 스켈레톤 (개수·필터 항목이 아직 없음) */}
+        {loading ? (
+          <div className='mb-4 flex flex-wrap items-center justify-between gap-2 py-1'>
+            <Skeleton className='h-9 w-[360px] max-w-full rounded-xl' />
+            <div className='flex flex-wrap items-center gap-2'>
+              <Skeleton className='h-9 w-[138px] rounded-xl' />
+              <Skeleton className='h-9 w-[126px] rounded-xl' />
+              <Skeleton className='h-9 w-[122px] rounded-xl' />
+            </div>
+          </div>
+        ) : (
         <div className='mb-4 flex flex-wrap items-center justify-between gap-2 py-1'>
           <div className='max-w-full overflow-x-auto'>
             <FilterTabs<StatusTab>
@@ -301,7 +314,6 @@ export default function PublicCampaignsPage() {
                   variant='outline'
                   size='sm'
                   className='max-w-[220px]'
-                  disabled={loading}
                 >
                   <Building2Icon className='h-4 w-4' />
                   <span className='truncate'>{advertiserLabel}</span>
@@ -356,7 +368,7 @@ export default function PublicCampaignsPage() {
             {/* 지역 (다중 선택) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant='outline' size='sm' disabled={loading}>
+                <Button variant='outline' size='sm'>
                   <GlobeIcon className='h-4 w-4' />
                   <span>{regionLabel}</span>
                   <ChevronDownIcon className='h-4 w-4 opacity-50' />
@@ -429,6 +441,7 @@ export default function PublicCampaignsPage() {
             </DropdownMenu>
           </div>
         </div>
+        )}
 
         {loading ? (
           <div className='space-y-2'>

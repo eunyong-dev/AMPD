@@ -144,7 +144,7 @@ export default function SharedCampaignViewerPage() {
             캠페인 현황
           </Link>
           {loading && !campaign ? (
-            <Skeleton className='h-[90px] w-full rounded-xl' />
+            <Skeleton className='h-20 w-full rounded-xl' />
           ) : campaign ? (
             <CampaignInfoTable
               campaign={toCampaignInfo(campaign)}
