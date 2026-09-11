@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSheetRows } from '@/lib/google-sheets';
-import { PUBLIC_CAMPAIGN_SELECT } from '@/lib/share/public-campaign';
+import {
+  PUBLIC_CAMPAIGN_DETAIL_SELECT,
+  type PublicCampaignDetail,
+} from '@/lib/share/public-campaign';
 
 /**
  * 공개(비로그인) 캠페인 성과 조회 — /share/campaigns/[id] 뷰어 전용.
  *
  * 보안 원칙:
  *  - 캠페인 ID 로만 조회. 임의 sheetId/gid 를 받지 않음 (시트 프록시 아님)
- *  - daily_report_url(시트 링크)은 서버에서만 사용하고 응답에 포함하지 않음
+ *  - Jira / 리포트 시트 링크는 표시용으로 포함 (시트는 권한 있는 계정만 열람 — 2026-09-11 확인)
  *  - 셀 메모(_notes, 내부 운영 노트)는 제거 후 반환
  *  - 에러 상세/스택은 서버 로그에만 남기고 클라이언트엔 일반 메시지
  *  - CDN 캐시(5분)로 서비스 계정 Sheets 쿼터 보호
@@ -47,7 +50,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('campaigns')
-    .select(`${PUBLIC_CAMPAIGN_SELECT}, daily_report_url`)
+    .select(PUBLIC_CAMPAIGN_DETAIL_SELECT)
     .eq('id', id)
     .maybeSingle();
 
@@ -65,14 +68,9 @@ export async function GET(
     );
   }
 
-  const record = data as unknown as Record<string, unknown> & {
-    daily_report_url: string | null;
-  };
-  const campaign: Record<string, unknown> = { ...record };
-  delete campaign.daily_report_url; // 시트 링크는 응답에서 제외
-
-  const sheet = record.daily_report_url
-    ? extractSheetParams(record.daily_report_url)
+  const campaign = data as unknown as PublicCampaignDetail;
+  const sheet = campaign.daily_report_url
+    ? extractSheetParams(campaign.daily_report_url)
     : null;
 
   let rows: Record<string, unknown>[] = [];

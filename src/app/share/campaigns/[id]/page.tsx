@@ -17,12 +17,13 @@ import {
   shareCampaignHref,
   useShareListHref,
   type PublicCampaign,
+  type PublicCampaignDetail,
 } from '@/components/share/share-campaign-ui';
 
 type Row = Record<string, unknown>;
 
 interface ShareReportResponse {
-  campaign: PublicCampaign;
+  campaign: PublicCampaignDetail;
   rows: Row[];
   hasReport: boolean;
   reportError: string | null;
@@ -52,14 +53,17 @@ const toCampaignInfo = (c: PublicCampaign): CampaignInfo => ({
 /**
  * 공개(비로그인) 캠페인 성과 뷰어.
  * 내부 캠페인 상세와 같은 컴포넌트(CampaignInfoTable / CampaignPerformance)를 쓰고,
- * 내부 전용 요소(담당자·Jira·시트 링크·수정/삭제·비교·변경 기록·새로고침)만 뺀다.
+ * 내부 전용 요소(담당자·수정/삭제·비교·변경 기록·새로고침)만 뺀다.
+ * Jira / 리포트 시트 링크는 표시 (시트는 권한 있는 계정만 열람 — 2026-09-11 확인).
  */
 export default function SharedCampaignViewerPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const listHref = useShareListHref(); // 마지막으로 본 목록 필터로 돌아가기
 
-  const [campaign, setCampaign] = useState<PublicCampaign | null>(null);
+  const [campaign, setCampaign] = useState<PublicCampaignDetail | null>(
+    null
+  );
   const [allRows, setAllRows] = useState<Row[] | null>(null);
   const [hasReport, setHasReport] = useState(true);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -144,6 +148,10 @@ export default function SharedCampaignViewerPage() {
           ) : campaign ? (
             <CampaignInfoTable
               campaign={toCampaignInfo(campaign)}
+              links={{
+                jiraUrl: campaign.jira_url ?? null,
+                reportUrl: campaign.daily_report_url ?? null,
+              }}
               // 캠페인명 — 내부 상세와 같은 전환 드롭다운 (공개 목록 기준, 공개 뷰어로 이동)
               nameCell={
                 <CampaignSwitcher

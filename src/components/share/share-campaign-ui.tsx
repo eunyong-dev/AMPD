@@ -16,6 +16,7 @@ export {
   PUBLIC_CAMPAIGN_SELECT,
   type PublicGame,
   type PublicCampaign,
+  type PublicCampaignDetail,
 } from '@/lib/share/public-campaign';
 
 export const STATUS: Record<string, { label: string; cls: string }> = {

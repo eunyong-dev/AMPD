@@ -39,23 +39,18 @@ export interface CampaignInfo {
   endDate: string | null;
 }
 
-/** 내부 전용 칸 — 공개 뷰어는 넘기지 않음 (담당자·Jira·시트 링크·수정/삭제 메뉴 비노출) */
-export interface CampaignInfoInternal {
-  assigneeName: string | null;
-  assigneeAvatarUrl: string | null;
-  jiraUrl: string | null;
-  reportUrl: string | null;
-  /** 행 끝 "..." 메뉴 */
-  actions: React.ReactNode;
-}
-
 interface CampaignInfoTableProps {
   campaign: CampaignInfo;
-  /** 캠페인명 칸 (내부: CampaignSwitcher). 기본: 캠페인명 텍스트 */
+  /** 캠페인명 칸 (CampaignSwitcher 등). 기본: 캠페인명 텍스트 */
   nameCell?: React.ReactNode;
   /** 광고주 링크 (내부: 광고주 상세). 없으면 텍스트 */
   accountHref?: string | null;
-  internal?: CampaignInfoInternal;
+  /** 담당자 칸 — 내부 전용 (넘기면 표시) */
+  assignee?: { name: string | null; avatarUrl: string | null };
+  /** Jira URL / Report URL(시트) 칸 — 넘기면 표시 (내부·공개 공통) */
+  links?: { jiraUrl: string | null; reportUrl: string | null };
+  /** 행 끝 "..." 메뉴 (수정/삭제) — 내부 전용 */
+  actions?: React.ReactNode;
   /** 행 우클릭 메뉴 (ContextMenuContent) — 내부 전용 */
   contextMenu?: React.ReactNode;
 }
@@ -110,14 +105,16 @@ function LinkIconCell({ url }: { url: string | null }) {
 }
 
 /**
- * 캠페인 상단 정보 표 (캠페인명 · 광고주 · 게임 · 지역 · MMP · 타입 · 기간).
- * 내부 캠페인 상세와 공개 성과 뷰어가 공유 — 내부 전용 칸은 `internal` 로만 표시.
+ * 캠페인 상단 정보 표 (캠페인명 · 광고주 · 게임 · 지역 · MMP · 타입 · 기간 · 링크).
+ * 내부 캠페인 상세와 공개 성과 뷰어가 공유 — 담당자·메뉴 같은 내부 전용 칸은 넘길 때만 표시.
  */
 export function CampaignInfoTable({
   campaign,
   nameCell,
   accountHref,
-  internal,
+  assignee,
+  links,
+  actions,
   contextMenu,
 }: CampaignInfoTableProps) {
   const imageUrl = campaign.gameLogoUrl;
@@ -227,24 +224,21 @@ export function CampaignInfoTable({
       </TableCell>
 
       {/* Assigned User (내부 전용) */}
-      {internal && (
+      {assignee && (
         <TableCell>
           <div className='flex items-center gap-2'>
-            {internal.assigneeName ? (
+            {assignee.name ? (
               <>
                 <Avatar className='h-5 w-5'>
-                  {internal.assigneeAvatarUrl ? (
-                    <AvatarImage
-                      src={internal.assigneeAvatarUrl}
-                      alt={internal.assigneeName}
-                    />
+                  {assignee.avatarUrl ? (
+                    <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
                   ) : null}
                   <AvatarFallback className='text-xs'>
-                    {internal.assigneeName.charAt(0).toUpperCase()}
+                    {assignee.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className='text-xs font-medium truncate'>
-                  {internal.assigneeName}
+                  {assignee.name}
                 </div>
               </>
             ) : (
@@ -281,15 +275,19 @@ export function CampaignInfoTable({
         </div>
       </TableCell>
 
-      {/* Jira / Report URL / Actions (내부 전용) */}
-      {internal && (
+      {/* Jira / Report URL */}
+      {links && (
         <>
-          <LinkIconCell url={internal.jiraUrl} />
-          <LinkIconCell url={internal.reportUrl} />
-          <TableCell style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            {internal.actions}
-          </TableCell>
+          <LinkIconCell url={links.jiraUrl} />
+          <LinkIconCell url={links.reportUrl} />
         </>
+      )}
+
+      {/* Actions (내부 전용) */}
+      {actions && (
+        <TableCell style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {actions}
+        </TableCell>
       )}
     </TableRow>
   );
@@ -303,7 +301,7 @@ export function CampaignInfoTable({
               <TableHead style={{ width: '200px' }}>캠페인명</TableHead>
               <TableHead style={{ width: '150px' }}>광고주</TableHead>
               <TableHead style={{ width: '250px' }}>게임명</TableHead>
-              {internal && (
+              {assignee && (
                 <TableHead style={{ width: '160px' }}>담당자</TableHead>
               )}
               <TableHead style={{ width: '120px' }} className='text-center'>
@@ -314,7 +312,7 @@ export function CampaignInfoTable({
               </TableHead>
               <TableHead style={{ width: '120px' }}>타입</TableHead>
               <TableHead style={{ width: '200px' }}>기간</TableHead>
-              {internal && (
+              {links && (
                 <>
                   <TableHead style={{ width: '100px' }} className='text-center'>
                     Jira URL
@@ -322,9 +320,9 @@ export function CampaignInfoTable({
                   <TableHead style={{ width: '100px' }} className='text-center'>
                     Report URL
                   </TableHead>
-                  <TableHead style={{ width: '60px' }}></TableHead>
                 </>
               )}
+              {actions && <TableHead style={{ width: '60px' }}></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody className={TABLE_STYLES.body}>

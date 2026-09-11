@@ -362,47 +362,49 @@ export default function CampaignDetailPage() {
                 ? accountUrl(campaign.account_company)
                 : null
             }
-            internal={{
-              assigneeName: campaign.assigned_user_name ?? null,
-              assigneeAvatarUrl: campaign.assigned_user_avatar_url ?? null,
+            assignee={{
+              name: campaign.assigned_user_name ?? null,
+              avatarUrl: campaign.assigned_user_avatar_url ?? null,
+            }}
+            links={{
               jiraUrl: campaign.jira_url ?? null,
               reportUrl: campaign.daily_report_url ?? null,
-              actions: (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      className='flex size-8 hover:bg-muted/50'
-                      size='icon'
-                    >
-                      <MoreHorizontalIcon className='h-4 w-4' />
-                      <span className='sr-only'>메뉴 열기</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align='end'
-                    className='w-auto min-w-[120px]'
-                  >
-                    <DropdownMenuItem
-                      onClick={handleEditCampaign}
-                      className='flex items-center gap-0'
-                      disabled={!isManageAllowed}
-                    >
-                      <EditIcon className='mr-1 h-4 w-4' />
-                      캠페인 수정
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleDeleteClick}
-                      className='text-red-600 focus:text-red-600 flex items-center gap-0'
-                      disabled={!isManageAllowed}
-                    >
-                      <TrashIcon className='mr-1 h-4 w-4' />
-                      캠페인 삭제
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ),
             }}
+            actions={
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    className='flex size-8 hover:bg-muted/50'
+                    size='icon'
+                  >
+                    <MoreHorizontalIcon className='h-4 w-4' />
+                    <span className='sr-only'>메뉴 열기</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align='end'
+                  className='w-auto min-w-[120px]'
+                >
+                  <DropdownMenuItem
+                    onClick={handleEditCampaign}
+                    className='flex items-center gap-0'
+                    disabled={!isManageAllowed}
+                  >
+                    <EditIcon className='mr-1 h-4 w-4' />
+                    캠페인 수정
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDeleteClick}
+                    className='text-red-600 focus:text-red-600 flex items-center gap-0'
+                    disabled={!isManageAllowed}
+                  >
+                    <TrashIcon className='mr-1 h-4 w-4' />
+                    캠페인 삭제
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            }
             contextMenu={
               <ContextMenuContent className='w-auto min-w-[180px]'>
                 <ContextMenuItem
