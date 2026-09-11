@@ -493,14 +493,24 @@ export default function PublicCampaignsPage() {
                 {view.list.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className='whitespace-nowrap'>
-                      <Link
-                        href={`/share/campaigns/${r.id}`}
-                        className='inline-flex items-center gap-1 font-medium text-foreground transition-colors hover:text-primary hover:underline'
-                      >
-                        {r.name}
-                        {/* 리포트 시트가 연결된 캠페인 표시 */}
-                        <ReportSheetBadge connected={!!r.daily_report_url} />
-                      </Link>
+                      {r.daily_report_url ? (
+                        <Link
+                          href={`/share/campaigns/${r.id}`}
+                          className='inline-flex items-center gap-1.5 font-medium text-foreground transition-colors hover:text-primary hover:underline'
+                        >
+                          <ReportSheetBadge connected />
+                          {r.name}
+                        </Link>
+                      ) : (
+                        // 리포트 미연동 — 성과 화면이 비어 있으므로 링크 없이 비활성 표시
+                        <span
+                          className='inline-flex items-center gap-1.5 font-medium text-muted-foreground'
+                          title='리포트 미연동'
+                        >
+                          <ReportSheetBadge connected={false} />
+                          {r.name}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className='whitespace-nowrap'>
                       {r.account?.company ?? '-'}

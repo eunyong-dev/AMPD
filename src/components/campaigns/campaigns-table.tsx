@@ -375,14 +375,25 @@ function CampaignTableRow({
     <TableRow>
       {columnVisibility.campaignTitle && (
         <TableCell style={{ width: COLUMN_WIDTHS.campaignTitle }}>
-          <Link
-            href={`/campaigns/${campaign.id}`}
-            className='flex items-center gap-1 min-w-0 font-medium text-sm text-primary hover:underline'
-          >
-            <span className='truncate'>{campaign.name}</span>
-            {/* 리포트 시트가 연결된 캠페인 표시 */}
-            <ReportSheetBadge connected={!!campaign.daily_report_url} />
-          </Link>
+          {campaign.daily_report_url ? (
+            <Link
+              href={`/campaigns/${campaign.id}`}
+              className='flex items-center gap-1.5 min-w-0 font-medium text-sm text-primary hover:underline'
+            >
+              {/* 리포트 시트 연동 표시 (연동: 초록 / 미연동: 회색) */}
+              <ReportSheetBadge connected />
+              <span className='truncate'>{campaign.name}</span>
+            </Link>
+          ) : (
+            // 리포트 미연동 — 상세 성과가 비어 있으므로 이동 없이 비활성 표시 (수정은 ⋯ / 우클릭 메뉴)
+            <span
+              className='flex items-center gap-1.5 min-w-0 font-medium text-sm text-muted-foreground'
+              title='리포트 미연동'
+            >
+              <ReportSheetBadge connected={false} />
+              <span className='truncate'>{campaign.name}</span>
+            </span>
+          )}
         </TableCell>
       )}
       {columnVisibility.account && (
