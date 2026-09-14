@@ -1,7 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Check, RefreshCw, Eye, EyeOff, Code } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Code,
+  Download,
+  Puzzle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -14,6 +23,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/lib/user-context';
 import { createClient } from '@/utils/supabase/client';
+import {
+  buildExtensionZip,
+  renderExtensionIcons,
+  EXTENSION_FOLDER,
+} from '@/lib/extension/build-extension-zip';
 
 function generateApiKey(): string {
   // 32자리 hex (짧고 안전)
@@ -33,6 +47,7 @@ export function AppsFlyerApiKeyCard() {
   const [revealed, setRevealed] = useState(false);
   const [working, setWorking] = useState(false);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [downloadingExt, setDownloadingExt] = useState(false);
   const appsflyerBookmarkletRef = useRef<HTMLAnchorElement | null>(null);
   const adjustBookmarkletRef = useRef<HTMLAnchorElement | null>(null);
 
@@ -1103,6 +1118,40 @@ export function AppsFlyerApiKeyCard() {
     [adjustConsoleScript]
   );
 
+  // 크롬 확장 프로그램 zip — 북마클릿과 같은 스크립트를 담아 브라우저에서 바로 생성
+  const handleDownloadExtension = useCallback(async () => {
+    if (!appsflyerConsoleScript || !adjustConsoleScript) return;
+    setDownloadingExt(true);
+    try {
+      // 아이콘 생성 실패 시 크롬 기본 아이콘으로 (다운로드는 계속)
+      const icons = await renderExtensionIcons().catch(() => undefined);
+      const zip = buildExtensionZip({
+        baseUrl,
+        appsflyerScript: appsflyerConsoleScript,
+        adjustScript: adjustConsoleScript,
+        icons,
+        builtAt: new Date(),
+      });
+      const url = URL.createObjectURL(
+        new Blob([new Uint8Array(zip)], { type: 'application/zip' })
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${EXTENSION_FOLDER}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('확장 프로그램을 받았어요. 아래 설치 방법대로 크롬에 추가하세요.');
+    } catch (err) {
+      toast.error(
+        `다운로드 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
+      );
+    } finally {
+      setDownloadingExt(false);
+    }
+  }, [appsflyerConsoleScript, adjustConsoleScript, baseUrl]);
+
   return (
     <Card>
       <CardHeader>
@@ -1164,6 +1213,65 @@ export function AppsFlyerApiKeyCard() {
                   )}
                 </Button>
               </div>
+            </div>
+
+            {/* 크롬 확장 프로그램 — 북마클릿과 같은 스크립트, 툴바 버튼으로 실행 */}
+            <div className='rounded-md border p-3 space-y-3'>
+              <div className='flex items-start justify-between gap-3'>
+                <div>
+                  <div className='text-sm font-semibold flex items-center gap-1.5'>
+                    <Puzzle className='h-4 w-4' />
+                    크롬 확장 프로그램
+                  </div>
+                  <p className='text-xs text-muted-foreground mt-0.5'>
+                    북마크바 없이 툴바 아이콘의{' '}
+                    <strong>AppsFlyer / Adjust 동기화</strong> 버튼으로
+                    실행합니다. 동작은 아래 북마클릿과 같아요.
+                  </p>
+                </div>
+                <Button
+                  size='sm'
+                  onClick={handleDownloadExtension}
+                  disabled={downloadingExt}
+                  className='flex-shrink-0'
+                >
+                  <Download className='h-4 w-4' />
+                  zip 다운로드
+                </Button>
+              </div>
+              <ol className='list-decimal pl-5 text-xs text-muted-foreground space-y-1'>
+                <li>
+                  받은 zip 파일의 압축을 풀어 <code>{EXTENSION_FOLDER}</code>{' '}
+                  폴더를 원하는 곳에 둡니다. (지우면 확장 프로그램도 멈춰요)
+                </li>
+                <li>
+                  크롬 주소창에{' '}
+                  <button
+                    type='button'
+                    onClick={() => handleCopy('chrome://extensions', 'ext-url')}
+                    className='font-mono text-foreground underline decoration-dotted underline-offset-2'
+                    title='복사'
+                  >
+                    chrome://extensions
+                  </button>
+                  {copiedItem === 'ext-url' ? ' (복사됨)' : ''} 입력 → 오른쪽 위{' '}
+                  <strong>개발자 모드</strong> 켜기
+                </li>
+                <li>
+                  <strong>압축해제된 확장 프로그램을 로드합니다</strong> → 압축 푼
+                  폴더 선택
+                </li>
+                <li>
+                  툴바의 퍼즐 아이콘에서 <strong>AMPD 시트 동기화</strong>를
+                  고정(📌)
+                </li>
+                <li>AppsFlyer / Adjust 콘솔 탭에서 아이콘 → 동기화 버튼 클릭</li>
+              </ol>
+              <p className='text-xs text-muted-foreground'>
+                zip 안에 내 API 키가 들어 있어요 — 다른 사람과 공유하지 마세요.
+                키를 재발급하거나 AMPD 스크립트가 바뀌면 다시 받아 같은 폴더에
+                덮어쓴 뒤, 확장 프로그램 페이지에서 새로고침(↻)을 누르세요.
+              </p>
             </div>
 
             {/* AppsFlyer 북마클릿 */}
