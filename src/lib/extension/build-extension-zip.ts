@@ -10,7 +10,7 @@ import { strToU8, zipSync } from 'fflate';
  */
 
 export const EXTENSION_FOLDER = 'ampd-sync-extension';
-export const EXTENSION_VERSION = '1.0.0';
+export const EXTENSION_VERSION = '1.0.1';
 
 // AMPD external API 가 허용하는 콘솔 origin 과 맞춰야 함 (src/app/api/external/*)
 const APPSFLYER_HOSTS = [
