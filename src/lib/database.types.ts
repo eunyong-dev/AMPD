@@ -346,6 +346,7 @@ export type Database = {
           due_date: string
           from_email: string | null
           id: string
+          include_stamp: boolean
           invoice_date: string
           invoice_no: string
           manager_no: string
@@ -367,6 +368,7 @@ export type Database = {
           due_date: string
           from_email?: string | null
           id?: string
+          include_stamp?: boolean
           invoice_date: string
           invoice_no: string
           manager_no: string
@@ -388,6 +390,7 @@ export type Database = {
           due_date?: string
           from_email?: string | null
           id?: string
+          include_stamp?: boolean
           invoice_date?: string
           invoice_no?: string
           manager_no?: string

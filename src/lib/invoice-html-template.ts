@@ -71,11 +71,13 @@ export function buildInvoiceHtml(data: InvoiceTemplateData): string {
     ? Number(settlement.total_amount)
     : total;
 
-  const stampImg = company?.stamp_url
-    ? `<div class="stamp"><img src="${escapeHtml(
-        company.stamp_url
-      )}" alt="Stamp" /></div>`
-    : '';
+  // 발행 때 "도장 넣기"를 끈 인보이스는 도장 없이 렌더링
+  const stampImg =
+    invoice.include_stamp && company?.stamp_url
+      ? `<div class="stamp"><img src="${escapeHtml(
+          company.stamp_url
+        )}" alt="Stamp" /></div>`
+      : '';
 
   return `<!DOCTYPE html>
 <html lang="ko">

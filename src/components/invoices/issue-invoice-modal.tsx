@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -21,6 +22,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { createClient } from '@/utils/supabase/client';
+import { cn } from '@/lib/utils';
 import type { Database } from '@/lib/database.types';
 
 type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
@@ -102,6 +104,9 @@ export function IssueInvoiceModal({
   );
   const [checking, setChecking] = useState(false);
   const [missingBillTo, setMissingBillTo] = useState<string[]>([]);
+  // 회사 도장 — 설정에 도장 이미지가 있을 때만 "도장 넣기" 선택지를 보여준다
+  const [stampUrl, setStampUrl] = useState<string | null>(null);
+  const [includeStamp, setIncludeStamp] = useState(true);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -113,12 +118,14 @@ export function IssueInvoiceModal({
     setAccountDueDays(30);
     setExistingInvoice(null);
     setMissingBillTo([]);
-    // 동일 settlement에 이미 발행된 인보이스가 있는지 + BILL TO 정보 확인
+    setStampUrl(null);
+    setIncludeStamp(true);
+    // 동일 settlement에 이미 발행된 인보이스가 있는지 + BILL TO 정보 + 회사 도장 확인
     (async () => {
       setChecking(true);
       try {
         const supabase = createClient();
-        const [invoiceRes, accountRes] = await Promise.all([
+        const [invoiceRes, accountRes, companyRes] = await Promise.all([
           supabase
             .from('invoices')
             .select('*')
@@ -132,8 +139,14 @@ export function IssueInvoiceModal({
             )
             .eq('id', accountId)
             .single(),
+          supabase
+            .from('company_info')
+            .select('stamp_url')
+            .eq('id', 1)
+            .maybeSingle(),
         ]);
         if (invoiceRes.error) throw invoiceRes.error;
+        setStampUrl(companyRes.data?.stamp_url ?? null);
         if (invoiceRes.data && invoiceRes.data.length > 0) {
           setExistingInvoice(invoiceRes.data[0] as InvoiceRow);
         }
@@ -261,6 +274,7 @@ export function IssueInvoiceModal({
             bill_to_name: account.bill_to_name ?? null,
             bill_to_email: account.bill_to_email ?? null,
             bill_to_address: account.bill_to_address ?? null,
+            include_stamp: includeStamp,
             created_by: user.id,
           })
           .select()
@@ -416,6 +430,31 @@ export function IssueInvoiceModal({
               </Popover>
             </div>
           </div>
+
+          {stampUrl && (
+            <div className='flex items-center gap-3 rounded-md border p-3'>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={stampUrl}
+                alt='도장'
+                className={cn(
+                  'h-10 w-10 object-contain transition-opacity',
+                  !includeStamp && 'opacity-25'
+                )}
+              />
+              <div className='flex-1'>
+                <Label htmlFor='include-stamp'>도장 넣기</Label>
+                <p className='text-xs text-muted-foreground'>
+                  끄면 도장 없이 발행됩니다.
+                </p>
+              </div>
+              <Switch
+                id='include-stamp'
+                checked={includeStamp}
+                onCheckedChange={setIncludeStamp}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>
