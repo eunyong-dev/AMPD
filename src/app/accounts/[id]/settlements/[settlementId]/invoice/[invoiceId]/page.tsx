@@ -7,8 +7,10 @@ import { toast } from 'sonner';
 
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
+import { Switch } from '@/components/ui/switch';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { SendInvoiceModal } from '@/components/invoices/send-invoice-modal';
 import { createClient } from '@/utils/supabase/client';
@@ -44,6 +46,8 @@ export default function InvoiceViewPage() {
   const [deleting, setDeleting] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [stampSaving, setStampSaving] = useState(false);
+  const [pdfVersion, setPdfVersion] = useState(0); // 도장 변경 후 PDF 미리보기 다시 불러오기용
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,6 +132,35 @@ export default function InvoiceViewPage() {
     }
   };
 
+  // 발행된 인보이스의 도장 표시 변경 → PDF 미리보기 다시 생성 (이메일 발송 PDF 도 같은 설정을 따름)
+  const handleToggleStamp = async (includeStamp: boolean) => {
+    setStampSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('invoices')
+        .update({ include_stamp: includeStamp })
+        .eq('id', invoiceId);
+      if (error) throw error;
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              invoice: { ...prev.invoice, include_stamp: includeStamp },
+            }
+          : prev
+      );
+      setPdfLoaded(false);
+      setPdfVersion((v) => v + 1);
+      toast.success(includeStamp ? '도장을 넣었습니다.' : '도장을 뺐습니다.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`도장 설정 변경 실패: ${msg}`);
+    } finally {
+      setStampSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <AccessControl>
@@ -155,7 +188,18 @@ export default function InvoiceViewPage() {
     <AccessControl>
       <div className='space-y-3'>
         {/* Action Buttons */}
-        <div className='mx-auto max-w-[900px] flex justify-end gap-2'>
+        <div className='mx-auto max-w-[900px] flex items-center justify-end gap-2'>
+          {data.company?.stamp_url && (
+            <div className='mr-auto flex items-center gap-2'>
+              <Switch
+                id='invoice-stamp'
+                checked={data.invoice.include_stamp}
+                onCheckedChange={handleToggleStamp}
+                disabled={stampSaving}
+              />
+              <Label htmlFor='invoice-stamp'>도장 넣기</Label>
+            </div>
+          )}
           <Button onClick={() => setSendModalOpen(true)} size='sm'>
             <Send className='h-4 w-4' />
             이메일 발송
@@ -241,7 +285,7 @@ export default function InvoiceViewPage() {
             style={{ height: 'calc(100vh - 140px)', minHeight: '900px' }}
           >
             <iframe
-              key={invoiceId}
+              key={`${invoiceId}-${pdfVersion}`}
               src={`/api/invoices/${invoiceId}/pdf`}
               title='Invoice PDF Preview'
               className='w-full h-full'
