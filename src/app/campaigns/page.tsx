@@ -632,6 +632,12 @@ export default function AllCampaignsPage() {
         {filteredCampaigns.length > 0 ? (
           <CampaignsTable
             campaigns={filteredCampaigns}
+            // 홀딩·종료 탭은 이미 끝난 캠페인이라 기간 정렬을 종료일 기준으로
+            dateSortField={
+              statusFilter === 'holding' || statusFilter === 'end'
+                ? 'end'
+                : 'start'
+            }
             selectedCampaigns={selectedCampaigns}
             onSelectAll={(checked) => {
               if (checked) {

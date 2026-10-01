@@ -665,6 +665,8 @@ interface CampaignsTableProps {
   columnVisibility?: Record<string, boolean>;
   /** true면 광고주(account_company)로 1차 그룹핑 후 내부 정렬 */
   groupByAccount?: boolean;
+  /** 기간 정렬 기준 — 홀딩·종료처럼 이미 끝난 캠페인을 볼 때는 'end'(종료일) */
+  dateSortField?: 'start' | 'end';
 }
 
 export function CampaignsTable({
@@ -678,6 +680,7 @@ export function CampaignsTable({
   currentUserProfile,
   accountAssignedUserId,
   groupByAccount = false,
+  dateSortField = 'start',
   columnVisibility = {
     campaignTitle: true,
     account: true,
@@ -725,9 +728,9 @@ export function CampaignsTable({
     const innerCompare = (a: Campaign, b: Campaign): number => {
       if (!sortColumn) return 0;
       if (sortColumn === 'date') {
-        // 시작일 기준. 시작일 없는 캠페인은 방향과 무관하게 항상 뒤로, 같은 날짜는 이름순
-        const x = a.start_date;
-        const y = b.start_date;
+        // 시작일(홀딩·종료 탭은 종료일) 기준. 날짜 없는 캠페인은 방향과 무관하게 항상 뒤로, 같은 날짜는 이름순
+        const x = dateSortField === 'end' ? a.end_date : a.start_date;
+        const y = dateSortField === 'end' ? b.end_date : b.start_date;
         if (x !== y) {
           if (!x) return 1;
           if (!y) return -1;
@@ -763,7 +766,7 @@ export function CampaignsTable({
       return innerCompare(a, b);
     });
     return copy;
-  }, [campaigns, sortColumn, sortDir, groupByAccount]);
+  }, [campaigns, sortColumn, sortDir, groupByAccount, dateSortField]);
 
   const renderSortIcon = (col: SortColumn) => {
     if (sortColumn !== col) {
@@ -895,10 +898,17 @@ export function CampaignsTable({
                     <button
                       type='button'
                       onClick={() => cycleSort('date')}
-                      title='시작일 기준 정렬 (최신순 → 오래된순 → 해제)'
+                      title={`${
+                        dateSortField === 'end' ? '종료일' : '시작일'
+                      } 기준 정렬 (최신순 → 오래된순 → 해제)`}
                       className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
                     >
                       기간
+                      {sortColumn === 'date' && dateSortField === 'end' && (
+                        <span className='text-[10px] font-normal text-muted-foreground'>
+                          종료일
+                        </span>
+                      )}
                       {renderSortIcon('date')}
                     </button>
                   </TableHead>
