@@ -36,8 +36,49 @@ const escapeHtml = (s: string | null | undefined): string => {
 
 const MIN_ROWS = 12;
 
+/**
+ * 같은 게임(Description)·모델·지역 항목을 한 줄로 합친다.
+ * 단가가 바뀌어 정산서가 여러 줄로 쪼개졌을 때, 인보이스에는 전체 기간 + 합계만 보여주려는 용도.
+ */
+export function mergeInvoiceLines(
+  lines: SettlementLineRow[]
+): SettlementLineRow[] {
+  const merged: SettlementLineRow[] = [];
+  const indexByKey = new Map<string, number>();
+  for (const line of lines) {
+    const key = `${line.description ?? ''}|${line.model ?? ''}|${
+      line.geo ?? ''
+    }`;
+    const at = indexByKey.get(key);
+    if (at === undefined) {
+      indexByKey.set(key, merged.length);
+      merged.push({ ...line });
+      continue;
+    }
+    const prev = merged[at];
+    merged[at] = {
+      ...prev,
+      amount: Number(prev.amount) + Number(line.amount),
+      quantity: Number(prev.quantity) + Number(line.quantity),
+      duration_from:
+        line.duration_from < prev.duration_from
+          ? line.duration_from
+          : prev.duration_from,
+      duration_to:
+        line.duration_to > prev.duration_to
+          ? line.duration_to
+          : prev.duration_to,
+    };
+  }
+  return merged;
+}
+
 export function buildInvoiceHtml(data: InvoiceTemplateData): string {
-  const { invoice, settlement, lines, company } = data;
+  const { invoice, settlement, company } = data;
+  // 발행 때 "항목 합치기"를 켠 인보이스는 같은 게임·지역을 한 줄로
+  const lines = invoice.merge_lines
+    ? mergeInvoiceLines(data.lines)
+    : data.lines;
   const total = lines.reduce((sum, l) => sum + Number(l.amount ?? 0), 0);
   const emptyRows = Math.max(0, MIN_ROWS - lines.length);
 

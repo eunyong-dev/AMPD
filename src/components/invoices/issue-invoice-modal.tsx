@@ -107,6 +107,9 @@ export function IssueInvoiceModal({
   // 회사 도장 — 설정에 도장 이미지가 있을 때만 "도장 넣기" 선택지를 보여준다
   const [stampUrl, setStampUrl] = useState<string | null>(null);
   const [includeStamp, setIncludeStamp] = useState(true);
+  // 정산 항목 수 / 합쳤을 때 줄 수 — 단가 변경으로 쪼개진 경우에만 합치기 선택지를 보여준다
+  const [lineCounts, setLineCounts] = useState({ total: 0, merged: 0 });
+  const [mergeLines, setMergeLines] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -120,12 +123,15 @@ export function IssueInvoiceModal({
     setMissingBillTo([]);
     setStampUrl(null);
     setIncludeStamp(true);
+    setLineCounts({ total: 0, merged: 0 });
+    setMergeLines(false);
     // 동일 settlement에 이미 발행된 인보이스가 있는지 + BILL TO 정보 + 회사 도장 확인
     (async () => {
       setChecking(true);
       try {
         const supabase = createClient();
-        const [invoiceRes, accountRes, companyRes] = await Promise.all([
+        const [invoiceRes, accountRes, companyRes, linesRes] =
+          await Promise.all([
           supabase
             .from('invoices')
             .select('*')
@@ -144,9 +150,22 @@ export function IssueInvoiceModal({
             .select('stamp_url')
             .eq('id', 1)
             .maybeSingle(),
+          supabase
+            .from('settlement_lines')
+            .select('description, model, geo')
+            .eq('settlement_id', settlementId),
         ]);
         if (invoiceRes.error) throw invoiceRes.error;
         setStampUrl(companyRes.data?.stamp_url ?? null);
+        const lineRows = linesRes.data ?? [];
+        setLineCounts({
+          total: lineRows.length,
+          merged: new Set(
+            lineRows.map(
+              (l) => `${l.description ?? ''}|${l.model ?? ''}|${l.geo ?? ''}`
+            )
+          ).size,
+        });
         if (invoiceRes.data && invoiceRes.data.length > 0) {
           setExistingInvoice(invoiceRes.data[0] as InvoiceRow);
         }
@@ -275,6 +294,7 @@ export function IssueInvoiceModal({
             bill_to_email: account.bill_to_email ?? null,
             bill_to_address: account.bill_to_address ?? null,
             include_stamp: includeStamp,
+            merge_lines: mergeLines,
             created_by: user.id,
           })
           .select()
@@ -452,6 +472,24 @@ export function IssueInvoiceModal({
                 id='include-stamp'
                 checked={includeStamp}
                 onCheckedChange={setIncludeStamp}
+              />
+            </div>
+          )}
+
+          {lineCounts.merged > 0 && lineCounts.merged < lineCounts.total && (
+            <div className='flex items-center gap-3 rounded-md border p-3'>
+              <div className='flex-1'>
+                <Label htmlFor='merge-lines'>항목 합치기</Label>
+                <p className='text-xs text-muted-foreground'>
+                  같은 게임·지역을 한 줄로 합쳐 {lineCounts.total}줄 →{' '}
+                  {lineCounts.merged}줄로 발행됩니다. 기간은 전체 기간, 금액은
+                  합계로 들어갑니다.
+                </p>
+              </div>
+              <Switch
+                id='merge-lines'
+                checked={mergeLines}
+                onCheckedChange={setMergeLines}
               />
             </div>
           )}

@@ -350,6 +350,7 @@ export type Database = {
           invoice_date: string
           invoice_no: string
           manager_no: string
+          merge_lines: boolean
           sent_at: string | null
           sent_by: string | null
           sent_cc: string | null
@@ -372,6 +373,7 @@ export type Database = {
           invoice_date: string
           invoice_no: string
           manager_no: string
+          merge_lines?: boolean
           sent_at?: string | null
           sent_by?: string | null
           sent_cc?: string | null
@@ -394,6 +396,7 @@ export type Database = {
           invoice_date?: string
           invoice_no?: string
           manager_no?: string
+          merge_lines?: boolean
           sent_at?: string | null
           sent_by?: string | null
           sent_cc?: string | null

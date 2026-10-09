@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { SendInvoiceModal } from '@/components/invoices/send-invoice-modal';
 import { createClient } from '@/utils/supabase/client';
+import { mergeInvoiceLines } from '@/lib/invoice-html-template';
 import type { Database } from '@/lib/database.types';
 
 type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
@@ -46,7 +47,7 @@ export default function InvoiceViewPage() {
   const [deleting, setDeleting] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [stampSaving, setStampSaving] = useState(false);
+  const [optionSaving, setOptionSaving] = useState(false);
   const [pdfVersion, setPdfVersion] = useState(0); // 도장 변경 후 PDF 미리보기 다시 불러오기용
 
   const load = useCallback(async () => {
@@ -132,32 +133,31 @@ export default function InvoiceViewPage() {
     }
   };
 
-  // 발행된 인보이스의 도장 표시 변경 → PDF 미리보기 다시 생성 (이메일 발송 PDF 도 같은 설정을 따름)
-  const handleToggleStamp = async (includeStamp: boolean) => {
-    setStampSaving(true);
+  // 발행된 인보이스의 표시 옵션(도장 / 항목 합치기) 변경 → PDF 미리보기 다시 생성
+  // (이메일로 보내는 PDF 도 같은 설정을 따름)
+  const updateInvoiceOption = async (
+    patch: Partial<Pick<InvoiceRow, 'include_stamp' | 'merge_lines'>>,
+    message: string
+  ) => {
+    setOptionSaving(true);
     try {
       const supabase = createClient();
       const { error } = await supabase
         .from('invoices')
-        .update({ include_stamp: includeStamp })
+        .update(patch)
         .eq('id', invoiceId);
       if (error) throw error;
       setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              invoice: { ...prev.invoice, include_stamp: includeStamp },
-            }
-          : prev
+        prev ? { ...prev, invoice: { ...prev.invoice, ...patch } } : prev
       );
       setPdfLoaded(false);
       setPdfVersion((v) => v + 1);
-      toast.success(includeStamp ? '도장을 넣었습니다.' : '도장을 뺐습니다.');
+      toast.success(message);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '알 수 없는 오류';
-      toast.error(`도장 설정 변경 실패: ${msg}`);
+      toast.error(`설정 변경 실패: ${msg}`);
     } finally {
-      setStampSaving(false);
+      setOptionSaving(false);
     }
   };
 
@@ -184,22 +184,49 @@ export default function InvoiceViewPage() {
   }
 
 
+  // 단가가 바뀌어 같은 게임이 여러 줄로 쪼개진 인보이스에서만 "항목 합치기" 스위치를 보여준다
+  const canMergeLines =
+    mergeInvoiceLines(data.lines).length < data.lines.length;
+
   return (
     <AccessControl>
       <div className='space-y-3'>
         {/* Action Buttons */}
         <div className='mx-auto max-w-[900px] flex items-center justify-end gap-2'>
-          {data.company?.stamp_url && (
-            <div className='mr-auto flex items-center gap-2'>
-              <Switch
-                id='invoice-stamp'
-                checked={data.invoice.include_stamp}
-                onCheckedChange={handleToggleStamp}
-                disabled={stampSaving}
-              />
-              <Label htmlFor='invoice-stamp'>도장 넣기</Label>
-            </div>
-          )}
+          <div className='mr-auto flex items-center gap-4'>
+            {data.company?.stamp_url && (
+              <div className='flex items-center gap-2'>
+                <Switch
+                  id='invoice-stamp'
+                  checked={data.invoice.include_stamp}
+                  onCheckedChange={(v) =>
+                    updateInvoiceOption(
+                      { include_stamp: v },
+                      v ? '도장을 넣었습니다.' : '도장을 뺐습니다.'
+                    )
+                  }
+                  disabled={optionSaving}
+                />
+                <Label htmlFor='invoice-stamp'>도장 넣기</Label>
+              </div>
+            )}
+            {canMergeLines && (
+              <div className='flex items-center gap-2'>
+                <Switch
+                  id='invoice-merge'
+                  checked={data.invoice.merge_lines}
+                  onCheckedChange={(v) =>
+                    updateInvoiceOption(
+                      { merge_lines: v },
+                      v ? '항목을 한 줄로 합쳤습니다.' : '항목을 나눴습니다.'
+                    )
+                  }
+                  disabled={optionSaving}
+                />
+                <Label htmlFor='invoice-merge'>항목 합치기</Label>
+              </div>
+            )}
+          </div>
           <Button onClick={() => setSendModalOpen(true)} size='sm'>
             <Send className='h-4 w-4' />
             이메일 발송
