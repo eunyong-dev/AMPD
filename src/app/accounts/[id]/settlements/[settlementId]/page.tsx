@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Trash2,
   Copy,
+  Merge,
   ChevronDown,
   FileText,
   ExternalLink,
@@ -141,6 +142,8 @@ export default function SettlementDetailPage() {
   const [settlement, setSettlement] = useState<SettlementDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [showIssueInvoice, setShowIssueInvoice] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   // 편집 모드 (수정 버튼으로 진입, 저장/취소로 종료)
@@ -358,6 +361,43 @@ export default function SettlementDetailPage() {
       0
     );
   }, [settlement]);
+
+  // 같은 캠페인·게임·지역인데 단가가 바뀌어 여러 줄로 쪼개진 항목 — 합치면 몇 줄이 되는지
+  const mergeInfo = useMemo(() => {
+    const lines = settlement?.lines ?? [];
+    const keys = new Set(
+      lines.map(
+        (l) =>
+          `${l.campaign_id}|${l.description ?? ''}|${l.model ?? ''}|${
+            l.geo ?? ''
+          }`
+      )
+    );
+    return { total: lines.length, merged: keys.size };
+  }, [settlement]);
+
+  // 쪼개진 항목을 한 줄로 합쳐 저장 — 기간은 전체, 수량·금액은 합계, 단가는 평균. 되돌릴 수 없음
+  const handleMergeLines = async () => {
+    const before = mergeInfo;
+    setMerging(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.rpc('merge_settlement_lines', {
+        p_settlement_id: settlementId,
+      });
+      if (error) throw error;
+      await load();
+      toast.success(
+        `${before.total}줄을 ${before.merged}줄로 합쳤습니다.`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      toast.error(`항목 합치기 실패: ${msg}`);
+    } finally {
+      setMerging(false);
+      setShowMerge(false);
+    }
+  };
 
   // 지역(GEO)별 총 금액 — KR/JP/TW/US 순으로 표시 (값 있는 것만)
   const amountByGeo = useMemo(() => {
@@ -721,29 +761,43 @@ export default function SettlementDetailPage() {
         <div>
           <div className='flex items-center justify-between mb-3'>
             <h2 className='text-lg font-semibold'>상세</h2>
-            {settlement.lines.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant='outline' size='sm'>
-                    <Copy className='h-4 w-4' />
-                    복사
-                    <ChevronDown className='h-4 w-4 ml-1' />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='end'>
-                  <DropdownMenuItem
-                    onClick={() => copyLines({ withHeader: true })}
-                  >
-                    헤더 포함 복사
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => copyLines({ withHeader: false })}
-                  >
-                    데이터만 복사
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <div className='flex items-center gap-2'>
+              {!editMode && mergeInfo.merged < mergeInfo.total && (
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setShowMerge(true)}
+                  disabled={merging}
+                  title={`같은 게임·지역 항목을 한 줄로 (${mergeInfo.total}줄 → ${mergeInfo.merged}줄)`}
+                >
+                  <Merge className='h-4 w-4' />
+                  항목 합치기
+                </Button>
+              )}
+              {settlement.lines.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant='outline' size='sm'>
+                      <Copy className='h-4 w-4' />
+                      복사
+                      <ChevronDown className='h-4 w-4 ml-1' />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end'>
+                    <DropdownMenuItem
+                      onClick={() => copyLines({ withHeader: true })}
+                    >
+                      헤더 포함 복사
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => copyLines({ withHeader: false })}
+                    >
+                      데이터만 복사
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
 
           {settlement.lines.length === 0 ? (
@@ -942,6 +996,16 @@ export default function SettlementDetailPage() {
           onConfirm={handleDelete}
           title='정산서 삭제'
           description={`"${settlement.title}" 정산을 삭제합니다. 모든 정산 상세 내역이 함께 삭제됩니다.`}
+        />
+
+        <DeleteConfirmationDialog
+          isOpen={showMerge}
+          onClose={() => !merging && setShowMerge(false)}
+          onConfirm={handleMergeLines}
+          title='항목 합치기'
+          description={`같은 게임·지역 항목을 한 줄로 합칩니다. ${mergeInfo.total}줄 → ${mergeInfo.merged}줄이 되고, 기간은 전체 기간, 수량·금액은 합계로 저장됩니다. 단가는 평균(금액÷수량)으로 바뀌고 단가별 내역은 사라집니다. 되돌릴 수 없습니다.`}
+          confirmLabel={merging ? '합치는 중...' : '합치기'}
+          cancelLabel='취소'
         />
 
         <IssueInvoiceModal

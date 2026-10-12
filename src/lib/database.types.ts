@@ -620,6 +620,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      merge_settlement_lines: {
+        Args: { p_settlement_id: string }
+        Returns: number
+      }
       next_invoice_daily_seq: {
         Args: { p_invoice_date: string; p_manager_no: string }
         Returns: number
