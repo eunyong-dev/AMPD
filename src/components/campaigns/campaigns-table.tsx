@@ -495,26 +495,26 @@ function CampaignTableRow({
               <GameLogo imageUrl={imageUrl} alt={campaign.game_name || 'Game'} />
             )}
             <div className='min-w-0'>
+              {/* 시트 아이콘 + 캠페인명 = 리포트(성과) 화면으로 이동. 미연동이면 비활성 */}
               {campaign.daily_report_url ? (
                 <Link
                   href={`/campaigns/${campaign.id}`}
-                  className='block truncate text-sm font-semibold hover:text-primary hover:underline'
+                  className='flex items-center gap-1.5 min-w-0 text-sm font-semibold hover:text-primary hover:underline'
                 >
-                  {campaign.name}
+                  <ReportSheetBadge connected />
+                  <span className='truncate'>{campaign.name}</span>
                 </Link>
               ) : (
                 <span
-                  className='block truncate text-sm font-semibold text-muted-foreground'
+                  className='flex items-center gap-1.5 min-w-0 text-sm font-semibold text-muted-foreground'
                   title='리포트 미연동'
                 >
-                  {campaign.name}
+                  <ReportSheetBadge connected={false} />
+                  <span className='truncate'>{campaign.name}</span>
                 </span>
               )}
-              <div className='flex items-center gap-1.5 min-w-0 text-xs text-muted-foreground'>
-                <ReportSheetBadge connected={!!campaign.daily_report_url} />
-                <span className='truncate'>
-                  {regionalGameName || campaign.game_name || '-'}
-                </span>
+              <div className='truncate text-xs text-muted-foreground'>
+                {regionalGameName || campaign.game_name || '-'}
               </div>
             </div>
           </div>
