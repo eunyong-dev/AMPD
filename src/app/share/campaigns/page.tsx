@@ -317,6 +317,17 @@ export default function PublicCampaignsPage() {
             </div>
           </div>
         ) : (
+        <>
+        <div className='relative mb-3 search-break:hidden'>
+          <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            placeholder='캠페인·게임·광고주 검색'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='h-9 w-full pl-9'
+            autoComplete='off'
+          />
+        </div>
         <div className='mb-4 flex flex-wrap items-center justify-between gap-2 py-1'>
           <div className='max-w-full overflow-x-auto'>
             <FilterTabs<StatusTab>
@@ -327,13 +338,14 @@ export default function PublicCampaignsPage() {
           </div>
 
           <div className='flex flex-wrap items-center gap-2'>
-            <div className='relative w-full sm:w-56'>
+            {/* 넓은 화면(1450px+)에서만 필터 줄 안에 — 좁으면 탭 위 한 줄로 */}
+            <div className='relative hidden w-56 search-break:block'>
               <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 placeholder='캠페인·게임·광고주 검색'
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className='h-8 pl-9'
+                className='h-9 pl-9'
                 autoComplete='off'
               />
             </div>
@@ -483,6 +495,7 @@ export default function PublicCampaignsPage() {
             </DropdownMenu>
           </div>
         </div>
+        </>
         )}
 
         {loading ? (
