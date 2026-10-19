@@ -116,8 +116,8 @@ export function NavUser({
       if (onSignOut) {
         await onSignOut();
       }
-      // 로그아웃 후 홈 페이지로 리다이렉트
-      router.push('/');
+      // 로그아웃 후 캠페인 현황으로 (로그인 화면이 뜬다)
+      router.push('/campaigns');
     } catch (error) {
       console.error('로그아웃 오류:', error);
     }

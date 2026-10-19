@@ -16,7 +16,6 @@ import { createClient } from '@/utils/supabase/client';
 
 // 정적 경로 → 한국어 표시 이름 매핑
 const pathMap: Record<string, string> = {
-  '/': '홈',
   '/accounts': '광고주',
   '/analytics': '분석',
   '/campaigns': '캠페인',
@@ -84,7 +83,7 @@ export function AppBreadcrumb() {
     }
   }, [pathname, pathSegments]);
 
-  // 홈 페이지인 경우 breadcrumb 표시하지 않음
+  // 루트는 캠페인 현황으로 리다이렉트되므로 breadcrumb 표시하지 않음
   if (pathname === '/') {
     return null;
   }
@@ -92,12 +91,6 @@ export function AppBreadcrumb() {
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link href='/'>홈</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-
         {pathSegments.map((segment, index) => {
           let href = '/' + pathSegments.slice(0, index + 1).join('/');
           const isLast = index === pathSegments.length - 1;
@@ -155,7 +148,7 @@ export function AppBreadcrumb() {
 
           return (
             <div key={`${index}-${segment}`} className='flex items-center'>
-              <BreadcrumbSeparator />
+              {index > 0 && <BreadcrumbSeparator />}
               <BreadcrumbItem>
                 {isLast ? (
                   <BreadcrumbPage>{displayName}</BreadcrumbPage>

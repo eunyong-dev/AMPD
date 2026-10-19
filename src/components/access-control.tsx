@@ -33,8 +33,8 @@ export function AccessControl({ children, fallback }: AccessControlProps) {
           </div>
           <h2 className='text-xl font-semibold mb-4'>Error Occurred</h2>
           <p className='text-muted-foreground mb-6'>{error}</p>
-          <Button onClick={() => router.push('/')} className='w-full'>
-            Go to Home
+          <Button onClick={() => router.push('/campaigns')} className='w-full'>
+            Go to Campaigns
           </Button>
         </div>
       </div>

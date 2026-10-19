@@ -74,7 +74,7 @@ export function AppSidebar({ user, onSignOut, ...props }: AppSidebarProps) {
               asChild
               className='data-[slot=sidebar-menu-button]:!p-1.5'
             >
-              <Link href='/'>
+              <Link href='/campaigns'>
                 <div className='flex items-center justify-center bg-primary text-primary-foreground rounded-md p-1'>
                   <Zap className='h-4 w-4' />
                 </div>
