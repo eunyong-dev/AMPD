@@ -69,7 +69,7 @@ const COLUMN_WIDTHS = {
   campaignWithGame: '340px',
   account: '150px',
   gameName: '250px',
-  assignedUser: '160px',
+  assignedUser: '130px',
   region: '120px',
   mmp: '80px',
   type: '120px',
@@ -1128,7 +1128,7 @@ export function CampaignsTable({
               return (
                 <React.Fragment key={campaign.id}>
                   {groupHeader && (
-                    <TableRow className='bg-muted/50 hover:bg-muted/50'>
+                    <TableRow className='bg-muted/30 hover:bg-muted/30'>
                       <TableCell colSpan={visibleColumnCount} className='py-1.5'>
                         <div className='flex items-center gap-2 text-xs'>
                           {company ? (

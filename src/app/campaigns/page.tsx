@@ -291,7 +291,7 @@ export default function AllCampaignsPage() {
     <AccessControl>
       <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
         {/* 상단: 제목 + 검색 */}
-        <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='flex flex-wrap items-end justify-between gap-3'>
           <div className='min-w-0'>
             <h1 className='text-2xl font-semibold tracking-tight'>캠페인</h1>
             <p className='mt-1 text-sm text-muted-foreground'>
@@ -303,20 +303,11 @@ export default function AllCampaignsPage() {
               <span className='tabular-nums'>{campaigns.length}</span>개
             </p>
           </div>
-            <div className='relative w-full sm:w-72'>
-              <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-              <Input
-                placeholder='캠페인·게임·담당자 검색'
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className='h-9 pl-9'
-                autoComplete='off'
-              />
-            </div>
         </div>
 
-        {/* 상태 탭(밑줄) + 오른쪽 필터 — 아래 경계선 하나로 표와 구분 */}
-        <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b'>
+        {/* 툴바(상태 탭 + 검색·필터)와 표를 한 카드로 묶는다 */}
+        <div className='flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card lg:flex-1'>
+        <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b px-2'>
             <div className='-mb-px flex items-end gap-1 overflow-x-auto [scrollbar-width:none]'>
               {(
                 [
@@ -359,7 +350,17 @@ export default function AllCampaignsPage() {
                 );
               })}
             </div>
-            <div className='flex items-center gap-2 pb-2'>
+            <div className='flex flex-wrap items-center gap-2 py-2'>
+              <div className='relative w-full sm:w-60'>
+                <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+                <Input
+                  placeholder='캠페인·게임·담당자 검색'
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className='h-8 pl-9'
+                  autoComplete='off'
+                />
+              </div>
               {/* 지역 — 드롭다운 (항목 옆에 개수), 여러 개 선택 */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -597,7 +598,7 @@ export default function AllCampaignsPage() {
             campaigns={filteredCampaigns}
             // 표가 남은 높이를 채우고 안에서만 스크롤 → 필터·표 헤더가 늘 보인다
             fillHeight
-            className='lg:flex-1'
+            className='rounded-none border-0 lg:flex-1'
             // 홀딩·종료 탭은 이미 끝난 캠페인이라 기간 정렬을 종료일 기준으로
             dateSortField={
               statusFilter === 'holding' || statusFilter === 'end'
@@ -635,10 +636,11 @@ export default function AllCampaignsPage() {
             </div>
             <h3 className='text-lg font-semibold mb-2'>캠페인이 없습니다</h3>
             <p className='text-muted-foreground'>
-              아직 등록된 캠페인이 없습니다.
+              조건에 맞는 캠페인이 없어요. 필터를 줄여 보세요.
             </p>
           </div>
         )}
+        </div>
 
         {/* Edit Campaign Form */}
         {editingCampaign && (
