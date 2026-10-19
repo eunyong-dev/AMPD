@@ -13,6 +13,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  ChevronRight,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -924,6 +925,18 @@ export function CampaignsTable({
   // 광고주 묶음 줄 — 광고주 칸을 숨기고 광고주 순으로 묶여 있을 때만
   const showGroupRows =
     groupByAccount && sortColumn !== 'date' && !columnVisibility.account;
+  // 접힌 광고주 묶음 (광고주명)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set()
+  );
+  const toggleGroup = useCallback((company: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(company)) next.delete(company);
+      else next.add(company);
+      return next;
+    });
+  }, []);
   const groupSizes = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of campaigns) {
@@ -1024,6 +1037,19 @@ export function CampaignsTable({
                     {columnVisibility.gameName ? '캠페인 제목' : '캠페인 · 게임'}
                     {renderSortIcon('name')}
                   </button>
+                  {showGroupRows && groupSizes.size > 1 && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        setCollapsedGroups((prev) =>
+                          prev.size > 0 ? new Set() : new Set(groupSizes.keys())
+                        )
+                      }
+                      className='ml-2 rounded px-1.5 py-0.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground'
+                    >
+                      {collapsedGroups.size > 0 ? '모두 펼치기' : '모두 접기'}
+                    </button>
+                  )}
                 </TableHead>
               )}
               {columnVisibility.account && (
@@ -1128,12 +1154,22 @@ export function CampaignsTable({
               return (
                 <React.Fragment key={campaign.id}>
                   {groupHeader && (
-                    <TableRow className='bg-muted/30 hover:bg-muted/30'>
+                    <TableRow
+                      className='cursor-pointer bg-muted/30 hover:bg-muted/50'
+                      onClick={() => toggleGroup(company)}
+                    >
                       <TableCell colSpan={visibleColumnCount} className='py-1.5'>
                         <div className='flex items-center gap-2 text-xs'>
+                          <ChevronRight
+                            className={cn(
+                              'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                              !collapsedGroups.has(company) && 'rotate-90'
+                            )}
+                          />
                           {company ? (
                             <Link
                               href={accountUrl(company)}
+                              onClick={(e) => e.stopPropagation()}
                               className='font-semibold hover:underline'
                             >
                               {company}
@@ -1150,6 +1186,7 @@ export function CampaignsTable({
                       </TableCell>
                     </TableRow>
                   )}
+                {!(showGroupRows && collapsedGroups.has(company)) && (
                 <CampaignTableRow
                   key={campaign.id}
                   campaign={campaign}
@@ -1160,6 +1197,7 @@ export function CampaignsTable({
                   accountAssignedUserId={accountAssignedUserId}
                   columnVisibility={columnVisibility}
                 />
+                )}
                 </React.Fragment>
               );
             })}

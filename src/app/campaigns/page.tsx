@@ -59,7 +59,8 @@ export default function AllCampaignsPage() {
     // 광고주는 표 안 묶음 줄로, 게임은 캠페인 칸에 함께 보여준다 (컬럼 설정에서 다시 켤 수 있음)
     account: false,
     gameName: false,
-    assignedUser: true,
+    // 담당자는 기본 숨김 — 위 담당자 필터로 거르고, 필요하면 컬럼 설정에서 켠다
+    assignedUser: false,
     region: true,
     mmp: true,
     type: true,
