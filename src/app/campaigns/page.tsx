@@ -315,7 +315,6 @@ export default function AllCampaignsPage() {
         {/* 필터 — 상태·지역 버튼 안에 개수 (다른 필터를 반영한 숫자) */}
         <div>
           <div className='flex flex-wrap items-center gap-2'>
-            <div className='-mx-1 flex min-w-0 max-w-full items-center gap-2 overflow-x-auto px-1 [scrollbar-width:none]'>
             <div className='flex flex-shrink-0 gap-0.5 rounded-lg bg-muted p-0.5'>
               {(
                 [
@@ -332,7 +331,7 @@ export default function AllCampaignsPage() {
                   onClick={() => setStatusFilter(key)}
                   aria-pressed={statusFilter === key}
                   className={cn(
-                    'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
+                    'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
                     statusFilter === key &&
                       'bg-background text-foreground shadow-sm'
                   )}
@@ -346,45 +345,63 @@ export default function AllCampaignsPage() {
               ))}
             </div>
 
-            {/* 지역 — 상태 탭과 같은 모양, 여러 개 선택 가능 */}
-            <div className='flex flex-shrink-0 gap-0.5 rounded-lg bg-muted p-0.5'>
-              {(['KR', 'JP', 'TW', 'US'] as const).map((region) => {
-                const on = selectedRegions.includes(region);
-                return (
-                  <button
+            {/* 지역 — 드롭다운 (항목 옆에 개수), 여러 개 선택 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant='outline' size='sm' className='h-9 gap-1.5'>
+                  {selectedRegions.length === 0 ||
+                  selectedRegions.includes('all')
+                    ? '전체 지역'
+                    : selectedRegions
+                        .map((r) => `${REGION_FLAGS[r as keyof typeof REGION_FLAGS] ?? ''} ${r}`)
+                        .join(', ')}
+                  <ChevronDownIcon className='h-4 w-4 opacity-60' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='start' className='w-44'>
+                {(['KR', 'JP', 'TW', 'US'] as const).map((region) => (
+                  <DropdownMenuItem
                     key={region}
-                    type='button'
                     onClick={() => toggleRegionSelection(region)}
-                    aria-pressed={on}
-                    className={cn(
-                      'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
-                      on && 'bg-background text-foreground shadow-sm'
-                    )}
+                    onSelect={(e) => e.preventDefault()}
+                    className='flex items-center gap-2'
                   >
-                    <span>{REGION_FLAGS[region]}</span>
-                    {region}
-                    <span className='text-xs tabular-nums text-muted-foreground'>
+                    <Checkbox
+                      checked={selectedRegions.includes(region)}
+                      onCheckedChange={() => {}}
+                    />
+                    <span>
+                      {REGION_FLAGS[region]} {region}
+                    </span>
+                    <span className='ml-auto text-xs tabular-nums text-muted-foreground'>
                       {campaignStatsByRegion[region]}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
+                  </DropdownMenuItem>
+                ))}
+                {selectedRegions.length > 0 &&
+                  !selectedRegions.includes('all') && (
+                    <DropdownMenuItem
+                      onClick={() => setSelectedRegions([])}
+                      className='text-muted-foreground'
+                    >
+                      선택 해제
+                    </DropdownMenuItem>
+                  )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            </div>
-
-            <div className='relative ml-auto min-w-[200px] flex-1 sm:max-w-xs'>
+            <div className='relative min-w-[180px] flex-1 sm:max-w-xs'>
               <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 placeholder='캠페인·게임·담당자 검색'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className='h-8 pl-9'
+                className='h-9 pl-9'
                 autoComplete='off'
               />
             </div>
 
-            <div className='flex items-center gap-2'>
+            <div className='ml-auto flex items-center gap-2'>
               {/* Assigned User Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
