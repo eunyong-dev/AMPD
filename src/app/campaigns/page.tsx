@@ -308,7 +308,7 @@ export default function AllCampaignsPage() {
 
         {/* 툴바(상태 탭 + 검색·필터)와 표를 한 카드로 묶는다 */}
         <div className='flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card lg:flex-1'>
-        <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b px-2'>
+        <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-b px-2'>
             <div className='-mb-px flex items-end gap-1 overflow-x-auto [scrollbar-width:none]'>
               {(
                 [
@@ -351,8 +351,8 @@ export default function AllCampaignsPage() {
                 );
               })}
             </div>
-            <div className='flex flex-wrap items-center gap-2 py-2'>
-              <div className='relative w-full sm:w-60'>
+            <div className='order-first flex w-full items-center gap-2 pt-2 xl:order-none xl:w-auto xl:py-2'>
+              <div className='relative min-w-0 flex-1 xl:w-60 xl:flex-none'>
                 <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
                 <Input
                   placeholder='캠페인·게임·담당자 검색'
