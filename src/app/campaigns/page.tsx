@@ -151,25 +151,54 @@ export default function AllCampaignsPage() {
   }, []);
 
   // 통계 계산
-  const stats = useMemo(() => {
+  // 필터 조건 — 카드 숫자는 자기 차원만 빼고 세야 해서 조건을 따로 둔다
+  const matchers = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase().trim();
+    type C = (typeof campaigns)[number];
     return {
-      total: campaigns.length,
-      planning: campaigns.filter((c) => c.status === 'planning').length,
-      ongoing: campaigns.filter((c) => c.status === 'ongoing').length,
-      holding: campaigns.filter((c) => c.status === 'holding').length,
-      end: campaigns.filter((c) => c.status === 'end').length,
+      status: (c: C) => statusFilter === 'all' || c.status === statusFilter,
+      user: (c: C) =>
+        selectedUserIds.length === 0 ||
+        selectedUserIds.includes('all') ||
+        (!!c.assigned_user_id && selectedUserIds.includes(c.assigned_user_id)),
+      region: (c: C) =>
+        selectedRegions.length === 0 ||
+        selectedRegions.includes('all') ||
+        (!!c.region && selectedRegions.includes(c.region)),
+      search: (c: C) =>
+        !searchLower ||
+        (c.name?.toLowerCase() || '').includes(searchLower) ||
+        (c.game_name?.toLowerCase() || '').includes(searchLower) ||
+        (c.assigned_user_name?.toLowerCase() || '').includes(searchLower),
     };
-  }, [campaigns]);
+  }, [campaigns, statusFilter, selectedUserIds, selectedRegions, searchTerm]);
 
-  // 지역별 캠페인 통계
-  const campaignStatsByRegion = useMemo(() => {
+  // 상태별 캠페인 — 상태만 빼고 나머지 필터(지역·담당자·검색) 반영
+  const stats = useMemo(() => {
+    const base = campaigns.filter(
+      (c) => matchers.user(c) && matchers.region(c) && matchers.search(c)
+    );
     return {
-      KR: campaigns.filter((c) => c.region === 'KR').length,
-      JP: campaigns.filter((c) => c.region === 'JP').length,
-      TW: campaigns.filter((c) => c.region === 'TW').length,
-      US: campaigns.filter((c) => c.region === 'US').length,
+      total: base.length,
+      planning: base.filter((c) => c.status === 'planning').length,
+      ongoing: base.filter((c) => c.status === 'ongoing').length,
+      holding: base.filter((c) => c.status === 'holding').length,
+      end: base.filter((c) => c.status === 'end').length,
     };
-  }, [campaigns]);
+  }, [campaigns, matchers]);
+
+  // 지역별 캠페인 — 지역만 빼고 나머지 필터 반영
+  const campaignStatsByRegion = useMemo(() => {
+    const base = campaigns.filter(
+      (c) => matchers.status(c) && matchers.user(c) && matchers.search(c)
+    );
+    return {
+      KR: base.filter((c) => c.region === 'KR').length,
+      JP: base.filter((c) => c.region === 'JP').length,
+      TW: base.filter((c) => c.region === 'TW').length,
+      US: base.filter((c) => c.region === 'US').length,
+    };
+  }, [campaigns, matchers]);
 
   // 담당자 선택 토글
   const toggleUserSelection = useCallback((userId: string) => {
@@ -212,46 +241,17 @@ export default function AllCampaignsPage() {
   ];
 
   // 상태별, 담당자별, 지역별, 검색어 필터링된 캠페인
-  const filteredCampaigns = useMemo(() => {
-    let filtered = campaigns;
-
-    // 상태 필터링
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((c) => c.status === statusFilter);
-    }
-
-    // 담당자 필터링
-    if (selectedUserIds.length > 0 && !selectedUserIds.includes('all')) {
-      filtered = filtered.filter(
+  const filteredCampaigns = useMemo(
+    () =>
+      campaigns.filter(
         (c) =>
-          c.assigned_user_id && selectedUserIds.includes(c.assigned_user_id)
-      );
-    }
-
-    // 지역 필터링
-    if (selectedRegions.length > 0 && !selectedRegions.includes('all')) {
-      filtered = filtered.filter(
-        (c) => c.region && selectedRegions.includes(c.region)
-      );
-    }
-
-    // 검색어 필터링
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter((c) => {
-        const campaignName = c.name?.toLowerCase() || '';
-        const gameName = c.game_name?.toLowerCase() || '';
-        const assignedUserName = c.assigned_user_name?.toLowerCase() || '';
-        return (
-          campaignName.includes(searchLower) ||
-          gameName.includes(searchLower) ||
-          assignedUserName.includes(searchLower)
-        );
-      });
-    }
-
-    return filtered;
-  }, [campaigns, statusFilter, selectedUserIds, selectedRegions, searchTerm]);
+          matchers.status(c) &&
+          matchers.user(c) &&
+          matchers.region(c) &&
+          matchers.search(c)
+      ),
+    [campaigns, matchers]
+  );
 
   // 로딩 중일 때 스켈레톤 표시
   if (loading) {
@@ -297,9 +297,9 @@ export default function AllCampaignsPage() {
 
   return (
     <AccessControl>
-      <div className='space-y-4'>
+      <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
         {/* Campaign Statistics */}
-        <div className='grid grid-cols-1 min-[1950px]:grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 gap-4 xl:grid-cols-2'>
           {/* By Status */}
           <StatBreakdownCard
             icon={<TargetIcon className='h-4 w-4 text-muted-foreground' />}
@@ -310,6 +310,10 @@ export default function AllCampaignsPage() {
               { key: 'holding', label: '홀딩', value: stats.holding, color: '#ef4444' },
               { key: 'end', label: '종료', value: stats.end, color: '#94a3b8' },
             ]}
+            activeKeys={statusFilter === 'all' ? [] : [statusFilter]}
+            onItemClick={(key) =>
+              setStatusFilter((prev) => (prev === key ? 'all' : key))
+            }
           />
 
           {/* By Region */}
@@ -322,6 +326,8 @@ export default function AllCampaignsPage() {
               { key: 'TW', label: '🇹🇼 TW', value: campaignStatsByRegion.TW, color: '#14b8a6' },
               { key: 'US', label: '🇺🇸 US', value: campaignStatsByRegion.US, color: '#f97316' },
             ]}
+            activeKeys={selectedRegions.includes('all') ? [] : selectedRegions}
+            onItemClick={toggleRegionSelection}
           />
         </div>
 
@@ -632,6 +638,9 @@ export default function AllCampaignsPage() {
         {filteredCampaigns.length > 0 ? (
           <CampaignsTable
             campaigns={filteredCampaigns}
+            // 표가 남은 높이를 채우고 안에서만 스크롤 → 필터·표 헤더가 늘 보인다
+            fillHeight
+            className='lg:flex-1'
             // 홀딩·종료 탭은 이미 끝난 캠페인이라 기간 정렬을 종료일 기준으로
             dateSortField={
               statusFilter === 'holding' || statusFilter === 'end'

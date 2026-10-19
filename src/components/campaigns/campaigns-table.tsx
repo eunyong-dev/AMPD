@@ -60,6 +60,7 @@ import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip
 import { MmpIcon } from '@/components/common/mmp-icon';
 import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
 import { accountUrl } from '@/lib/utils/account-url';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 // 상수 정의
@@ -667,6 +668,9 @@ interface CampaignsTableProps {
   groupByAccount?: boolean;
   /** 기간 정렬 기준 — 홀딩·종료처럼 이미 끝난 캠페인을 볼 때는 'end'(종료일) */
   dateSortField?: 'start' | 'end';
+  /** true 면 부모 높이를 채우고 표 안에서만 스크롤 — 헤더가 위에 고정된다 */
+  fillHeight?: boolean;
+  className?: string;
 }
 
 export function CampaignsTable({
@@ -681,6 +685,8 @@ export function CampaignsTable({
   accountAssignedUserId,
   groupByAccount = false,
   dateSortField = 'start',
+  fillHeight = false,
+  className,
   columnVisibility = {
     campaignTitle: true,
     account: true,
@@ -833,132 +839,133 @@ export function CampaignsTable({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <TableWrapper>
-        <div className='overflow-x-auto'>
-          <Table style={{ tableLayout: 'fixed', width: '100%' }}>
-            <TableHeader className={TABLE_STYLES.header}>
-              <TableRow>
-                {columnVisibility.campaignTitle && (
-                  <TableHead style={{ width: COLUMN_WIDTHS.campaignTitle }}>
-                    <button
-                      type='button'
-                      onClick={() => cycleSort('name')}
-                      className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
-                    >
-                      캠페인 제목
-                      {renderSortIcon('name')}
-                    </button>
-                  </TableHead>
-                )}
-                {columnVisibility.account && (
-                  <TableHead style={{ width: COLUMN_WIDTHS.account }}>
-                    광고주
-                  </TableHead>
-                )}
-                {columnVisibility.gameName && (
-                  <TableHead style={{ width: COLUMN_WIDTHS.gameName }}>
-                    게임명
-                  </TableHead>
-                )}
-                {columnVisibility.assignedUser && (
-                  <TableHead style={{ width: COLUMN_WIDTHS.assignedUser }}>
-                    담당자
-                  </TableHead>
-                )}
-                {columnVisibility.region && (
-                  <TableHead
-                    style={{ width: COLUMN_WIDTHS.region }}
-                    className='text-center'
+      <TableWrapper
+        fillHeight={fillHeight}
+        className={cn(fillHeight && 'max-h-full', className)}
+      >
+        <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+          <TableHeader className={TABLE_STYLES.header}>
+            <TableRow>
+              {columnVisibility.campaignTitle && (
+                <TableHead style={{ width: COLUMN_WIDTHS.campaignTitle }}>
+                  <button
+                    type='button'
+                    onClick={() => cycleSort('name')}
+                    className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
                   >
-                    <button
-                      type='button'
-                      onClick={() => cycleSort('region')}
-                      className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors font-medium mx-auto'
-                    >
-                      지역
-                      {renderSortIcon('region')}
-                    </button>
-                  </TableHead>
-                )}
-                {columnVisibility.mmp && (
-                  <TableHead
-                    style={{ width: COLUMN_WIDTHS.mmp }}
-                    className='text-center'
+                    캠페인 제목
+                    {renderSortIcon('name')}
+                  </button>
+                </TableHead>
+              )}
+              {columnVisibility.account && (
+                <TableHead style={{ width: COLUMN_WIDTHS.account }}>
+                  광고주
+                </TableHead>
+              )}
+              {columnVisibility.gameName && (
+                <TableHead style={{ width: COLUMN_WIDTHS.gameName }}>
+                  게임명
+                </TableHead>
+              )}
+              {columnVisibility.assignedUser && (
+                <TableHead style={{ width: COLUMN_WIDTHS.assignedUser }}>
+                  담당자
+                </TableHead>
+              )}
+              {columnVisibility.region && (
+                <TableHead
+                  style={{ width: COLUMN_WIDTHS.region }}
+                  className='text-center'
+                >
+                  <button
+                    type='button'
+                    onClick={() => cycleSort('region')}
+                    className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors font-medium mx-auto'
                   >
-                    MMP
-                  </TableHead>
-                )}
-                {columnVisibility.type && (
-                  <TableHead style={{ width: COLUMN_WIDTHS.type }}>
-                    타입
-                  </TableHead>
-                )}
-                {columnVisibility.dateRange && (
-                  <TableHead style={{ width: COLUMN_WIDTHS.dateRange }}>
-                    <button
-                      type='button'
-                      onClick={() => cycleSort('date')}
-                      title={`${
-                        dateSortField === 'end' ? '종료일' : '시작일'
-                      } 기준 정렬 (최신순 → 오래된순 → 해제)`}
-                      className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
-                    >
-                      기간
-                      {sortColumn === 'date' && dateSortField === 'end' && (
-                        <span className='text-[10px] font-normal text-muted-foreground'>
-                          종료일
-                        </span>
-                      )}
-                      {renderSortIcon('date')}
-                    </button>
-                  </TableHead>
-                )}
-                {columnVisibility.status && (
-                  <TableHead
-                    style={{ width: COLUMN_WIDTHS.status }}
-                    className='text-center'
+                    지역
+                    {renderSortIcon('region')}
+                  </button>
+                </TableHead>
+              )}
+              {columnVisibility.mmp && (
+                <TableHead
+                  style={{ width: COLUMN_WIDTHS.mmp }}
+                  className='text-center'
+                >
+                  MMP
+                </TableHead>
+              )}
+              {columnVisibility.type && (
+                <TableHead style={{ width: COLUMN_WIDTHS.type }}>
+                  타입
+                </TableHead>
+              )}
+              {columnVisibility.dateRange && (
+                <TableHead style={{ width: COLUMN_WIDTHS.dateRange }}>
+                  <button
+                    type='button'
+                    onClick={() => cycleSort('date')}
+                    title={`${
+                      dateSortField === 'end' ? '종료일' : '시작일'
+                    } 기준 정렬 (최신순 → 오래된순 → 해제)`}
+                    className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
                   >
-                    상태
-                  </TableHead>
-                )}
-                {columnVisibility.jiraUrl && (
-                  <TableHead
-                    style={{ width: COLUMN_WIDTHS.jiraUrl }}
-                    className='text-center'
-                  >
-                    Jira URL
-                  </TableHead>
-                )}
-                {columnVisibility.dailyReportUrl && (
-                  <TableHead
-                    style={{ width: COLUMN_WIDTHS.dailyReportUrl }}
-                    className='text-center'
-                  >
-                    Report URL
-                  </TableHead>
-                )}
-                <TableHead style={{ width: COLUMN_WIDTHS.actions }}></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className={TABLE_STYLES.body}>
-              {sortedCampaigns.map((campaign) => {
-                const statusDisplay = getStatusDisplay(campaign.status);
-                return (
-                  <CampaignTableRow
-                    key={campaign.id}
-                    campaign={campaign}
-                    statusDisplay={statusDisplay}
-                    handleEditCampaign={handleEditCampaign}
-                    handleDeleteClick={handleDeleteClick}
-                    currentUserProfile={currentUserProfile}
-                    accountAssignedUserId={accountAssignedUserId}
-                    columnVisibility={columnVisibility}
-                  />
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    기간
+                    {sortColumn === 'date' && dateSortField === 'end' && (
+                      <span className='text-[10px] font-normal text-muted-foreground'>
+                        종료일
+                      </span>
+                    )}
+                    {renderSortIcon('date')}
+                  </button>
+                </TableHead>
+              )}
+              {columnVisibility.status && (
+                <TableHead
+                  style={{ width: COLUMN_WIDTHS.status }}
+                  className='text-center'
+                >
+                  상태
+                </TableHead>
+              )}
+              {columnVisibility.jiraUrl && (
+                <TableHead
+                  style={{ width: COLUMN_WIDTHS.jiraUrl }}
+                  className='text-center'
+                >
+                  Jira URL
+                </TableHead>
+              )}
+              {columnVisibility.dailyReportUrl && (
+                <TableHead
+                  style={{ width: COLUMN_WIDTHS.dailyReportUrl }}
+                  className='text-center'
+                >
+                  Report URL
+                </TableHead>
+              )}
+              <TableHead style={{ width: COLUMN_WIDTHS.actions }}></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className={TABLE_STYLES.body}>
+            {sortedCampaigns.map((campaign) => {
+              const statusDisplay = getStatusDisplay(campaign.status);
+              return (
+                <CampaignTableRow
+                  key={campaign.id}
+                  campaign={campaign}
+                  statusDisplay={statusDisplay}
+                  handleEditCampaign={handleEditCampaign}
+                  handleDeleteClick={handleDeleteClick}
+                  currentUserProfile={currentUserProfile}
+                  accountAssignedUserId={accountAssignedUserId}
+                  columnVisibility={columnVisibility}
+                />
+              );
+            })}
+          </TableBody>
+        </Table>
       </TableWrapper>
       <DeleteConfirmationDialog
         isOpen={showDeleteDialog}
