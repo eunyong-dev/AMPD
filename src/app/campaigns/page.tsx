@@ -313,9 +313,10 @@ export default function AllCampaignsPage() {
         </div>
 
         {/* 필터 — 상태·지역 버튼 안에 개수 (다른 필터를 반영한 숫자) */}
-        <div className='rounded-xl border bg-card p-2'>
+        <div>
           <div className='flex flex-wrap items-center gap-2'>
-            <div className='flex flex-wrap gap-0.5 rounded-lg bg-muted p-0.5'>
+            <div className='-mx-1 flex min-w-0 max-w-full items-center gap-2 overflow-x-auto px-1 [scrollbar-width:none]'>
+            <div className='flex flex-shrink-0 gap-0.5 rounded-lg bg-muted p-0.5'>
               {(
                 [
                   ['all', '전체', null, stats.total],
@@ -345,9 +346,8 @@ export default function AllCampaignsPage() {
               ))}
             </div>
 
-            <div className='hidden h-6 w-px bg-border 2xl:block' />
-
-            <div className='flex flex-wrap gap-1'>
+            {/* 지역 — 상태 탭과 같은 모양, 여러 개 선택 가능 */}
+            <div className='flex flex-shrink-0 gap-0.5 rounded-lg bg-muted p-0.5'>
               {(['KR', 'JP', 'TW', 'US'] as const).map((region) => {
                 const on = selectedRegions.includes(region);
                 return (
@@ -357,8 +357,8 @@ export default function AllCampaignsPage() {
                     onClick={() => toggleRegionSelection(region)}
                     aria-pressed={on}
                     className={cn(
-                      'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors hover:bg-muted',
-                      on && 'border-primary bg-primary/10 hover:bg-primary/15'
+                      'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
+                      on && 'bg-background text-foreground shadow-sm'
                     )}
                   >
                     <span>{REGION_FLAGS[region]}</span>
@@ -371,7 +371,9 @@ export default function AllCampaignsPage() {
               })}
             </div>
 
-            <div className='relative min-w-[200px] flex-1'>
+            </div>
+
+            <div className='relative ml-auto min-w-[200px] flex-1 sm:max-w-xs'>
               <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 placeholder='캠페인·게임·담당자 검색'
