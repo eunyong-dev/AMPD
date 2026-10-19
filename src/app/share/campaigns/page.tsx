@@ -1,16 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
   ArrowDownIcon,
   ArrowDownUpIcon,
   ArrowUpIcon,
   Building2Icon,
   ChevronDownIcon,
+  ChevronRightIcon,
   GlobeIcon,
+  SearchIcon,
   XIcon,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 import {
   Table,
@@ -39,17 +42,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MmpIcon } from '@/components/common/mmp-icon';
 import {
-  GameCell,
+  CampaignGameCell,
+  PeriodCell,
   StatusBadge,
   STATUS,
   REGION_FLAG,
-  fmtPeriod,
   PUBLIC_CAMPAIGN_DETAIL_SELECT,
   rememberShareListQuery,
   type PublicCampaign,
   type PublicCampaignDetail,
 } from '@/components/share/share-campaign-ui';
-import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
 
 type StatusTab = 'all' | 'planning' | 'ongoing' | 'holding' | 'end';
 type SortKey = 'advertiser' | 'latest' | 'oldest';
@@ -124,6 +126,9 @@ export default function PublicCampaignsPage() {
   const [advertisers, setAdvertisers] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>('advertiser');
+  const [search, setSearch] = useState('');
+  // 접힌 광고주 묶음
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [urlReady, setUrlReady] = useState(false);
 
   // 공유 링크의 쿼리로 필터 복원 (useSearchParams 대신 window 사용 → Suspense 불필요)
@@ -135,6 +140,7 @@ export default function PublicCampaignsPage() {
     setRegions(p.getAll('region').filter(Boolean));
     const so = p.get('sort');
     if (isSortKey(so)) setSort(so);
+    setSearch(p.get('q') ?? '');
     setUrlReady(true);
   }, []);
 
@@ -143,15 +149,16 @@ export default function PublicCampaignsPage() {
     if (!urlReady) return;
     const url = new URL(window.location.href);
     const p = url.searchParams;
-    ['status', 'advertiser', 'region', 'sort'].forEach((k) => p.delete(k));
+    ['status', 'advertiser', 'region', 'sort', 'q'].forEach((k) => p.delete(k));
     if (tab !== DEFAULT_TAB) p.set('status', tab);
     advertisers.forEach((a) => p.append('advertiser', a));
     regions.forEach((r) => p.append('region', r));
     if (sort !== 'advertiser') p.set('sort', sort);
+    if (search.trim()) p.set('q', search.trim());
     window.history.replaceState(null, '', url.pathname + url.search);
     // 성과 뷰어의 "← 캠페인 현황" 이 같은 필터로 돌아오도록 기억
     rememberShareListQuery(url.search);
-  }, [urlReady, tab, advertisers, regions, sort]);
+  }, [urlReady, tab, advertisers, regions, sort, search]);
 
   useEffect(() => {
     (async () => {
@@ -193,8 +200,19 @@ export default function PublicCampaignsPage() {
       advertisers.length === 0 || advertisers.includes(companyOf(r));
     const byReg = (r: PublicCampaign) =>
       regions.length === 0 || regions.includes(r.region ?? '');
+    // 검색: 캠페인명·게임명(지역별 포함)·광고주·패키지명
+    const q = search.trim().toLowerCase();
+    const bySearch = (r: PublicCampaign) =>
+      !q ||
+      [
+        r.name,
+        r.regional_game_name,
+        r.game?.game_name,
+        r.game?.package_identifier,
+        companyOf(r),
+      ].some((v) => (v ?? '').toLowerCase().includes(q));
 
-    const inFilters = rows.filter((r) => byAdv(r) && byReg(r));
+    const inFilters = rows.filter((r) => byAdv(r) && byReg(r) && bySearch(r));
     const list = inFilters
       .filter(byTab)
       .sort((a, b) =>
@@ -208,15 +226,15 @@ export default function PublicCampaignsPage() {
       total: inFilters.length,
       statusCounts: countBy(inFilters, (r) => r.status ?? ''),
       advertiserCounts: countBy(
-        rows.filter((r) => byTab(r) && byReg(r)),
+        rows.filter((r) => byTab(r) && byReg(r) && bySearch(r)),
         companyOf
       ),
       regionCounts: countBy(
-        rows.filter((r) => byTab(r) && byAdv(r)),
+        rows.filter((r) => byTab(r) && byAdv(r) && bySearch(r)),
         (r) => r.region ?? ''
       ),
     };
-  }, [rows, tab, advertisers, regions, sort]);
+  }, [rows, tab, advertisers, regions, sort, search]);
 
   const advertiserOptions = useMemo(
     () =>
@@ -241,11 +259,25 @@ export default function PublicCampaignsPage() {
     return { value: k, label: `${name} ${n}` };
   });
 
-  const filtersActive = advertisers.length > 0 || regions.length > 0;
+  const filtersActive =
+    advertisers.length > 0 || regions.length > 0 || search.trim() !== '';
   const resetFilters = () => {
     setAdvertisers([]);
     setRegions([]);
+    setSearch('');
   };
+
+  // 광고주순일 때는 광고주 칸 대신 묶음 줄(접기/펼치기)로 보여준다
+  const grouped = sort === 'advertiser';
+  const groupSizes = countBy(view.list, companyOf);
+  const toggleGroup = (company: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(company)) next.delete(company);
+      else next.add(company);
+      return next;
+    });
+  const colCount = grouped ? 6 : 7;
 
   const advertiserLabel =
     advertisers.length === 0
@@ -295,6 +327,16 @@ export default function PublicCampaignsPage() {
           </div>
 
           <div className='flex flex-wrap items-center gap-2'>
+            <div className='relative w-full sm:w-56'>
+              <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                placeholder='캠페인·게임·광고주 검색'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='h-8 pl-9'
+                autoComplete='off'
+              />
+            </div>
             {filtersActive && (
               <Button
                 variant='ghost'
@@ -471,9 +513,27 @@ export default function PublicCampaignsPage() {
             <Table style={{ width: '100%' }}>
               <TableHeader className={TABLE_STYLES.header}>
                 <TableRow>
-                  <TableHead className='whitespace-nowrap'>캠페인</TableHead>
-                  <TableHead className='whitespace-nowrap'>광고주</TableHead>
-                  <TableHead className='whitespace-nowrap'>게임</TableHead>
+                  <TableHead className='whitespace-nowrap'>
+                    캠페인 · 게임
+                    {grouped && Object.keys(groupSizes).length > 1 && (
+                      <button
+                        type='button'
+                        onClick={() =>
+                          setCollapsed((prev) =>
+                            prev.size > 0
+                              ? new Set()
+                              : new Set(Object.keys(groupSizes))
+                          )
+                        }
+                        className='ml-2 rounded px-1.5 py-0.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground'
+                      >
+                        {collapsed.size > 0 ? '모두 펼치기' : '모두 접기'}
+                      </button>
+                    )}
+                  </TableHead>
+                  {!grouped && (
+                    <TableHead className='whitespace-nowrap'>광고주</TableHead>
+                  )}
                   <TableHead className='whitespace-nowrap'>지역</TableHead>
                   <TableHead className='whitespace-nowrap text-center'>
                     MMP
@@ -503,51 +563,71 @@ export default function PublicCampaignsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody className={TABLE_STYLES.body}>
-                {view.list.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className='whitespace-nowrap'>
-                      {r.daily_report_url ? (
-                        <Link
-                          href={`/share/campaigns/${r.id}`}
-                          className='inline-flex items-center gap-1.5 font-medium text-foreground transition-colors hover:text-primary hover:underline'
+                {view.list.map((r, i) => {
+                  const company = companyOf(r);
+                  const isGroupStart =
+                    grouped &&
+                    (i === 0 || companyOf(view.list[i - 1]) !== company);
+                  const isCollapsed = grouped && collapsed.has(company);
+                  return (
+                    <Fragment key={r.id}>
+                      {isGroupStart && (
+                        <TableRow
+                          className='cursor-pointer bg-muted/30 hover:bg-muted/50'
+                          onClick={() => toggleGroup(company)}
                         >
-                          <ReportSheetBadge connected />
-                          {r.name}
-                        </Link>
-                      ) : (
-                        // 리포트 미연동 — 성과 화면이 비어 있으므로 링크 없이 비활성 표시
-                        <span
-                          className='inline-flex items-center gap-1.5 font-medium text-muted-foreground'
-                          title='리포트 미연동'
-                        >
-                          <ReportSheetBadge connected={false} />
-                          {r.name}
-                        </span>
+                          <TableCell colSpan={colCount} className='py-1.5'>
+                            <div className='flex items-center gap-2 text-xs'>
+                              <ChevronRightIcon
+                                className={cn(
+                                  'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                                  !isCollapsed && 'rotate-90'
+                                )}
+                              />
+                              <span className='font-semibold'>
+                                {company || '광고주 없음'}
+                              </span>
+                              <span className='tabular-nums text-muted-foreground'>
+                                {groupSizes[company] ?? 0}
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       )}
-                    </TableCell>
-                    <TableCell className='whitespace-nowrap'>
-                      {r.account?.company ?? '-'}
-                    </TableCell>
-                    <TableCell className='max-w-[260px] whitespace-nowrap'>
-                      <GameCell game={r.game} fallbackName={r.name} />
-                    </TableCell>
-                    <TableCell className='whitespace-nowrap'>
-                      {REGION_FLAG[r.region ?? ''] ?? ''} {r.region ?? '-'}
-                    </TableCell>
-                    <TableCell className='whitespace-nowrap text-center'>
-                      <MmpIcon mmp={r.mmp} />
-                    </TableCell>
-                    <TableCell className='whitespace-nowrap'>
-                      {r.campaign_type ?? '-'}
-                    </TableCell>
-                    <TableCell className='whitespace-nowrap tabular-nums text-muted-foreground'>
-                      {fmtPeriod(r.start_date, r.end_date)}
-                    </TableCell>
-                    <TableCell className='whitespace-nowrap'>
-                      <StatusBadge status={r.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      {!isCollapsed && (
+                        <TableRow>
+                          <TableCell className='max-w-[360px]'>
+                            <CampaignGameCell campaign={r} />
+                          </TableCell>
+                          {!grouped && (
+                            <TableCell className='whitespace-nowrap'>
+                              {company || '-'}
+                            </TableCell>
+                          )}
+                          <TableCell className='whitespace-nowrap'>
+                            {REGION_FLAG[r.region ?? ''] ?? ''} {r.region ?? '-'}
+                          </TableCell>
+                          <TableCell className='whitespace-nowrap text-center'>
+                            <MmpIcon mmp={r.mmp} />
+                          </TableCell>
+                          <TableCell className='whitespace-nowrap'>
+                            {r.campaign_type ?? '-'}
+                          </TableCell>
+                          <TableCell>
+                            <PeriodCell
+                              from={r.start_date}
+                              to={r.end_date}
+                              status={r.status}
+                            />
+                          </TableCell>
+                          <TableCell className='whitespace-nowrap'>
+                            <StatusBadge status={r.status} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableWrapper>

@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
+import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
+import { periodSummary } from '@/lib/utils/period-summary';
 
 import { createClient } from '@/utils/supabase/client';
 import type { CampaignListItem } from '@/components/campaigns/campaign-detail/campaign-switcher';
 import {
   PUBLIC_CAMPAIGN_SELECT,
   type PublicCampaign,
+  type PublicCampaignDetail,
   type PublicGame,
 } from '@/lib/share/public-campaign';
 
@@ -117,17 +121,132 @@ const LOGO_PLACEHOLDER = (
 );
 
 /** 게임 로고 — URL 이 없거나 로드 실패 시 placeholder (깨진 이미지 아이콘 방지) */
-function GameLogo({ src }: { src: string | null }) {
+function GameLogo({
+  src,
+  large = false,
+  fallback,
+}: {
+  src: string | null;
+  /** 32px (캠페인·게임 합친 칸) */
+  large?: boolean;
+  /** 이미지가 없거나 막혔을 때 보여줄 글자 */
+  fallback?: string;
+}) {
   const [failed, setFailed] = useState(false);
-  if (!src || failed) return LOGO_PLACEHOLDER;
+  if (!src || failed) {
+    if (!large) return LOGO_PLACEHOLDER;
+    return (
+      <span className='flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-xs font-semibold text-muted-foreground'>
+        {(fallback ?? '').trim().charAt(0).toUpperCase() || '-'}
+      </span>
+    );
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt=''
       onError={() => setFailed(true)}
-      className='h-6 w-6 flex-shrink-0 rounded border border-border object-cover'
+      className={
+        large
+          ? 'h-8 w-8 flex-shrink-0 rounded-lg border border-border object-cover'
+          : 'h-6 w-6 flex-shrink-0 rounded border border-border object-cover'
+      }
     />
+  );
+}
+
+/**
+ * 캠페인 · 게임 합친 칸 — 게임 아이콘(스토어 링크) + 시트 아이콘·캠페인명(성과 화면 링크) / 게임명
+ * 내부 캠페인 표와 같은 모양
+ */
+export function CampaignGameCell({ campaign }: { campaign: PublicCampaignDetail }) {
+  const game = campaign.game;
+  const gameName = campaign.regional_game_name || game?.game_name || '-';
+  const logo = (
+    <GameLogo
+      key={game?.logo_url ?? ''}
+      src={game?.logo_url ?? null}
+      large
+      fallback={gameName}
+    />
+  );
+  return (
+    <div className='flex min-w-0 items-center gap-3'>
+      {game?.store_url ? (
+        <GameThumbnailTooltip
+          imageUrl={game.logo_url}
+          gameName={gameName}
+          packageIdentifier={game.package_identifier}
+          storeUrl={game.store_url}
+        >
+          <a
+            href={game.store_url}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='flex-shrink-0'
+          >
+            {logo}
+          </a>
+        </GameThumbnailTooltip>
+      ) : (
+        logo
+      )}
+      <div className='min-w-0'>
+        {campaign.daily_report_url ? (
+          <Link
+            href={shareCampaignHref(campaign.id)}
+            className='flex min-w-0 items-center gap-1.5 text-sm font-semibold transition-colors hover:text-primary hover:underline'
+          >
+            <ReportSheetBadge connected />
+            <span className='truncate'>{campaign.name}</span>
+          </Link>
+        ) : (
+          // 리포트 미연동 — 성과 화면이 비어 있으므로 링크 없이 비활성 표시
+          <span
+            className='flex min-w-0 items-center gap-1.5 text-sm font-semibold text-muted-foreground'
+            title='리포트 미연동'
+          >
+            <ReportSheetBadge connected={false} />
+            <span className='truncate'>{campaign.name}</span>
+          </span>
+        )}
+        <div className='truncate text-xs text-muted-foreground'>{gameName}</div>
+      </div>
+    </div>
+  );
+}
+
+/** 기간 + 한 줄 요약 (D+N · 종료 N일 전 / N일 전 종료) + 진행 막대 */
+export function PeriodCell({
+  from,
+  to,
+  status,
+}: {
+  from: string | null;
+  to: string | null;
+  status: string | null;
+}) {
+  const summary = periodSummary(from, to, status);
+  return (
+    <div className='min-w-0'>
+      <div className='whitespace-nowrap text-sm tabular-nums'>
+        {fmtPeriod(from, to)}
+      </div>
+      {summary?.progress != null && (
+        <div className='mt-1 h-1 w-full max-w-[160px] overflow-hidden rounded-full bg-muted'>
+          <div
+            className='h-full rounded-full bg-green-500'
+            style={{ width: `${summary.progress}%` }}
+          />
+        </div>
+      )}
+      {summary && (
+        <div className='mt-0.5 text-xs text-muted-foreground'>
+          {summary.text}
+        </div>
+      )}
+    </div>
   );
 }
 
