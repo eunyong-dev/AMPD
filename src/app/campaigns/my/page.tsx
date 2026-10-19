@@ -39,6 +39,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { CampaignsTable } from '@/components/campaigns/campaigns-table';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 
+const FILTER_STORAGE_KEY = 'campaigns-my:filters';
+const STATUS_VALUES = ['all', 'planning', 'ongoing', 'holding', 'end'];
+
 export default function MyCampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,12 +53,60 @@ export default function MyCampaignsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ongoing');
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  // URL 에서 필터를 읽어온 뒤에만 URL 을 다시 쓴다 (첫 렌더의 기본값으로 덮어쓰지 않게)
+  const [filtersReady, setFiltersReady] = useState(false);
+
+  // 필터는 주소(?status=holding&region=JP,TW&q=…)에 담는다 → 뒤로 가기·새로고침·링크 공유에도 유지
+  useEffect(() => {
+    let query = window.location.search;
+    // 주소에 필터가 없으면(사이드바·breadcrumb 로 들어옴) 이 탭에서 마지막으로 본 필터 복원
+    if (!query) {
+      try {
+        query = sessionStorage.getItem(FILTER_STORAGE_KEY) ?? '';
+      } catch {
+        query = '';
+      }
+    }
+    const params = new URLSearchParams(query);
+    const status = params.get('status');
+    if (status && STATUS_VALUES.includes(status)) setStatusFilter(status);
+    setSelectedRegions((params.get('region') ?? '').split(',').filter(Boolean));
+    setSearchTerm(params.get('q') ?? '');
+    setFiltersReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!filtersReady) return;
+    const params = new URLSearchParams();
+    if (statusFilter !== 'ongoing') params.set('status', statusFilter);
+    const regions = selectedRegions.filter((r) => r !== 'all');
+    if (regions.length) params.set('region', regions.join(','));
+    if (searchTerm.trim()) params.set('q', searchTerm.trim());
+    const query = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}`
+    );
+    try {
+      sessionStorage.setItem(FILTER_STORAGE_KEY, query ? `?${query}` : '');
+    } catch {
+      // 저장소를 못 쓰는 환경 — URL 만으로 동작
+    }
+  }, [filtersReady, statusFilter, selectedRegions, searchTerm]);
+
+  const resetFilters = useCallback(() => {
+    setStatusFilter('all');
+    setSelectedRegions([]);
+    setSearchTerm('');
+  }, []);
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({
     campaignTitle: true,
-    account: true,
-    gameName: true,
+    // 광고주는 표 안 묶음 줄로, 게임은 캠페인 칸에 함께 (컬럼 설정에서 다시 켤 수 있음)
+    account: false,
+    gameName: false,
     assignedUser: false,
     region: true,
     mmp: true,
@@ -217,7 +268,10 @@ export default function MyCampaignsPage() {
         return (
           campaignName.includes(searchLower) ||
           gameName.includes(searchLower) ||
-          assignedUserName.includes(searchLower)
+          assignedUserName.includes(searchLower) ||
+          (c.account_company?.toLowerCase() || '').includes(searchLower) ||
+          (c.regional_game_name?.toLowerCase() || '').includes(searchLower) ||
+          (c.game_package_identifier?.toLowerCase() || '').includes(searchLower)
         );
       });
     }
@@ -269,7 +323,7 @@ export default function MyCampaignsPage() {
 
   return (
     <AccessControl>
-      <div className='space-y-4'>
+      <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
         {/* Campaign Statistics */}
         <div className='grid grid-cols-1 min-[1950px]:grid-cols-2 gap-4'>
           <StatBreakdownCard
@@ -299,7 +353,7 @@ export default function MyCampaignsPage() {
           <div className='relative w-full'>
             <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
             <Input
-              placeholder='캠페인 검색...'
+              placeholder='캠페인·게임·광고주·패키지명 검색'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className='pl-10 h-9 w-full'
@@ -352,7 +406,7 @@ export default function MyCampaignsPage() {
               <div className='hidden search-break:block relative flex-1 max-w-md min-w-0'>
                 <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
                 <Input
-                  placeholder='캠페인 검색...'
+                  placeholder='캠페인·게임·광고주·패키지명 검색'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className='pl-10 h-9'
@@ -540,6 +594,9 @@ export default function MyCampaignsPage() {
         {filteredCampaigns.length > 0 ? (
           <CampaignsTable
             campaigns={filteredCampaigns}
+            // 표가 남은 높이를 채우고 안에서만 스크롤 → 표 헤더 고정
+            fillHeight
+            className='lg:flex-1'
             // 홀딩·종료 탭은 이미 끝난 캠페인이라 기간 정렬을 종료일 기준으로
             dateSortField={
               statusFilter === 'holding' || statusFilter === 'end'
@@ -575,10 +632,26 @@ export default function MyCampaignsPage() {
             <div className='mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4'>
               <UserIcon className='h-12 w-12 text-muted-foreground' />
             </div>
-            <h3 className='text-lg font-semibold mb-2'>캠페인이 없습니다</h3>
-            <p className='text-muted-foreground'>
-              아직 생성한 캠페인이 없습니다.
-            </p>
+            {campaigns.length > 0 ? (
+              <>
+                <h3 className='text-lg font-semibold mb-2'>
+                  조건에 맞는 캠페인이 없어요
+                </h3>
+                <p className='text-muted-foreground mb-4'>
+                  탭·지역·검색어 조건을 줄여 보세요.
+                </p>
+                <Button variant='outline' size='sm' onClick={resetFilters}>
+                  필터 초기화
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className='text-lg font-semibold mb-2'>캠페인이 없습니다</h3>
+                <p className='text-muted-foreground'>
+                  아직 생성한 캠페인이 없습니다.
+                </p>
+              </>
+            )}
           </div>
         )}
 
