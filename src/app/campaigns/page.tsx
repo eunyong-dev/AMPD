@@ -290,107 +290,20 @@ export default function AllCampaignsPage() {
   return (
     <AccessControl>
       <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
-        {/* 제목 + 요약 */}
-        <div className='flex flex-wrap items-end justify-between gap-2'>
-          <div>
-            <h1 className='text-xl font-semibold tracking-tight'>캠페인</h1>
+        {/* 상단: 제목 + 검색 */}
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <div className='min-w-0'>
+            <h1 className='text-2xl font-semibold tracking-tight'>캠페인</h1>
             <p className='mt-1 text-sm text-muted-foreground'>
-              전체{' '}
-              <span className='font-medium text-foreground tabular-nums'>
-                {campaigns.length}
-              </span>
-              개 · 진행중{' '}
+              진행중{' '}
               <span className='font-medium text-foreground tabular-nums'>
                 {campaigns.filter((c) => c.status === 'ongoing').length}
               </span>
-              개 · 지금 목록{' '}
-              <span className='font-medium text-foreground tabular-nums'>
-                {filteredCampaigns.length}
-              </span>
-              개
+              개 · 전체{' '}
+              <span className='tabular-nums'>{campaigns.length}</span>개
             </p>
           </div>
-        </div>
-
-        {/* 필터 — 상태·지역 버튼 안에 개수 (다른 필터를 반영한 숫자) */}
-        <div>
-          <div className='flex flex-wrap items-center gap-2'>
-            <div className='flex flex-shrink-0 gap-0.5 rounded-lg bg-muted p-0.5'>
-              {(
-                [
-                  ['all', '전체', null, stats.total],
-                  ['planning', '계획', 'bg-yellow-500', stats.planning],
-                  ['ongoing', '진행중', 'bg-green-500', stats.ongoing],
-                  ['holding', '홀딩', 'bg-red-500', stats.holding],
-                  ['end', '종료', 'bg-slate-400', stats.end],
-                ] as const
-              ).map(([key, label, dot, count]) => (
-                <button
-                  key={key}
-                  type='button'
-                  onClick={() => setStatusFilter(key)}
-                  aria-pressed={statusFilter === key}
-                  className={cn(
-                    'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
-                    statusFilter === key &&
-                      'bg-background text-foreground shadow-sm'
-                  )}
-                >
-                  {dot && <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />}
-                  {label}
-                  <span className='text-xs tabular-nums text-muted-foreground'>
-                    {count}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* 지역 — 드롭다운 (항목 옆에 개수), 여러 개 선택 */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='outline' size='sm' className='h-9 gap-1.5'>
-                  {selectedRegions.length === 0 ||
-                  selectedRegions.includes('all')
-                    ? '전체 지역'
-                    : selectedRegions
-                        .map((r) => `${REGION_FLAGS[r as keyof typeof REGION_FLAGS] ?? ''} ${r}`)
-                        .join(', ')}
-                  <ChevronDownIcon className='h-4 w-4 opacity-60' />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='start' className='w-44'>
-                {(['KR', 'JP', 'TW', 'US'] as const).map((region) => (
-                  <DropdownMenuItem
-                    key={region}
-                    onClick={() => toggleRegionSelection(region)}
-                    onSelect={(e) => e.preventDefault()}
-                    className='flex items-center gap-2'
-                  >
-                    <Checkbox
-                      checked={selectedRegions.includes(region)}
-                      onCheckedChange={() => {}}
-                    />
-                    <span>
-                      {REGION_FLAGS[region]} {region}
-                    </span>
-                    <span className='ml-auto text-xs tabular-nums text-muted-foreground'>
-                      {campaignStatsByRegion[region]}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-                {selectedRegions.length > 0 &&
-                  !selectedRegions.includes('all') && (
-                    <DropdownMenuItem
-                      onClick={() => setSelectedRegions([])}
-                      className='text-muted-foreground'
-                    >
-                      선택 해제
-                    </DropdownMenuItem>
-                  )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className='relative min-w-[180px] flex-1 sm:max-w-xs'>
+            <div className='relative w-full sm:w-72'>
               <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 placeholder='캠페인·게임·담당자 검색'
@@ -400,8 +313,97 @@ export default function AllCampaignsPage() {
                 autoComplete='off'
               />
             </div>
+        </div>
 
-            <div className='ml-auto flex items-center gap-2'>
+        {/* 상태 탭(밑줄) + 오른쪽 필터 — 아래 경계선 하나로 표와 구분 */}
+        <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b'>
+            <div className='-mb-px flex items-end gap-1 overflow-x-auto [scrollbar-width:none]'>
+              {(
+                [
+                  ['all', '전체', null, stats.total],
+                  ['planning', '계획', 'bg-yellow-500', stats.planning],
+                  ['ongoing', '진행중', 'bg-green-500', stats.ongoing],
+                  ['holding', '홀딩', 'bg-red-500', stats.holding],
+                  ['end', '종료', 'bg-slate-400', stats.end],
+                ] as const
+              ).map(([key, label, dot, count]) => {
+                const on = statusFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type='button'
+                    onClick={() => setStatusFilter(key)}
+                    aria-pressed={on}
+                    className={cn(
+                      'inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-sm font-medium transition-colors',
+                      on
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {dot && (
+                      <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />
+                    )}
+                    {label}
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 py-px text-[11px] tabular-nums',
+                        on
+                          ? 'bg-foreground text-background'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className='flex items-center gap-2 pb-2'>
+              {/* 지역 — 드롭다운 (항목 옆에 개수), 여러 개 선택 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant='outline' size='sm' className='h-9 gap-1.5'>
+                    {selectedRegions.length === 0 ||
+                    selectedRegions.includes('all')
+                      ? '전체 지역'
+                      : selectedRegions
+                          .map((r) => `${REGION_FLAGS[r as keyof typeof REGION_FLAGS] ?? ''} ${r}`)
+                          .join(', ')}
+                    <ChevronDownIcon className='h-4 w-4 opacity-60' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='start' className='w-44'>
+                  {(['KR', 'JP', 'TW', 'US'] as const).map((region) => (
+                    <DropdownMenuItem
+                      key={region}
+                      onClick={() => toggleRegionSelection(region)}
+                      onSelect={(e) => e.preventDefault()}
+                      className='flex items-center gap-2'
+                    >
+                      <Checkbox
+                        checked={selectedRegions.includes(region)}
+                        onCheckedChange={() => {}}
+                      />
+                      <span>
+                        {REGION_FLAGS[region]} {region}
+                      </span>
+                      <span className='ml-auto text-xs tabular-nums text-muted-foreground'>
+                        {campaignStatsByRegion[region]}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                  {selectedRegions.length > 0 &&
+                    !selectedRegions.includes('all') && (
+                      <DropdownMenuItem
+                        onClick={() => setSelectedRegions([])}
+                        className='text-muted-foreground'
+                      >
+                        선택 해제
+                      </DropdownMenuItem>
+                    )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {/* Assigned User Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -587,7 +589,6 @@ export default function AllCampaignsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
         </div>
 
         {/* Campaigns Table */}
