@@ -66,6 +66,7 @@ import Link from 'next/link';
 // 상수 정의
 const COLUMN_WIDTHS = {
   campaignTitle: '200px',
+  campaignWithGame: '340px',
   account: '150px',
   gameName: '250px',
   assignedUser: '160px',
@@ -105,14 +106,23 @@ function getStatusDisplay(status: string | null): StatusDisplay {
   };
 
   const colorMap: Record<string, string> = {
-    planning: 'text-yellow-600 dark:text-yellow-500',
-    ongoing: 'text-green-600 dark:text-green-500',
-    holding: 'text-red-600 dark:text-red-500',
-    end: 'text-gray-500 dark:text-gray-400',
+    planning:
+      'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400',
+    ongoing:
+      'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400',
+    holding: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+    end: 'bg-slate-100 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400',
+  };
+
+  const koLabel: Record<string, string> = {
+    planning: '계획',
+    ongoing: '진행중',
+    holding: '홀딩',
+    end: '종료',
   };
 
   return {
-    label: statusOption.label,
+    label: koLabel[status || ''] ?? statusOption.label,
     variant: variantMap[status || ''] || 'outline',
     color: colorMap[status || ''] || '',
   };
@@ -185,6 +195,34 @@ const GameImageCell = React.memo(
 );
 GameImageCell.displayName = 'GameImageCell';
 
+// 컴포넌트: 캠페인 칸의 게임 아이콘 (32px)
+const GameLogo = React.memo(
+  ({ imageUrl, alt }: { imageUrl: string | null; alt: string }) => {
+    // 스토어 이미지가 막히면(429 등) 깨진 이미지 대신 게임명 첫 글자
+    const [failed, setFailed] = useState(false);
+    return (
+      <div className='flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted'>
+        {imageUrl && !failed ? (
+          <Image
+            src={imageUrl}
+            alt={alt}
+            width={32}
+            height={32}
+            className='h-full w-full object-cover'
+            unoptimized
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <span className='text-xs font-semibold text-muted-foreground'>
+            {alt.trim().charAt(0).toUpperCase() || '-'}
+          </span>
+        )}
+      </div>
+    );
+  }
+);
+GameLogo.displayName = 'GameLogo';
+
 // 컴포넌트: Game Name Cell
 interface GameNameCellProps {
   campaign: Campaign;
@@ -219,14 +257,15 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge = React.memo(({ statusDisplay }: StatusBadgeProps) => (
-  <Badge
-    variant={statusDisplay.variant}
-    className={`inline-flex items-center justify-center min-w-[70px] ${
-      statusDisplay.color || ''
-    }`}
+  <span
+    className={cn(
+      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+      statusDisplay.color || 'bg-muted text-muted-foreground'
+    )}
   >
+    <span className='h-1.5 w-1.5 rounded-full bg-current' />
     {statusDisplay.label}
-  </Badge>
+  </span>
 ));
 StatusBadge.displayName = 'StatusBadge';
 
@@ -234,14 +273,71 @@ StatusBadge.displayName = 'StatusBadge';
 interface DateRangeCellProps {
   startDate: string | null;
   endDate: string | null;
+  status: string | null;
+}
+
+const DAY_MS = 86_400_000;
+const toDay = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00`).getTime();
+
+// 기간 아래 한 줄 요약 — 진행중: D+N · 종료 N일 전 / 끝남: N일 전 종료 / 계획: 시작 N일 전
+function periodSummary(
+  startDate: string | null,
+  endDate: string | null,
+  status: string | null
+): { text: string; progress: number | null } | null {
+  if (!startDate || startDate.startsWith('1900')) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const now = today.getTime();
+  const start = toDay(startDate);
+  const end = endDate ? toDay(endDate) : null;
+  if (status === 'ongoing') {
+    const elapsed = Math.round((now - start) / DAY_MS);
+    if (elapsed < 0) return { text: `시작 ${-elapsed}일 전`, progress: null };
+    if (end === null) return { text: `D+${elapsed} · 종료일 미정`, progress: null };
+    const left = Math.round((end - now) / DAY_MS);
+    const total = Math.max(1, Math.round((end - start) / DAY_MS));
+    return {
+      text: left >= 0 ? `D+${elapsed} · 종료 ${left}일 전` : `D+${elapsed} · 종료일 지남`,
+      progress: Math.min(100, Math.max(0, (elapsed / total) * 100)),
+    };
+  }
+  if (status === 'planning') {
+    const until = Math.round((start - now) / DAY_MS);
+    return until > 0 ? { text: `시작 ${until}일 전`, progress: null } : null;
+  }
+  if (end !== null) {
+    const ago = Math.round((now - end) / DAY_MS);
+    return ago > 0 ? { text: `${ago}일 전 종료`, progress: null } : null;
+  }
+  return null;
 }
 
 const DateRangeCell = React.memo(
-  ({ startDate, endDate }: DateRangeCellProps) => (
-    <div className='text-sm text-muted-foreground'>
-      {formatDateYYYYMMDD(startDate)} ~ {formatDateYYYYMMDD(endDate)}
-    </div>
-  )
+  ({ startDate, endDate, status }: DateRangeCellProps) => {
+    const summary = periodSummary(startDate, endDate, status);
+    return (
+      <div className='min-w-0'>
+        <div className='text-sm tabular-nums whitespace-nowrap'>
+          {formatDateYYYYMMDD(startDate)} ~{' '}
+          {endDate ? formatDateYYYYMMDD(endDate) : '—'}
+        </div>
+        {summary?.progress != null && (
+          <div className='mt-1 h-1 w-full max-w-[160px] overflow-hidden rounded-full bg-muted'>
+            <div
+              className='h-full rounded-full bg-green-500'
+              style={{ width: `${summary.progress}%` }}
+            />
+          </div>
+        )}
+        {summary && (
+          <div className='mt-0.5 text-xs text-muted-foreground'>
+            {summary.text}
+          </div>
+        )}
+      </div>
+    );
+  }
 );
 DateRangeCell.displayName = 'DateRangeCell';
 
@@ -374,7 +470,57 @@ function CampaignTableRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
     <TableRow>
-      {columnVisibility.campaignTitle && (
+      {columnVisibility.campaignTitle && !columnVisibility.gameName && (
+        <TableCell style={{ width: COLUMN_WIDTHS.campaignWithGame }}>
+          <div className='flex items-center gap-3 min-w-0'>
+            {regionalUrl ? (
+              <GameThumbnailTooltip
+                imageUrl={imageUrl}
+                gameName={regionalGameName || campaign.game_name || null}
+                packageIdentifier={campaign.game_package_identifier || null}
+                storeUrl={regionalUrl}
+                storeFaviconUrl={storeFaviconUrl || null}
+                enableCopy={true}
+              >
+                <a
+                  href={regionalUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='flex-shrink-0'
+                >
+                  <GameLogo imageUrl={imageUrl} alt={campaign.game_name || 'Game'} />
+                </a>
+              </GameThumbnailTooltip>
+            ) : (
+              <GameLogo imageUrl={imageUrl} alt={campaign.game_name || 'Game'} />
+            )}
+            <div className='min-w-0'>
+              {campaign.daily_report_url ? (
+                <Link
+                  href={`/campaigns/${campaign.id}`}
+                  className='block truncate text-sm font-semibold hover:text-primary hover:underline'
+                >
+                  {campaign.name}
+                </Link>
+              ) : (
+                <span
+                  className='block truncate text-sm font-semibold text-muted-foreground'
+                  title='리포트 미연동'
+                >
+                  {campaign.name}
+                </span>
+              )}
+              <div className='flex items-center gap-1.5 min-w-0 text-xs text-muted-foreground'>
+                <ReportSheetBadge connected={!!campaign.daily_report_url} />
+                <span className='truncate'>
+                  {regionalGameName || campaign.game_name || '-'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </TableCell>
+      )}
+      {columnVisibility.campaignTitle && columnVisibility.gameName && (
         <TableCell style={{ width: COLUMN_WIDTHS.campaignTitle }}>
           {campaign.daily_report_url ? (
             <Link
@@ -533,6 +679,7 @@ function CampaignTableRow({
           <DateRangeCell
             startDate={campaign.start_date}
             endDate={campaign.end_date}
+            status={campaign.status}
           />
         </TableCell>
       )}
@@ -774,6 +921,21 @@ export function CampaignsTable({
     return copy;
   }, [campaigns, sortColumn, sortDir, groupByAccount, dateSortField]);
 
+  // 광고주 묶음 줄 — 광고주 칸을 숨기고 광고주 순으로 묶여 있을 때만
+  const showGroupRows =
+    groupByAccount && sortColumn !== 'date' && !columnVisibility.account;
+  const groupSizes = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of campaigns) {
+      const k = c.account_company ?? '';
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [campaigns]);
+  // 묶음 줄이 표 전체 폭을 차지하도록 보이는 컬럼 수 (+ 메뉴 칸)
+  const visibleColumnCount =
+    Object.values(columnVisibility).filter(Boolean).length + 1;
+
   const renderSortIcon = (col: SortColumn) => {
     if (sortColumn !== col) {
       return <ArrowUpDown className='h-3.5 w-3.5 opacity-40' />;
@@ -847,13 +1009,19 @@ export function CampaignsTable({
           <TableHeader className={TABLE_STYLES.header}>
             <TableRow>
               {columnVisibility.campaignTitle && (
-                <TableHead style={{ width: COLUMN_WIDTHS.campaignTitle }}>
+                <TableHead
+                  style={{
+                    width: columnVisibility.gameName
+                      ? COLUMN_WIDTHS.campaignTitle
+                      : COLUMN_WIDTHS.campaignWithGame,
+                  }}
+                >
                   <button
                     type='button'
                     onClick={() => cycleSort('name')}
                     className='inline-flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors text-left font-medium'
                   >
-                    캠페인 제목
+                    {columnVisibility.gameName ? '캠페인 제목' : '캠페인 · 게임'}
                     {renderSortIcon('name')}
                   </button>
                 </TableHead>
@@ -949,9 +1117,39 @@ export function CampaignsTable({
             </TableRow>
           </TableHeader>
           <TableBody className={TABLE_STYLES.body}>
-            {sortedCampaigns.map((campaign) => {
+            {sortedCampaigns.map((campaign, i) => {
               const statusDisplay = getStatusDisplay(campaign.status);
+              const company = campaign.account_company ?? '';
+              // 광고주로 묶어 보여줄 때 — 광고주가 바뀌는 첫 줄 위에 묶음 줄
+              const groupHeader =
+                showGroupRows &&
+                (i === 0 ||
+                  (sortedCampaigns[i - 1].account_company ?? '') !== company);
               return (
+                <React.Fragment key={campaign.id}>
+                  {groupHeader && (
+                    <TableRow className='bg-muted/50 hover:bg-muted/50'>
+                      <TableCell colSpan={visibleColumnCount} className='py-1.5'>
+                        <div className='flex items-center gap-2 text-xs'>
+                          {company ? (
+                            <Link
+                              href={accountUrl(company)}
+                              className='font-semibold hover:underline'
+                            >
+                              {company}
+                            </Link>
+                          ) : (
+                            <span className='font-semibold text-muted-foreground'>
+                              광고주 없음
+                            </span>
+                          )}
+                          <span className='tabular-nums text-muted-foreground'>
+                            {groupSizes.get(company) ?? 0}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 <CampaignTableRow
                   key={campaign.id}
                   campaign={campaign}
@@ -962,6 +1160,7 @@ export function CampaignsTable({
                   accountAssignedUserId={accountAssignedUserId}
                   columnVisibility={columnVisibility}
                 />
+                </React.Fragment>
               );
             })}
           </TableBody>
