@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { MmpLogo } from '@/components/common/mmp-icon';
-import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
 import { ServiceFavicon } from '@/components/common/service-favicon';
 import { REGION_PRIORITY } from '@/lib/utils/campaign-sort';
 import { accountUrl } from '@/lib/utils/account-url';
@@ -152,6 +151,29 @@ function GameIcon({ logo, name, size }: { logo: string | null; name: string; siz
   );
 }
 
+// 게임명 앞 스토어 아이콘 — Google Play / App Store 파비콘
+function StoreFavicon({ url }: { url: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const domain = !url
+    ? null
+    : /play\.google\.com/i.test(url)
+    ? 'play.google.com'
+    : /apps\.apple\.com|itunes\.apple\.com/i.test(url)
+    ? 'apps.apple.com'
+    : null;
+  if (!domain || failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+      alt=''
+      aria-hidden
+      onError={() => setFailed(true)}
+      className='h-3.5 w-3.5 flex-shrink-0 object-contain'
+    />
+  );
+}
+
 function GroupHeader({
   group,
   open,
@@ -248,22 +270,23 @@ function CampaignRow({
           {campaign.daily_report_url ? (
             <Link
               href={`/campaigns/${campaign.id}`}
-              className='flex min-w-0 items-center gap-1.5 text-sm font-medium hover:text-primary hover:underline'
+              className='block truncate text-sm font-medium hover:text-primary hover:underline'
             >
-              <ReportSheetBadge connected />
-              <span className='truncate'>{campaign.name}</span>
+              {campaign.name}
             </Link>
           ) : (
             <span
-              className='flex min-w-0 items-center gap-1.5 text-sm font-medium text-muted-foreground'
+              className='block truncate text-sm font-medium text-muted-foreground'
               title='리포트 미연동'
             >
-              <ReportSheetBadge connected={false} />
-              <span className='truncate'>{campaign.name}</span>
+              {campaign.name}
             </span>
           )}
-          <div className='truncate text-xs text-muted-foreground'>
-            {gameName} · {campaign.campaign_type}
+          <div className='flex min-w-0 items-center gap-1 text-xs text-muted-foreground'>
+            <StoreFavicon url={campaign.game_store_url ?? null} />
+            <span className='truncate'>
+              {gameName} · {campaign.campaign_type}
+            </span>
           </div>
         </div>
       </div>
