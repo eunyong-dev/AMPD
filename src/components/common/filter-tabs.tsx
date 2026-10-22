@@ -12,6 +12,8 @@ interface FilterTabsProps<T extends string> {
   onValueChange: (v: T) => void;
   options: FilterTabOption<T>[];
   className?: string;
+  /** sm: 캠페인 현황과 같은 작은 크기 (높이 32px · 글자 12px) */
+  size?: 'default' | 'sm';
 }
 
 /**
@@ -23,19 +25,25 @@ export function FilterTabs<T extends string>({
   onValueChange,
   options,
   className,
+  size = 'default',
 }: FilterTabsProps<T>) {
+  const small = size === 'sm';
   return (
     <Tabs
       value={value}
       onValueChange={(v) => onValueChange(v as T)}
       className={className}
     >
-      <TabsList className='rounded-xl h-9'>
+      <TabsList className={small ? 'rounded-lg h-8 p-0.5' : 'rounded-xl h-9'}>
         {options.map((opt) => (
           <TabsTrigger
             key={opt.value}
             value={opt.value}
-            className='rounded-lg text-sm px-3 py-1'
+            className={
+              small
+                ? 'rounded-md text-xs px-2.5 py-1'
+                : 'rounded-lg text-sm px-3 py-1'
+            }
           >
             {opt.label}
           </TabsTrigger>

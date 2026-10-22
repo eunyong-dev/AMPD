@@ -410,7 +410,7 @@ export default function AllCampaignsPage() {
               placeholder='캠페인·게임·광고주·패키지명 검색'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className='pl-8 h-8 w-full text-xs'
+              className='pl-8 h-8 w-full text-xs md:text-xs'
               autoComplete='off'
             />
           </div>
@@ -448,7 +448,7 @@ export default function AllCampaignsPage() {
                   placeholder='캠페인·게임·광고주·패키지명 검색'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className='pl-8 h-8 text-xs'
+                  className='pl-8 h-8 text-xs md:text-xs'
                   autoComplete='off'
                 />
               </div>
