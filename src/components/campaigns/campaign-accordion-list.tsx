@@ -20,6 +20,7 @@ import {
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { MmpLogo } from '@/components/common/mmp-icon';
 import { ReportSheetBadge } from '@/components/common/report-sheet-badge';
+import { ServiceFavicon } from '@/components/common/service-favicon';
 import { REGION_PRIORITY } from '@/lib/utils/campaign-sort';
 import { accountUrl } from '@/lib/utils/account-url';
 import { canManageResource } from '@/lib/utils/permissions';
@@ -303,7 +304,7 @@ function CampaignRow({
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1 text-muted-foreground hover:text-foreground'
           >
-            <ReportSheetBadge connected />
+            <ServiceFavicon service='sheet' />
             시트
           </a>
         )}
@@ -314,9 +315,7 @@ function CampaignRow({
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1 text-muted-foreground hover:text-foreground'
           >
-            <svg viewBox='0 0 24 24' className='h-3.5 w-3.5 text-blue-600' fill='currentColor' aria-hidden>
-              <path d='M11.53 2c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.35V2.84a.84.84 0 0 0-.84-.84H11.53ZM6.77 6.8a4.36 4.36 0 0 0 4.34 4.34h1.8v1.72a4.36 4.36 0 0 0 4.34 4.34V7.63a.84.84 0 0 0-.83-.83H6.77ZM2 11.6c0 2.4 1.95 4.34 4.35 4.34h1.78v1.72c.01 2.39 1.95 4.33 4.34 4.34v-9.57a.84.84 0 0 0-.84-.84H2Z' />
-            </svg>
+            <ServiceFavicon service='jira' />
             JIRA
           </a>
         )}
