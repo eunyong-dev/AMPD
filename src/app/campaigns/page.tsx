@@ -3,18 +3,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ClipboardListIcon,
-  MapPinIcon,
   UsersIcon,
   ChevronDownIcon,
   ColumnsIcon,
   GlobeIcon,
   SearchIcon,
-  TargetIcon,
 } from 'lucide-react';
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatBreakdownCard } from '@/components/common/stat-breakdown-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,7 +39,16 @@ import { CampaignsTable } from '@/components/campaigns/campaigns-table';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 import { canManageResource } from '@/lib/utils/permissions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
+// 상태 탭 — 앞에 색 점, 뒤에 개수
+const STATUS_TABS = [
+  { value: 'all', label: '전체', dot: null },
+  { value: 'planning', label: '계획', dot: 'bg-yellow-400' },
+  { value: 'ongoing', label: '진행중', dot: 'bg-green-400' },
+  { value: 'holding', label: '홀딩', dot: 'bg-red-400' },
+  { value: 'end', label: '종료', dot: 'bg-slate-400' },
+] as const;
 const FILTER_STORAGE_KEY = 'campaigns:filters';
 const STATUS_VALUES = ['all', 'planning', 'ongoing', 'holding', 'end'];
 
@@ -207,26 +213,6 @@ export default function AllCampaignsPage() {
     setShowEditCampaignForm(true);
   }, []);
 
-  // 통계 계산
-  const stats = useMemo(() => {
-    return {
-      total: campaigns.length,
-      planning: campaigns.filter((c) => c.status === 'planning').length,
-      ongoing: campaigns.filter((c) => c.status === 'ongoing').length,
-      holding: campaigns.filter((c) => c.status === 'holding').length,
-      end: campaigns.filter((c) => c.status === 'end').length,
-    };
-  }, [campaigns]);
-
-  // 지역별 캠페인 통계
-  const campaignStatsByRegion = useMemo(() => {
-    return {
-      KR: campaigns.filter((c) => c.region === 'KR').length,
-      JP: campaigns.filter((c) => c.region === 'JP').length,
-      TW: campaigns.filter((c) => c.region === 'TW').length,
-      US: campaigns.filter((c) => c.region === 'US').length,
-    };
-  }, [campaigns]);
 
   // 담당자 선택 토글
   const toggleUserSelection = useCallback((userId: string) => {
@@ -267,6 +253,35 @@ export default function AllCampaignsPage() {
     { value: 'TW', label: '🇹🇼 Taiwan', code: 'TW' },
     { value: 'US', label: '🇺🇸 United States', code: 'US' },
   ];
+
+  // 상태 탭 개수 — 상태만 빼고 나머지 필터(담당자·지역·검색) 반영 → 누르면 나오는 개수
+  const statusCounts = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    const base = campaigns.filter(
+      (c) =>
+        (selectedUserIds.length === 0 ||
+          selectedUserIds.includes('all') ||
+          (!!c.assigned_user_id &&
+            selectedUserIds.includes(c.assigned_user_id))) &&
+        (selectedRegions.length === 0 ||
+          selectedRegions.includes('all') ||
+          (!!c.region && selectedRegions.includes(c.region))) &&
+        (!q ||
+          [
+            c.name,
+            c.game_name,
+            c.assigned_user_name,
+            c.account_company,
+            c.regional_game_name,
+            c.game_package_identifier,
+          ].some((v) => (v ?? '').toLowerCase().includes(q)))
+    );
+    const counts: Record<string, number> = { all: base.length };
+    for (const c of base) {
+      if (c.status) counts[c.status] = (counts[c.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [campaigns, selectedUserIds, selectedRegions, searchTerm]);
 
   // 상태별, 담당자별, 지역별, 검색어 필터링된 캠페인
   const filteredCampaigns = useMemo(() => {
@@ -358,33 +373,6 @@ export default function AllCampaignsPage() {
   return (
     <AccessControl>
       <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
-        {/* Campaign Statistics */}
-        <div className='grid grid-cols-1 min-[1950px]:grid-cols-2 gap-4'>
-          {/* By Status */}
-          <StatBreakdownCard
-            icon={<TargetIcon className='h-4 w-4 text-muted-foreground' />}
-            title='상태별 캠페인'
-            items={[
-              { key: 'planning', label: '계획', value: stats.planning, color: '#eab308' },
-              { key: 'ongoing', label: '진행중', value: stats.ongoing, color: '#22c55e' },
-              { key: 'holding', label: '홀딩', value: stats.holding, color: '#ef4444' },
-              { key: 'end', label: '종료', value: stats.end, color: '#94a3b8' },
-            ]}
-          />
-
-          {/* By Region */}
-          <StatBreakdownCard
-            icon={<MapPinIcon className='h-4 w-4 text-muted-foreground' />}
-            title='지역별 캠페인'
-            items={[
-              { key: 'KR', label: '🇰🇷 KR', value: campaignStatsByRegion.KR, color: '#3b82f6' },
-              { key: 'JP', label: '🇯🇵 JP', value: campaignStatsByRegion.JP, color: '#a855f7' },
-              { key: 'TW', label: '🇹🇼 TW', value: campaignStatsByRegion.TW, color: '#14b8a6' },
-              { key: 'US', label: '🇺🇸 US', value: campaignStatsByRegion.US, color: '#f97316' },
-            ]}
-          />
-        </div>
-
         {/* Search - 1450px 이하일 때 위쪽에 표시 */}
         <div className='search-break:hidden'>
           <div className='relative w-full'>
@@ -404,36 +392,21 @@ export default function AllCampaignsPage() {
           <div className='flex items-center justify-between gap-4 min-w-max'>
             <Tabs value={statusFilter} onValueChange={setStatusFilter}>
               <TabsList className='rounded-xl h-9'>
-                <TabsTrigger
-                  value='all'
-                  className='rounded-lg text-sm px-3 py-1'
-                >
-                  전체
-                </TabsTrigger>
-                <TabsTrigger
-                  value='planning'
-                  className='rounded-lg text-sm px-3 py-1'
-                >
-                  계획
-                </TabsTrigger>
-                <TabsTrigger
-                  value='ongoing'
-                  className='rounded-lg text-sm px-3 py-1'
-                >
-                  진행중
-                </TabsTrigger>
-                <TabsTrigger
-                  value='holding'
-                  className='rounded-lg text-sm px-3 py-1'
-                >
-                  홀딩
-                </TabsTrigger>
-                <TabsTrigger
-                  value='end'
-                  className='rounded-lg text-sm px-3 py-1'
-                >
-                  종료
-                </TabsTrigger>
+                {STATUS_TABS.map(({ value, label, dot }) => (
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    className='rounded-lg text-sm px-3 py-1 gap-1.5'
+                  >
+                    {dot && (
+                      <span className={cn('h-2 w-2 rounded-full', dot)} />
+                    )}
+                    {label}
+                    <span className='tabular-nums text-muted-foreground'>
+                      {statusCounts[value] ?? 0}
+                    </span>
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </Tabs>
 
