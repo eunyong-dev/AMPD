@@ -148,6 +148,23 @@ export function DailyReportTable({
   const rows = React.useMemo(() => [...data].reverse(), [data]);
   const totals = React.useMemo(() => computeTotals(rows, cols), [rows, cols]);
 
+  // 주(월~일) 단위로 배경을 번갈아 — 한 주가 한 덩어리로 보이게
+  const shadedWeek = React.useMemo(() => {
+    const dh = cols.find(isDateHeader);
+    let shade = false;
+    let prevKey: number | null = null;
+    return rows.map((r) => {
+      const d = dh ? parseSheetDate(r[dh] as string) : null;
+      if (!d) return shade;
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const key = monday.getTime();
+      if (prevKey !== null && key !== prevKey) shade = !shade;
+      prevKey = key;
+      return shade;
+    });
+  }, [rows, cols]);
+
   const { containerRef, dragging, cellProps, selectionStyle, chip } =
     useCellSelection(rows, cols);
 
@@ -277,7 +294,9 @@ export function DailyReportTable({
                   <TableRow
                     key={rowIndex}
                     className={cn(
-                      'hover:bg-muted/40',
+                      shadedWeek[rowIndex]
+                        ? 'bg-muted/50 hover:bg-muted/70'
+                        : 'bg-background hover:bg-muted/30',
                       weekEnd && 'border-b-2 border-border'
                     )}
                   >
@@ -300,7 +319,11 @@ export function DailyReportTable({
                       const cls = cn(
                         'whitespace-nowrap px-3 py-1.5',
                         isDateCol
-                          ? cn(stickyDate, 'z-10 bg-background font-medium')
+                          ? cn(
+                              stickyDate,
+                              'z-10 font-medium',
+                              shadedWeek[rowIndex] ? 'bg-muted' : 'bg-background'
+                            )
                           : 'text-right',
                         groupStart.has(cellIndex) && 'border-l'
                       );
