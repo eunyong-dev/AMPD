@@ -17,7 +17,6 @@ import {
   SettingsIcon,
   ShieldIcon,
   TargetIcon,
-  UserIcon,
   UsersIcon,
 } from 'lucide-react';
 import { NavItem, NavDocument, NavUser } from '@/types';
@@ -42,11 +41,6 @@ export const NAVIGATION_DATA = {
       title: '전체 캠페인',
       url: '/campaigns',
       icon: ClipboardListIcon,
-    },
-    {
-      title: '내 캠페인',
-      url: '/campaigns/my',
-      icon: UserIcon,
     },
   ] as NavItem[],
 

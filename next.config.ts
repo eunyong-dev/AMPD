@@ -3,7 +3,11 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   // 홈(대시보드) 화면 없음 — 루트로 들어오면 캠페인 현황으로 (서버에서 바로 307)
   async redirects() {
-    return [{ source: '/', destination: '/campaigns', permanent: false }];
+    return [
+      { source: '/', destination: '/campaigns', permanent: false },
+      // 내 캠페인 화면 없앰 (혼자 사용 — 전체 캠페인으로 충분)
+      { source: '/campaigns/my', destination: '/campaigns', permanent: false },
+    ];
   },
   // 서버리스 함수 번들에서 제외 — Vercel 에서는 @sparticuz/chromium 의 binary 사용
   // puppeteer 풀 패키지는 로컬 dev 에서만 동적 import 됨
