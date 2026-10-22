@@ -296,13 +296,13 @@ function CampaignRow({
       </div>
 
       {/* 시트 · JIRA · 메뉴 */}
-      <div className='flex items-center justify-end gap-3 text-xs'>
+      <div className='flex items-center justify-end gap-1 text-xs'>
         {campaign.daily_report_url && (
           <a
             href={campaign.daily_report_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 text-muted-foreground hover:text-foreground'
+            className='inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
           >
             <ServiceFavicon service='sheet' />
             시트
@@ -313,7 +313,7 @@ function CampaignRow({
             href={campaign.jira_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 text-muted-foreground hover:text-foreground'
+            className='inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
           >
             <ServiceFavicon service='jira' />
             JIRA
