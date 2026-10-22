@@ -25,11 +25,11 @@ export interface PublicCampaign {
   /** 지역별 게임명 (스토어 표시용 공개 정보) */
   regional_game_name: string | null;
   game: PublicGame | null;
-  account: { company: string | null } | null;
+  account: { company: string | null; country?: string | null } | null;
 }
 
 export const PUBLIC_CAMPAIGN_SELECT =
-  'id, name, region, mmp, campaign_type, status, start_date, end_date, regional_game_name, game:games(game_name, logo_url, store_url, package_identifier), account:accounts(company)';
+  'id, name, region, mmp, campaign_type, status, start_date, end_date, regional_game_name, game:games(game_name, logo_url, store_url, package_identifier), account:accounts(company, country)';
 
 /** 공개 성과 뷰어(캠페인 단건) — 목록 필드 + Jira / 리포트 시트 링크 */
 export interface PublicCampaignDetail extends PublicCampaign {

@@ -1,29 +1,15 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowDownIcon,
-  ArrowDownUpIcon,
-  ArrowUpIcon,
   Building2Icon,
   ChevronDownIcon,
-  ChevronRightIcon,
   GlobeIcon,
   SearchIcon,
   XIcon,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import {
   FilterTabs,
   type FilterTabOption,
@@ -35,20 +21,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MmpIcon } from '@/components/common/mmp-icon';
+import { CampaignAccordionList } from '@/components/campaigns/campaign-accordion-list';
 import {
-  CampaignGameCell,
-  PeriodCell,
-  StatusBadge,
   STATUS,
   REGION_FLAG,
   PUBLIC_CAMPAIGN_DETAIL_SELECT,
   rememberShareListQuery,
+  shareCampaignHref,
   type PublicCampaign,
   type PublicCampaignDetail,
 } from '@/components/share/share-campaign-ui';
@@ -127,8 +109,6 @@ export default function PublicCampaignsPage() {
   const [regions, setRegions] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>('advertiser');
   const [search, setSearch] = useState('');
-  // 접힌 광고주 묶음
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [urlReady, setUrlReady] = useState(false);
 
   // 공유 링크의 쿼리로 필터 복원 (useSearchParams 대신 window 사용 → Suspense 불필요)
@@ -259,6 +239,31 @@ export default function PublicCampaignsPage() {
     return { value: k, label: `${name} ${n}` };
   });
 
+  // 내부 캠페인 현황과 같은 광고주별 목록에 넘길 형태
+  const accordionRows = useMemo(
+    () =>
+      view.list.map((r) => ({
+        id: r.id,
+        name: r.name,
+        region: r.region ?? '',
+        mmp: r.mmp ?? '',
+        campaign_type: r.campaign_type ?? '',
+        status: r.status ?? '',
+        start_date: r.start_date ?? '',
+        end_date: r.end_date,
+        jira_url: r.jira_url ?? null,
+        daily_report_url: r.daily_report_url ?? null,
+        regional_game_name: r.regional_game_name,
+        game_name: r.game?.game_name ?? null,
+        game_logo_url: r.game?.logo_url ?? null,
+        game_store_url: r.game?.store_url ?? null,
+        game_package_identifier: r.game?.package_identifier ?? null,
+        account_company: companyOf(r),
+        account_country: r.account?.country ?? null,
+      })),
+    [view.list]
+  );
+
   const filtersActive =
     advertisers.length > 0 || regions.length > 0 || search.trim() !== '';
   const resetFilters = () => {
@@ -267,17 +272,6 @@ export default function PublicCampaignsPage() {
     setSearch('');
   };
 
-  // 광고주순일 때는 광고주 칸 대신 묶음 줄(접기/펼치기)로 보여준다
-  const grouped = sort === 'advertiser';
-  const groupSizes = countBy(view.list, companyOf);
-  const toggleGroup = (company: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(company)) next.delete(company);
-      else next.add(company);
-      return next;
-    });
-  const colCount = grouped ? 6 : 7;
 
   const advertiserLabel =
     advertisers.length === 0
@@ -287,8 +281,6 @@ export default function PublicCampaignsPage() {
       : `광고주 ${advertisers.length}곳`;
   const regionLabel =
     regions.length === 0 ? '전체 지역' : [...regions].sort(byRegion).join(' · ');
-  const sortLabel =
-    SORT_OPTIONS.find((o) => o.value === sort)?.label ?? '광고주순';
 
   return (
     <div className='min-h-screen bg-background'>
@@ -471,28 +463,7 @@ export default function PublicCampaignsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* 정렬 */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='outline' size='sm'>
-                  <ArrowDownUpIcon className='h-4 w-4' />
-                  <span>{sortLabel}</span>
-                  <ChevronDownIcon className='h-4 w-4 opacity-50' />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end' className='w-[180px]'>
-                <DropdownMenuRadioGroup
-                  value={sort}
-                  onValueChange={(v) => setSort(v as SortKey)}
-                >
-                  {SORT_OPTIONS.map((o) => (
-                    <DropdownMenuRadioItem key={o.value} value={o.value}>
-                      {o.label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
           </div>
         </div>
         </>
@@ -522,128 +493,11 @@ export default function PublicCampaignsPage() {
             )}
           </div>
         ) : (
-          <TableWrapper>
-            <Table style={{ width: '100%' }}>
-              <TableHeader className={TABLE_STYLES.header}>
-                <TableRow>
-                  <TableHead className='whitespace-nowrap'>
-                    캠페인 · 게임
-                    {grouped && Object.keys(groupSizes).length > 1 && (
-                      <button
-                        type='button'
-                        onClick={() =>
-                          setCollapsed((prev) =>
-                            prev.size > 0
-                              ? new Set()
-                              : new Set(Object.keys(groupSizes))
-                          )
-                        }
-                        className='ml-2 rounded px-1.5 py-0.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground'
-                      >
-                        {collapsed.size > 0 ? '모두 펼치기' : '모두 접기'}
-                      </button>
-                    )}
-                  </TableHead>
-                  {!grouped && (
-                    <TableHead className='whitespace-nowrap'>광고주</TableHead>
-                  )}
-                  <TableHead className='whitespace-nowrap'>지역</TableHead>
-                  <TableHead className='whitespace-nowrap text-center'>
-                    MMP
-                  </TableHead>
-                  <TableHead className='whitespace-nowrap'>타입</TableHead>
-                  <TableHead className='whitespace-nowrap'>
-                    {/* 헤더 클릭: 시작일 최신순 ↔ 오래된순 */}
-                    <button
-                      type='button'
-                      onClick={() =>
-                        setSort(sort === 'latest' ? 'oldest' : 'latest')
-                      }
-                      className='inline-flex items-center gap-1 transition-colors hover:text-foreground'
-                      title='시작일 기준 정렬'
-                    >
-                      기간
-                      {sort === 'latest' ? (
-                        <ArrowDownIcon className='h-3.5 w-3.5' />
-                      ) : sort === 'oldest' ? (
-                        <ArrowUpIcon className='h-3.5 w-3.5' />
-                      ) : (
-                        <ArrowDownUpIcon className='h-3.5 w-3.5 opacity-40' />
-                      )}
-                    </button>
-                  </TableHead>
-                  <TableHead className='whitespace-nowrap'>상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className={TABLE_STYLES.body}>
-                {view.list.map((r, i) => {
-                  const company = companyOf(r);
-                  const isGroupStart =
-                    grouped &&
-                    (i === 0 || companyOf(view.list[i - 1]) !== company);
-                  const isCollapsed = grouped && collapsed.has(company);
-                  return (
-                    <Fragment key={r.id}>
-                      {isGroupStart && (
-                        <TableRow
-                          className='cursor-pointer bg-muted/30 hover:bg-muted/50'
-                          onClick={() => toggleGroup(company)}
-                        >
-                          <TableCell colSpan={colCount} className='py-1.5'>
-                            <div className='flex items-center gap-2 text-xs'>
-                              <ChevronRightIcon
-                                className={cn(
-                                  'h-3.5 w-3.5 text-muted-foreground transition-transform',
-                                  !isCollapsed && 'rotate-90'
-                                )}
-                              />
-                              <span className='font-semibold'>
-                                {company || '광고주 없음'}
-                              </span>
-                              <span className='tabular-nums text-muted-foreground'>
-                                {groupSizes[company] ?? 0}
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {!isCollapsed && (
-                        <TableRow>
-                          <TableCell className='max-w-[360px]'>
-                            <CampaignGameCell campaign={r} />
-                          </TableCell>
-                          {!grouped && (
-                            <TableCell className='whitespace-nowrap'>
-                              {company || '-'}
-                            </TableCell>
-                          )}
-                          <TableCell className='whitespace-nowrap'>
-                            {REGION_FLAG[r.region ?? ''] ?? ''} {r.region ?? '-'}
-                          </TableCell>
-                          <TableCell className='whitespace-nowrap text-center'>
-                            <MmpIcon mmp={r.mmp} />
-                          </TableCell>
-                          <TableCell className='whitespace-nowrap'>
-                            {r.campaign_type ?? '-'}
-                          </TableCell>
-                          <TableCell>
-                            <PeriodCell
-                              from={r.start_date}
-                              to={r.end_date}
-                              status={r.status}
-                            />
-                          </TableCell>
-                          <TableCell className='whitespace-nowrap'>
-                            <StatusBadge status={r.status} />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableWrapper>
+          <CampaignAccordionList
+            campaigns={accordionRows}
+            campaignHref={(c) => shareCampaignHref(c.id)}
+            readOnly
+          />
         )}
 
         <p className='mt-6 text-center text-xs text-muted-foreground'>

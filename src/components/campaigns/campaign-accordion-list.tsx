@@ -25,7 +25,7 @@ import { REGION_PRIORITY } from '@/lib/utils/campaign-sort';
 import { accountUrl } from '@/lib/utils/account-url';
 import { canManageResource } from '@/lib/utils/permissions';
 import { cn } from '@/lib/utils';
-import type { Campaign } from '@/hooks/use-campaign-management';
+import type { Campaign as FullCampaign } from '@/hooks/use-campaign-management';
 import type { UserProfile } from '@/lib/permissions';
 
 /**
@@ -65,6 +65,32 @@ const STATUS_STYLE: Record<string, { label: string; dot: string; text: string }>
 
 // 시안처럼 앞의 3개만 겹쳐서 — 나머지 개수(+N)는 표시하지 않음 (캠페인 수는 아래 줄에)
 const MAX_ICONS = 3;
+
+/** 목록에 필요한 필드만 — 내부 Campaign 과 공개 뷰어 캠페인 둘 다 받는다 */
+export type AccordionCampaign = Pick<
+  FullCampaign,
+  | 'id'
+  | 'name'
+  | 'region'
+  | 'mmp'
+  | 'campaign_type'
+  | 'status'
+  | 'start_date'
+  | 'end_date'
+  | 'jira_url'
+  | 'daily_report_url'
+  | 'regional_game_name'
+> & {
+  game_id?: string | null;
+  game_name?: string | null;
+  game_logo_url?: string | null;
+  game_store_url?: string | null;
+  game_package_identifier?: string | null;
+  account_company?: string | null;
+  account_country?: string | null;
+  assigned_user_id?: string | null;
+};
+type Campaign = AccordionCampaign;
 const DAY_MS = 86_400_000;
 
 const shortDate = (d: string | null) =>
@@ -241,11 +267,15 @@ function CampaignRow({
   canManage,
   onEdit,
   onDelete,
+  href,
+  readOnly,
 }: {
   campaign: Campaign;
   canManage: boolean;
   onEdit?: (c: Campaign) => void;
   onDelete: (c: Campaign) => void;
+  href: string;
+  readOnly: boolean;
 }) {
   const status = STATUS_STYLE[campaign.status] ?? {
     label: campaign.status,
@@ -270,7 +300,7 @@ function CampaignRow({
         <div className='min-w-0'>
           {campaign.daily_report_url ? (
             <Link
-              href={`/campaigns/${campaign.id}`}
+              href={href}
               className='block truncate text-[13px] font-medium hover:text-primary hover:underline'
             >
               {campaign.name}
@@ -362,6 +392,7 @@ function CampaignRow({
             JIRA
           </a>
         )}
+        {!readOnly && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant='ghost' size='icon' className='h-7 w-7'>
@@ -384,6 +415,7 @@ function CampaignRow({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </div>
     </div>
   );
@@ -437,21 +469,27 @@ function Section({
   );
 }
 
-interface CampaignAccordionListProps {
-  campaigns: Campaign[];
+interface CampaignAccordionListProps<T extends AccordionCampaign> {
+  campaigns: T[];
   currentUserProfile?: UserProfile | null;
-  onEditCampaign?: (campaign: Campaign) => void;
-  onDeleteCampaign: (campaignId: string) => Promise<void>;
+  onEditCampaign?: (campaign: T) => void;
+  onDeleteCampaign?: (campaignId: string) => Promise<void>;
+  /** 캠페인명 링크 (기본: 내부 캠페인 상세) */
+  campaignHref?: (campaign: T) => string;
+  /** 공개 뷰어용 — 수정·삭제 메뉴, 광고주 페이지 링크 숨김 */
+  readOnly?: boolean;
   className?: string;
 }
 
-export function CampaignAccordionList({
+export function CampaignAccordionList<T extends AccordionCampaign>({
   campaigns,
   currentUserProfile,
   onEditCampaign,
   onDeleteCampaign,
+  campaignHref = (c) => `/campaigns/${c.id}`,
+  readOnly = false,
   className,
-}: CampaignAccordionListProps) {
+}: CampaignAccordionListProps<T>) {
   const [openSet, setOpenSet] = useState<Set<string>>(() => new Set());
   const [toDelete, setToDelete] = useState<Campaign | null>(null);
 
@@ -502,7 +540,9 @@ export function CampaignAccordionList({
                 key={c.id}
                 campaign={c}
                 canManage={canManageResource(currentUserProfile, c.assigned_user_id || '')}
-                onEdit={onEditCampaign}
+                onEdit={onEditCampaign as ((c: Campaign) => void) | undefined}
+                href={campaignHref(c as T)}
+                readOnly={readOnly}
                 onDelete={(campaign) => {
                   if (!canManageResource(currentUserProfile, campaign.assigned_user_id || '')) {
                     toast.error('본인에게 할당된 광고주의 캠페인만 삭제할 수 있습니다.');
@@ -515,7 +555,7 @@ export function CampaignAccordionList({
           </div>
         </div>
       </div>
-      {g.company && (
+      {g.company && !readOnly && (
         <div className='border-t px-3 py-1.5 text-right'>
           <Link href={accountUrl(g.company)} className='text-xs text-muted-foreground hover:text-foreground hover:underline'>
             {g.company} 광고주 페이지 →
@@ -552,7 +592,7 @@ export function CampaignAccordionList({
         onClose={() => setToDelete(null)}
         onConfirm={async () => {
           if (!toDelete) return;
-          await onDeleteCampaign(toDelete.id);
+          await onDeleteCampaign?.(toDelete.id);
           setToDelete(null);
         }}
         title='정말 삭제하시겠습니까?'
