@@ -488,7 +488,7 @@ export function CampaignAccordionList({
     <div className='border-t'>
       <div className='overflow-x-auto'>
         <div className='min-w-[800px]'>
-          <div className='grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] gap-x-3 border-b bg-muted/30 px-3 py-1 text-[10px] font-medium text-muted-foreground'>
+          <div className='grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] gap-x-3 border-b bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground'>
             <span>캠페인 · 게임</span>
             <span>리전</span>
             <span>MMP</span>
