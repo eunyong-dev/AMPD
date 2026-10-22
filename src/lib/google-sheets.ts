@@ -1,5 +1,6 @@
 import 'server-only';
-import { google, sheets_v4 } from 'googleapis';
+// googleapis 전체(약 190MB) 대신 시트 전용 패키지
+import { auth as googleAuth, sheets, sheets_v4 } from '@googleapis/sheets';
 
 /**
  * Google Sheets 서비스 계정 클라이언트
@@ -21,7 +22,7 @@ function getSheetsClient(): sheets_v4.Sheets {
     );
   }
 
-  const auth = new google.auth.JWT({
+  const auth = new googleAuth.JWT({
     email,
     // .env에 \n 문자로 escape된 개행을 실제 개행으로 복원
     key: privateKey.replace(/\\n/g, '\n'),
@@ -29,7 +30,7 @@ function getSheetsClient(): sheets_v4.Sheets {
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
-  cachedClient = google.sheets({ version: 'v4', auth });
+  cachedClient = sheets({ version: 'v4', auth });
   return cachedClient;
 }
 
