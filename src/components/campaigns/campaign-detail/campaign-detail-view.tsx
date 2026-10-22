@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { PerformanceSkeleton } from './performance-skeleton';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -288,35 +289,8 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
   if (loading) {
     return (
       <AccessControl>
-        <div className='space-y-4'>
-          {/* Header Skeleton */}
-          <div className='flex items-center justify-between'>
-            <div className='space-y-2'>
-              <Skeleton className='h-8 w-64' />
-              <Skeleton className='h-4 w-96' />
-            </div>
-          </div>
-
-          {/* Campaign Info Card Skeleton */}
-          <Card>
-            <CardContent className='p-6'>
-              <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className='space-y-2'>
-                    <Skeleton className='h-4 w-20' />
-                    <Skeleton className='h-6 w-32' />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data Table Skeleton */}
-          <Card>
-            <CardContent className='p-6'>
-              <Skeleton className='h-96 w-full' />
-            </CardContent>
-          </Card>
+        <div style={{ height: inModal ? '100%' : 'calc(100vh - 96px)' }}>
+          <PerformanceSkeleton />
         </div>
       </AccessControl>
     );
