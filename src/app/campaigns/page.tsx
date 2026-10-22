@@ -405,12 +405,12 @@ export default function AllCampaignsPage() {
         {/* Search - 1450px 이하일 때 위쪽에 표시 */}
         <div className='search-break:hidden'>
           <div className='relative w-full'>
-            <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+            <SearchIcon className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
             <Input
               placeholder='캠페인·게임·광고주·패키지명 검색'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className='pl-10 h-9 w-full'
+              className='pl-8 h-8 w-full text-xs'
               autoComplete='off'
             />
           </div>
@@ -420,15 +420,15 @@ export default function AllCampaignsPage() {
         <div className='overflow-x-auto py-1'>
           <div className='flex items-center justify-between gap-4 min-w-max'>
             <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-              <TabsList className='rounded-xl h-9'>
+              <TabsList className='rounded-lg h-8 p-0.5'>
                 {STATUS_TABS.map(({ value, label, dot }) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className='rounded-lg text-sm px-3 py-1 gap-1.5'
+                    className='rounded-md text-xs px-2.5 py-1 gap-1.5'
                   >
                     {dot && (
-                      <span className={cn('h-2 w-2 rounded-full', dot)} />
+                      <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />
                     )}
                     {label}
                     <span className='tabular-nums text-muted-foreground'>
@@ -443,12 +443,12 @@ export default function AllCampaignsPage() {
             <div className='flex items-center gap-2 flex-shrink-0'>
               {/* Search - 1450px 이상일 때 필터와 함께 표시 */}
               <div className='hidden search-break:block relative flex-1 max-w-md min-w-0'>
-                <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+                <SearchIcon className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
                 <Input
                   placeholder='캠페인·게임·광고주·패키지명 검색'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className='pl-10 h-9'
+                  className='pl-8 h-8 text-xs'
                   autoComplete='off'
                 />
               </div>
@@ -458,9 +458,9 @@ export default function AllCampaignsPage() {
                   <Button
                     variant='outline'
                     size='sm'
-                    className='w-auto justify-between flex-shrink-0'
+                    className='h-8 w-auto flex-shrink-0 justify-between gap-1.5 px-2.5 text-xs'
                   >
-                    <GlobeIcon className='h-4 w-4' />
+                    <GlobeIcon className='h-3.5 w-3.5' />
                     <span className='hidden filter-break:inline'>
                       {selectedRegions.length === 0
                         ? '전체 지역'
@@ -468,7 +468,7 @@ export default function AllCampaignsPage() {
                         ? '전체 지역'
                         : `${selectedRegions.length}개 선택`}
                     </span>
-                    <ChevronDownIcon className='hidden filter-break:block h-4 w-4' />
+                    <ChevronDownIcon className='hidden filter-break:block h-3.5 w-3.5' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className='w-[180px]'>
@@ -511,9 +511,9 @@ export default function AllCampaignsPage() {
                   <Button
                     variant='outline'
                     size='sm'
-                    className='w-auto justify-between flex-shrink-0'
+                    className='h-8 w-auto flex-shrink-0 justify-between gap-1.5 px-2.5 text-xs'
                   >
-                    <UsersIcon className='h-4 w-4' />
+                    <UsersIcon className='h-3.5 w-3.5' />
                     <span className='hidden filter-break:inline'>
                       {selectedUserIds.length === 0
                         ? '전체 사용자'
@@ -521,7 +521,7 @@ export default function AllCampaignsPage() {
                         ? '전체 사용자'
                         : `${selectedUserIds.length}명 선택`}
                     </span>
-                    <ChevronDownIcon className='hidden filter-break:block h-4 w-4' />
+                    <ChevronDownIcon className='hidden filter-break:block h-3.5 w-3.5' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className='w-[180px]'>
