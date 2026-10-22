@@ -181,15 +181,19 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
 
   // 캠페인 정보 로드
   useEffect(() => {
+    // 화면이 닫히거나 다른 캠페인으로 바뀌면 진행 중인 요청 결과는 버린다
+    // (개발 모드에서 effect 가 두 번 실행될 때 시트 요청·결과가 겹치지 않게)
+    const controller = new AbortController();
     const loadCampaign = async () => {
       try {
         setLoading(true);
         const campaignData = await getCampaignById(campaignId);
+        if (controller.signal.aborted) return;
         if (campaignData) {
           setCampaign(campaignData);
-          // Report URL이 있으면 자동으로 데이터 가져오기 (초기 로드: 마지막 날짜 기준 30일)
+          // Report URL이 있으면 자동으로 데이터 가져오기
           if (campaignData.daily_report_url) {
-            fetchSheetData(campaignData.daily_report_url);
+            fetchSheetData(campaignData.daily_report_url, false, controller.signal);
           }
         } else {
           toast.error('캠페인을 찾을 수 없습니다.');
@@ -207,13 +211,15 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
     if (campaignId) {
       loadCampaign();
     }
+    return () => controller.abort();
   }, [campaignId, router]);
 
   // Google Sheets 데이터 가져오기 (전체를 한 번에 로드, 기간 필터·집계는 CampaignPerformance 에서)
   // forceRefresh=true면 서버 캐시 무시하고 최신 데이터 fetch
   const fetchSheetData = async (
     reportUrl: string,
-    forceRefresh = false
+    forceRefresh = false,
+    signal?: AbortSignal
   ) => {
     setDataLoading(true);
     setDataError(null);
@@ -235,6 +241,7 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
+          signal,
         }
       );
 
@@ -262,16 +269,19 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
         });
       }
 
+      if (signal?.aborted) return;
       setAllData(fetchedData);
-      toast.success('데이터를 불러왔습니다.');
+      // 화면을 열 때마다 뜨면 시끄러워서, 새로고침 버튼으로 다시 받을 때만 알림
+      if (forceRefresh) toast.success('데이터를 새로 불러왔습니다.', { id: 'sheet-refresh' });
     } catch (err) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) return;
       const errorMessage =
         err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       setDataError(errorMessage);
       toast.error(`데이터 불러오기 실패: ${errorMessage}`);
       console.error('Google Sheets 데이터 가져오기 오류:', err);
     } finally {
-      setDataLoading(false);
+      if (!signal?.aborted) setDataLoading(false);
     }
   };
 
