@@ -126,7 +126,7 @@ function buildGroups(campaigns: Campaign[]): Group[] {
 
 function GameIcon({ logo, name, size }: { logo: string | null; name: string; size: 'sm' | 'md' }) {
   const [failed, setFailed] = useState(false);
-  const box = size === 'md' ? 'h-8 w-8 rounded-lg' : 'h-7 w-7 rounded-lg';
+  const box = size === 'md' ? 'h-7 w-7 rounded-md' : 'h-6 w-6 rounded-md';
   if (!logo || failed) {
     return (
       <span
@@ -194,7 +194,7 @@ function GroupHeader({
       onClick={onToggle}
       aria-expanded={open}
       className={cn(
-        'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40',
+        'flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40',
         open && 'bg-primary/5'
       )}
     >
@@ -205,21 +205,21 @@ function GroupHeader({
       </div>
       <div className='min-w-0'>
         <div className='flex items-center gap-2'>
-          <span className='truncate text-sm font-semibold'>
+          <span className='truncate text-[13px] font-semibold'>
             {group.company || '광고주 없음'}
           </span>
           {badge && (
-            <span className={cn('flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium', badge.cls)}>
+            <span className={cn('flex-shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium', badge.cls)}>
               {badge.label}
             </span>
           )}
           {isAdNetwork && (
-            <span className='flex-shrink-0 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground'>
+            <span className='flex-shrink-0 rounded-full border px-1.5 py-px text-[10px] text-muted-foreground'>
               애드네트워크
             </span>
           )}
         </div>
-        <div className='text-xs text-muted-foreground'>
+        <div className='text-[11px] text-muted-foreground'>
           {group.campaigns.length}개 캠페인
           {group.regions.map((r) => (
             <span key={r}> · {r}</span>
@@ -257,9 +257,9 @@ function CampaignRow({
   const ended = campaign.status === 'holding' || campaign.status === 'end';
 
   return (
-    <div className='grid grid-cols-[minmax(240px,2.4fr)_64px_minmax(110px,1fr)_84px_minmax(170px,1.2fr)_168px] items-center gap-x-4 px-4 py-2.5 hover:bg-muted/30'>
+    <div className='grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] items-center gap-x-3 px-3 py-1.5 hover:bg-muted/30'>
       {/* 캠페인 · 게임 */}
-      <div className='flex min-w-0 items-center gap-3'>
+      <div className='flex min-w-0 items-center gap-2.5'>
         {campaign.game_store_url ? (
           <a href={campaign.game_store_url} target='_blank' rel='noopener noreferrer' title='스토어에서 보기'>
             <GameIcon logo={campaign.game_logo_url ?? null} name={gameName} size='md' />
@@ -271,19 +271,19 @@ function CampaignRow({
           {campaign.daily_report_url ? (
             <Link
               href={`/campaigns/${campaign.id}`}
-              className='block truncate text-sm font-medium hover:text-primary hover:underline'
+              className='block truncate text-[13px] font-medium hover:text-primary hover:underline'
             >
               {campaign.name}
             </Link>
           ) : (
             <span
-              className='block truncate text-sm font-medium text-muted-foreground'
+              className='block truncate text-[13px] font-medium text-muted-foreground'
               title='리포트 미연동'
             >
               {campaign.name}
             </span>
           )}
-          <div className='flex min-w-0 items-center gap-1 text-xs text-muted-foreground'>
+          <div className='flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground'>
             {/* 게임명에 마우스를 올리면 썸네일 툴팁, 누르면 스토어 */}
             <GameThumbnailTooltip
               imageUrl={campaign.game_logo_url ?? null}
@@ -313,25 +313,25 @@ function CampaignRow({
 
       {/* 리전 */}
       <div>
-        <span className='rounded-md border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground'>
+        <span className='rounded border px-1 py-px text-[10px] font-medium text-muted-foreground'>
           {campaign.region}
         </span>
       </div>
 
       {/* MMP */}
-      <div className='flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground'>
+      <div className='flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground'>
         <MmpLogo mmp={campaign.mmp} />
         <span className='truncate'>{campaign.mmp}</span>
       </div>
 
       {/* 상태 */}
-      <div className={cn('flex items-center gap-1.5 text-sm', status.text)}>
+      <div className={cn('flex items-center gap-1.5 text-xs', status.text)}>
         <span className={cn('h-1.5 w-1.5 rounded-full', status.dot)} />
         {status.label}
       </div>
 
       {/* 기간 */}
-      <div className='flex items-center gap-2 whitespace-nowrap text-sm tabular-nums'>
+      <div className='flex items-center gap-2 whitespace-nowrap text-xs tabular-nums'>
         <span className={cn(ended ? 'text-muted-foreground' : '')}>
           {shortDate(campaign.start_date)} → {ended ? shortDate(campaign.end_date) : ''}
         </span>
@@ -345,7 +345,7 @@ function CampaignRow({
             href={campaign.daily_report_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
+            className='inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
           >
             <ServiceFavicon service='sheet' />
             시트
@@ -356,7 +356,7 @@ function CampaignRow({
             href={campaign.jira_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
+            className='inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
           >
             <ServiceFavicon service='jira' />
             JIRA
@@ -410,7 +410,7 @@ function Section({
 }) {
   if (groups.length === 0) return null;
   return (
-    <section className='space-y-2'>
+    <section className='space-y-1.5'>
       <div className='flex items-baseline gap-2 px-1'>
         <h2 className='text-sm font-semibold'>{title}</h2>
         <span className='text-xs text-muted-foreground'>
@@ -487,8 +487,8 @@ export function CampaignAccordionList({
   const renderRows = (g: Group) => (
     <div className='border-t'>
       <div className='overflow-x-auto'>
-        <div className='min-w-[860px]'>
-          <div className='grid grid-cols-[minmax(240px,2.4fr)_64px_minmax(110px,1fr)_84px_minmax(170px,1.2fr)_168px] gap-x-4 border-b bg-muted/30 px-4 py-1.5 text-[11px] font-medium text-muted-foreground'>
+        <div className='min-w-[800px]'>
+          <div className='grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] gap-x-3 border-b bg-muted/30 px-3 py-1 text-[10px] font-medium text-muted-foreground'>
             <span>캠페인 · 게임</span>
             <span>리전</span>
             <span>MMP</span>
@@ -516,7 +516,7 @@ export function CampaignAccordionList({
         </div>
       </div>
       {g.company && (
-        <div className='border-t px-4 py-2 text-right'>
+        <div className='border-t px-3 py-1.5 text-right'>
           <Link href={accountUrl(g.company)} className='text-xs text-muted-foreground hover:text-foreground hover:underline'>
             {g.company} 광고주 페이지 →
           </Link>
@@ -526,7 +526,7 @@ export function CampaignAccordionList({
   );
 
   return (
-    <div className={cn('space-y-5', className)}>
+    <div className={cn('space-y-4', className)}>
       <Section
         title='광고주'
         hint='직거래 · 최적화 관리'
