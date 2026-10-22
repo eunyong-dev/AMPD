@@ -401,7 +401,7 @@ export default function AllCampaignsPage() {
 
   return (
     <AccessControl>
-      <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
+      <div className='flex flex-col gap-4'>
         {/* Search - 1450px 이하일 때 위쪽에 표시 */}
         <div className='search-break:hidden'>
           <div className='relative w-full'>
@@ -580,8 +580,6 @@ export default function AllCampaignsPage() {
             currentUserProfile={currentUserProfile}
             onEditCampaign={handleEditCampaign}
             onDeleteCampaign={handleDeleteCampaign}
-            // 남은 높이 안에서 스크롤 (필터 줄은 위에 고정)
-            className='lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1'
           />
         ) : (
           <div className='text-center py-12'>
