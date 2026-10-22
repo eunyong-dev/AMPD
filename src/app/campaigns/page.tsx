@@ -35,7 +35,7 @@ import { getAllGames } from '@/hooks/use-game-management';
 import { useUserContext } from '@/lib/user-context';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useAuth } from '@/hooks/use-auth';
-import { CampaignsTable } from '@/components/campaigns/campaigns-table';
+import { CampaignAccordionList } from '@/components/campaigns/campaign-accordion-list';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 import { canManageResource } from '@/lib/utils/permissions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -568,167 +568,20 @@ export default function AllCampaignsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Customize Columns */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant='outline' size='sm' className='flex-shrink-0'>
-                    <ColumnsIcon className='h-4 w-4' />
-                    <span className='hidden filter-break:inline'>컬럼 설정</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' className='w-56'>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.campaignTitle}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        campaignTitle: checked,
-                      }))
-                    }
-                  >
-                    캠페인 제목
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.gameName}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        gameName: checked,
-                      }))
-                    }
-                  >
-                    게임명
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.assignedUser}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        assignedUser: checked,
-                      }))
-                    }
-                  >
-                    담당자
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.region}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        region: checked,
-                      }))
-                    }
-                  >
-                    지역
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.mmp}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        mmp: checked,
-                      }))
-                    }
-                  >
-                    MMP
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.type}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        type: checked,
-                      }))
-                    }
-                  >
-                    타입
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.dateRange}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        dateRange: checked,
-                      }))
-                    }
-                  >
-                    기간
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.status}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        status: checked,
-                      }))
-                    }
-                  >
-                    상태
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.jiraUrl}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        jiraUrl: checked,
-                      }))
-                    }
-                  >
-                    Jira URL
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.dailyReportUrl}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        dailyReportUrl: checked,
-                      }))
-                    }
-                  >
-                    Report URL
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+
             </div>
           </div>
         </div>
 
         {/* Campaigns Table */}
         {filteredCampaigns.length > 0 ? (
-          <CampaignsTable
+          <CampaignAccordionList
             campaigns={filteredCampaigns}
-            // 표가 남은 높이를 채우고 안에서만 스크롤 → 표 헤더 고정
-            fillHeight
-            className='lg:flex-1'
-            // 홀딩·종료 탭은 이미 끝난 캠페인이라 기간 정렬을 종료일 기준으로
-            dateSortField={
-              statusFilter === 'holding' || statusFilter === 'end'
-                ? 'end'
-                : 'start'
-            }
-            selectedCampaigns={selectedCampaigns}
-            onSelectAll={(checked) => {
-              if (checked) {
-                setSelectedCampaigns(filteredCampaigns.map((c) => c.id));
-              } else {
-                setSelectedCampaigns([]);
-              }
-            }}
-            onSelectCampaign={(campaignId, checked) => {
-              if (checked) {
-                setSelectedCampaigns([...selectedCampaigns, campaignId]);
-              } else {
-                setSelectedCampaigns(
-                  selectedCampaigns.filter((id) => id !== campaignId)
-                );
-              }
-            }}
-            onDeleteCampaign={handleDeleteCampaign}
-            onEditCampaign={handleEditCampaign}
             currentUserProfile={currentUserProfile}
-            accountAssignedUserId={undefined}
-            columnVisibility={columnVisibility}
-            groupByAccount
+            onEditCampaign={handleEditCampaign}
+            onDeleteCampaign={handleDeleteCampaign}
+            // 남은 높이 안에서 스크롤 (필터 줄은 위에 고정)
+            className='lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1'
           />
         ) : (
           <div className='text-center py-12'>
