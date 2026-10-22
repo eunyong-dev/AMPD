@@ -271,7 +271,7 @@ function GroupGameIcons({
   const shown = games.slice(0, MAX_GROUP_ICONS);
   const rest = games.length - shown.length;
   return (
-    <div className='flex w-[108px] flex-shrink-0 items-center -space-x-2'>
+    <div className='flex flex-shrink-0 items-center -space-x-2'>
       {shown.map((g) => (
         <GroupGameIcon key={g.key} logo={g.logo} name={g.name} />
       ))}
