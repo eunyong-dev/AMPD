@@ -196,7 +196,7 @@ function StoreFavicon({ url }: { url: string | null }) {
       alt=''
       aria-hidden
       onError={() => setFailed(true)}
-      className='h-3.5 w-3.5 flex-shrink-0 object-contain'
+      className='h-2.5 w-2.5 flex-shrink-0 object-contain'
     />
   );
 }
