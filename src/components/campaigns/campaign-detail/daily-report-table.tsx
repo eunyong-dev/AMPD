@@ -235,7 +235,7 @@ export function DailyReportTable({
           <Table
             style={{ width: 'max-content', minWidth: '100%' }}
             className={cn(
-              'border-separate border-spacing-0 text-xs tabular-nums [&_td]:cursor-default [&_th]:cursor-default',
+              'border-separate border-spacing-0 text-[13px] tabular-nums [&_td]:cursor-default [&_th]:cursor-default',
               dragging && 'select-none'
             )}
           >
@@ -247,7 +247,7 @@ export function DailyReportTable({
                     key={i}
                     colSpan={g.span}
                     className={cn(
-                      'h-6 border-b bg-muted px-2 py-0 text-center text-[11px] font-medium',
+                      'h-7 border-b bg-muted px-2 py-0 text-center text-xs font-medium',
                       g.group === 'cohortRevenue' || g.group === 'cohortRoas'
                         ? 'text-primary'
                         : 'text-muted-foreground',
@@ -265,7 +265,7 @@ export function DailyReportTable({
                   <TableHead
                     key={h}
                     className={cn(
-                      'h-8 whitespace-nowrap border-b bg-muted px-3 py-0 text-xs',
+                      'h-9 whitespace-nowrap border-b bg-muted px-3 py-0 text-[13px]',
                       isDateHeader(h)
                         ? cn(stickyDate, 'bg-muted text-left')
                         : 'text-right',
@@ -283,7 +283,7 @@ export function DailyReportTable({
                   <TableHead
                     key={h}
                     className={cn(
-                      'h-8 whitespace-nowrap border-b-2 bg-blue-50 px-3 py-0 text-xs font-semibold text-foreground dark:bg-slate-800',
+                      'h-9 whitespace-nowrap border-b-2 bg-blue-50 px-3 py-0 text-[13px] font-semibold text-foreground dark:bg-slate-800',
                       isDateHeader(h) ? cn(stickyDate, 'text-left') : 'text-right',
                       groupStart.has(i) && 'border-l'
                     )}
@@ -329,7 +329,7 @@ export function DailyReportTable({
                             }
                           : undefined;
                       const cls = cn(
-                        'whitespace-nowrap px-3 py-1.5',
+                        'whitespace-nowrap px-3 py-2',
                         weekEnd ? 'border-b-2 border-border' : 'border-b',
                         isDateCol
                           ? cn(
@@ -361,7 +361,7 @@ export function DailyReportTable({
                                 </span>
                                 <span
                                   className={cn(
-                                    'text-[10px]',
+                                    'text-[11px]',
                                     day === 0
                                       ? 'text-red-500'
                                       : day === 6
