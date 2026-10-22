@@ -325,7 +325,7 @@ function CampaignRow({
       onMouseEnter={() => canOpen && router.prefetch(href)}
       title={canOpen ? undefined : '리포트 미연동 — 성과 화면 없음'}
       className={cn(
-        'grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] items-center gap-x-3 px-3 py-1.5',
+        'grid grid-cols-[minmax(240px,340px)_44px_100px_64px_150px_1fr_150px] items-center gap-x-3 px-3 py-1.5',
         canOpen ? 'cursor-pointer hover:bg-muted/50' : 'hover:bg-muted/20'
       )}
     >
@@ -408,6 +408,8 @@ function CampaignRow({
         </span>
         {days !== null && <span className='font-semibold'>{days}일째</span>}
       </div>
+
+      <div />
 
       {/* 시트 · JIRA · 메뉴 */}
       <div className='flex items-center justify-end gap-1 text-xs'>
@@ -559,13 +561,14 @@ export function CampaignAccordionList<T extends AccordionCampaign>({
   const renderRows = (g: Group) => (
     <div className='border-t'>
       <div className='overflow-x-auto'>
-        <div className='min-w-[800px]'>
-          <div className='grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] gap-x-3 border-b bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground'>
+        <div className='min-w-[900px]'>
+          <div className='grid grid-cols-[minmax(240px,340px)_44px_100px_64px_150px_1fr_150px] gap-x-3 border-b bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground'>
             <span>캠페인 · 게임</span>
             <span>리전</span>
             <span>MMP</span>
             <span>상태</span>
             <span>기간</span>
+            <span />
             <span />
           </div>
           <div className='divide-y'>
