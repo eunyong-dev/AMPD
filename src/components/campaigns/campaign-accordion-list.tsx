@@ -320,7 +320,7 @@ function CampaignRow({
 
       {/* MMP */}
       <div className='flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground'>
-        <MmpLogo mmp={campaign.mmp} />
+        <MmpLogo mmp={campaign.mmp} small />
         <span className='truncate'>{campaign.mmp}</span>
       </div>
 
@@ -347,7 +347,7 @@ function CampaignRow({
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
           >
-            <ServiceFavicon service='sheet' />
+            <ServiceFavicon service='sheet' className='h-3.5 w-3.5' />
             시트
           </a>
         )}
@@ -358,7 +358,7 @@ function CampaignRow({
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
           >
-            <ServiceFavicon service='jira' />
+            <ServiceFavicon service='jira' className='h-3.5 w-3.5' />
             JIRA
           </a>
         )}

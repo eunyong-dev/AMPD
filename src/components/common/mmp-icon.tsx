@@ -27,11 +27,12 @@ const BOX =
   'inline-flex h-5 w-5 flex-shrink-0 items-center justify-center align-middle';
 
 /** 파비콘 (불러오지 못하면 MMP 이름 첫 글자) */
-function Favicon({ mmp }: { mmp: string }) {
+function Favicon({ mmp, small = false }: { mmp: string; small?: boolean }) {
   const [failed, setFailed] = useState(false);
+  const size = small ? 'h-3.5 w-3.5' : 'h-5 w-5';
   if (failed) {
     return (
-      <span className='flex h-5 w-5 items-center justify-center rounded bg-muted text-[10px] font-semibold text-muted-foreground'>
+      <span className={`flex ${size} items-center justify-center rounded bg-muted text-[9px] font-semibold text-muted-foreground`}>
         {mmp.charAt(0).toUpperCase()}
       </span>
     );
@@ -44,17 +45,29 @@ function Favicon({ mmp }: { mmp: string }) {
       width={20}
       height={20}
       onError={() => setFailed(true)}
-      className='h-5 w-5 rounded object-contain'
+      className={`${size} rounded object-contain`}
     />
   );
 }
 
-/** 로고 이미지만 (툴팁 없음). 도메인을 모르는 MMP 면 null — Select 옵션 등에 사용 */
-export function MmpLogo({ mmp }: { mmp: string | null }) {
+/** 로고 이미지만 (툴팁 없음). 도메인을 모르는 MMP 면 null — Select 옵션 등에 사용. small: 14px */
+export function MmpLogo({
+  mmp,
+  small = false,
+}: {
+  mmp: string | null;
+  small?: boolean;
+}) {
   if (!mmp || !MMP_DOMAINS[mmp]) return null;
   return (
-    <span className={BOX}>
-      <Favicon mmp={mmp} />
+    <span
+      className={
+        small
+          ? 'inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center align-middle'
+          : BOX
+      }
+    >
+      <Favicon mmp={mmp} small={small} />
     </span>
   );
 }
