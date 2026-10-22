@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { useState } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -8,53 +8,63 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-// 로고 에셋이 있는 MMP (public/ 폴더) — 앱 전체 MMP 아이콘의 단일 소스
-const MMP_LOGOS: Record<string, { src: string; cls: string }> = {
-  Adjust: { src: '/Adjust Logo.svg', cls: 'h-auto w-auto object-contain' },
-  AppsFlyer: {
-    src: '/AppsFlyer Logo.svg',
-    cls: 'h-auto w-auto object-contain',
-  },
-  // 투명 배경 심볼(PNG, 원본 96px, 워드마크 제거) → 박스 크기로 고정
-  Singular: { src: '/Singular Logo.png', cls: 'h-5 w-5 object-contain' },
-  // 정사각 앱 아이콘(PNG, 원본 96px) → 박스 크기로 고정 + 모서리 라운드
-  Tenjin: { src: '/Tenjin Logo.png', cls: 'h-5 w-5 rounded object-cover' },
+// MMP → 공식 사이트 도메인. 아이콘은 사이트 파비콘을 그대로 쓴다 (로고 파일 관리 불필요)
+// 새 MMP 는 여기에 도메인만 추가하면 된다 — 앱 전체 MMP 아이콘의 단일 소스
+const MMP_DOMAINS: Record<string, string> = {
+  AppsFlyer: 'appsflyer.com',
+  Adjust: 'adjust.com',
+  Singular: 'singular.net',
+  Tenjin: 'tenjin.com',
+  Branch: 'branch.io',
+  Kochava: 'kochava.com',
 };
+
+const faviconUrl = (domain: string) =>
+  `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 
 // align-middle: 표 셀(text-center)처럼 인라인으로 놓일 때 행 중앙에 맞춤 (flex 안에선 무시됨)
 const BOX =
   'inline-flex h-5 w-5 flex-shrink-0 items-center justify-center align-middle';
 
-function LogoImage({ mmp }: { mmp: string }) {
-  const logo = MMP_LOGOS[mmp];
+/** 파비콘 (불러오지 못하면 MMP 이름 첫 글자) */
+function Favicon({ mmp }: { mmp: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className='flex h-5 w-5 items-center justify-center rounded bg-muted text-[10px] font-semibold text-muted-foreground'>
+        {mmp.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
   return (
-    <Image
-      src={logo.src}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={faviconUrl(MMP_DOMAINS[mmp])}
       alt={mmp}
       width={20}
       height={20}
-      className={logo.cls}
-      unoptimized
+      onError={() => setFailed(true)}
+      className='h-5 w-5 rounded object-contain'
     />
   );
 }
 
-/** 로고 이미지만 (툴팁 없음). 로고 에셋이 없으면 null — Select 옵션 등에 사용 */
+/** 로고 이미지만 (툴팁 없음). 도메인을 모르는 MMP 면 null — Select 옵션 등에 사용 */
 export function MmpLogo({ mmp }: { mmp: string | null }) {
-  if (!mmp || !MMP_LOGOS[mmp]) return null;
+  if (!mmp || !MMP_DOMAINS[mmp]) return null;
   return (
     <span className={BOX}>
-      <LogoImage mmp={mmp} />
+      <Favicon mmp={mmp} />
     </span>
   );
 }
 
 /**
- * MMP 로고 아이콘 (hover 시 이름 툴팁).
- * 로고가 없는 MMP(Branch, Kochava, Other 등)는 텍스트로 표시.
+ * MMP 아이콘 (hover 시 이름 툴팁).
+ * 도메인을 모르는 MMP(Other 등)는 텍스트로 표시.
  */
 export function MmpIcon({ mmp }: { mmp: string | null }) {
-  if (!mmp || !MMP_LOGOS[mmp]) {
+  if (!mmp || !MMP_DOMAINS[mmp]) {
     return (
       <span className='text-xs text-muted-foreground'>{mmp ?? '-'}</span>
     );
@@ -64,7 +74,7 @@ export function MmpIcon({ mmp }: { mmp: string | null }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className={BOX}>
-            <LogoImage mmp={mmp} />
+            <Favicon mmp={mmp} />
           </span>
         </TooltipTrigger>
         <TooltipContent>
