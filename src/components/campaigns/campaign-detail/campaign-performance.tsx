@@ -105,7 +105,7 @@ export function CampaignPerformance({
   // 처음 불러오는 중 (데이터 없음) — 새로고침 중에는 기존 화면 유지
   const initialLoading = loading && !allData;
 
-  // 오래된 날짜부터 정렬 + 첫/마지막 날짜 (프리셋·기본 30일 기준)
+  // 오래된 날짜부터 정렬 + 첫/마지막 날짜 (프리셋·기본 60일 기준)
   const { rows, dateHeader, firstDate, lastDate } = useMemo(() => {
     const src = allData ?? [];
     const dh = findDateHeader(src[0]);
@@ -146,6 +146,7 @@ export function CampaignPerformance({
       { id: 'last-7', label: 'Last 7 days', getRange: () => nDays(7) },
       { id: 'last-14', label: 'Last 14 days', getRange: () => nDays(14) },
       { id: 'last-30', label: 'Last 30 days', getRange: () => nDays(30) },
+      { id: 'last-60', label: 'Last 60 days', getRange: () => nDays(60) },
       { id: 'last-90', label: 'Last 90 days', getRange: () => nDays(90) },
       { id: '---', label: '', getRange: () => null },
       {
@@ -195,7 +196,7 @@ export function CampaignPerformance({
   }, [firstDate, lastDate]);
 
   // 전체 데이터 + 날짜 범위 조합으로 화면에 표시할 데이터를 도출
-  // dateRange 미설정 시: 최신 날짜 기준 30일
+  // dateRange 미설정 시: 최신 날짜 기준 60일 (마지막 날짜 포함)
   // dateRange 설정 시: 해당 범위 (부분 설정도 허용)
   // 날짜가 비어있는 행(시트에 미리 만들어 둔 빈 행)은 항상 제외
   const data = useMemo<SheetRow[] | null>(() => {
@@ -214,7 +215,7 @@ export function CampaignPerformance({
     } else if (lastDate) {
       to = lastDate;
       from = new Date(lastDate);
-      from.setDate(from.getDate() - 30);
+      from.setDate(from.getDate() - 59);
     }
     if (!from && !to) return rowsWithDate;
 
@@ -290,7 +291,7 @@ export function CampaignPerformance({
                 value={dateRange}
                 onChange={setDateRange}
                 presets={datePickerPresets}
-                placeholder={lastDate ? '최근 30일' : '기간 선택'}
+                placeholder={lastDate ? '최근 60일' : '기간 선택'}
                 triggerClassName='max-[1100px]:justify-center'
                 hideLabelClassName='max-[1100px]:hidden'
               />
