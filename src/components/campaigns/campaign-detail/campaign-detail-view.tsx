@@ -478,7 +478,6 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
             loading={dataLoading}
             error={dataError}
             onRetry={() => fetchSheetData(campaign.daily_report_url!, true)}
-            enableCompare
             toolbarActions={
               <>
                 <Button
@@ -490,18 +489,6 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
                 >
                   <StickyNote className='h-4 w-4' />
                   <span className='max-[1100px]:hidden'>변경 기록</span>
-                </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='flex-shrink-0'
-                  onClick={() => {
-                    const url = campaign.daily_report_url!;
-                    window.open(url, '_blank');
-                  }}
-                >
-                  <ExternalLink className='h-4 w-4' />
-                  <span className='max-[1100px]:hidden'>시트 보기</span>
                 </Button>
                 <Button
                   variant='default'
