@@ -236,7 +236,7 @@ export function DailyReportTable({
                     key={i}
                     colSpan={g.span}
                     className={cn(
-                      'h-6 px-2 py-0 text-center text-[11px] font-medium',
+                      'h-6 bg-muted px-2 py-0 text-center text-[11px] font-medium',
                       g.group === 'cohortRevenue' || g.group === 'cohortRoas'
                         ? 'text-primary'
                         : 'text-muted-foreground',
@@ -254,7 +254,7 @@ export function DailyReportTable({
                   <TableHead
                     key={h}
                     className={cn(
-                      'h-8 whitespace-nowrap px-3 py-0 text-xs',
+                      'h-8 whitespace-nowrap bg-muted px-3 py-0 text-xs',
                       isDateHeader(h)
                         ? cn(stickyDate, 'bg-muted text-left')
                         : 'text-right',
@@ -267,15 +267,13 @@ export function DailyReportTable({
                 ))}
               </TableRow>
               {/* 기간 합계 */}
-              <TableRow className='bg-primary/5 hover:bg-primary/5'>
+              <TableRow className='border-b-2 hover:bg-transparent'>
                 {cols.map((h, i) => (
                   <TableHead
                     key={h}
                     className={cn(
-                      'h-8 whitespace-nowrap px-3 py-0 text-xs font-semibold text-foreground',
-                      isDateHeader(h)
-                        ? cn(stickyDate, 'bg-muted text-left')
-                        : 'text-right',
+                      'h-8 whitespace-nowrap bg-blue-50 px-3 py-0 text-xs font-semibold text-foreground dark:bg-slate-800',
+                      isDateHeader(h) ? cn(stickyDate, 'text-left') : 'text-right',
                       groupStart.has(i) && 'border-l'
                     )}
                   >
