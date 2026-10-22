@@ -19,7 +19,7 @@ export default function CampaignModalLayout({
   return (
     <Dialog open onOpenChange={(open) => !open && router.back()}>
       <DialogContent
-        className='flex h-[94dvh] w-[96vw] max-w-[96vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 duration-300 ease-out sm:max-w-[96vw] data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97] [&>button.absolute]:hidden'
+        className='flex h-[94dvh] w-[96vw] max-w-[96vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 ![animation-duration:380ms] ![animation-timing-function:cubic-bezier(0.16,1,0.3,1)] sm:max-w-[96vw] data-[state=open]:zoom-in-90 data-[state=open]:slide-in-from-top-[46%] [&>button.absolute]:hidden'
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogTitle className='sr-only'>캠페인 성과</DialogTitle>
