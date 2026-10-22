@@ -62,7 +62,8 @@ const STATUS_STYLE: Record<string, { label: string; dot: string; text: string }>
   end: { label: '종료', dot: 'bg-slate-400', text: 'text-muted-foreground' },
 };
 
-const MAX_ICONS = 4;
+// 시안처럼 앞의 3개만 겹쳐서 — 나머지 개수(+N)는 표시하지 않음 (캠페인 수는 아래 줄에)
+const MAX_ICONS = 3;
 const DAY_MS = 86_400_000;
 
 const shortDate = (d: string | null) =>
@@ -162,7 +163,6 @@ function GroupHeader({
   onToggle: () => void;
 }) {
   const shown = group.games.slice(0, MAX_ICONS);
-  const rest = group.games.length - shown.length;
   const badge = group.country ? MARKET_BADGE[group.country] : undefined;
   return (
     <button
@@ -178,11 +178,6 @@ function GroupHeader({
         {shown.map((g) => (
           <GameIcon key={g.key} logo={g.logo} name={g.name} size='sm' />
         ))}
-        {rest > 0 && (
-          <span className='relative flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-card'>
-            +{rest}
-          </span>
-        )}
       </div>
       <div className='min-w-0'>
         <div className='flex items-center gap-2'>
