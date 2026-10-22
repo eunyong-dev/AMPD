@@ -48,6 +48,7 @@ const toCampaignInfo = (c: PublicCampaign): CampaignInfo => ({
   campaignType: c.campaign_type,
   startDate: c.start_date,
   endDate: c.end_date,
+  status: c.status,
 });
 
 /**

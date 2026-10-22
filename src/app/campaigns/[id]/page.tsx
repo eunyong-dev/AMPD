@@ -345,6 +345,7 @@ export default function CampaignDetailPage() {
               campaignType: campaign.campaign_type ?? null,
               startDate: campaign.start_date ?? null,
               endDate: campaign.end_date ?? null,
+              status: campaign.status ?? null,
             }}
             // Campaign Name — Switcher 로 다른 캠페인 빠른 전환
             nameCell={

@@ -1,32 +1,28 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import Image from 'next/image';
+import { useMemo } from 'react';
 import Link from 'next/link';
-import { ExternalLinkIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
-import { MmpIcon } from '@/components/common/mmp-icon';
-import { CAMPAIGN_TYPE_OPTIONS } from '@/constants/campaigns';
+import { MmpLogo } from '@/components/common/mmp-icon';
+import { ServiceFavicon } from '@/components/common/service-favicon';
+import {
+  GameIcon,
+  STATUS_STYLE,
+  StoreFavicon,
+  dayCount,
+  shortDate,
+} from '@/components/campaigns/campaign-accordion-list';
 import { convertStoreUrlByRegion } from '@/lib/store-url-utils';
-import { formatDateYYYYMMDD } from '@/lib/utils/date';
+import { cn } from '@/lib/utils';
 
-/** 상단 정보 표에 필요한 캠페인 필드 — 내부/공개 공통 형태 */
+/** 상단 정보에 필요한 캠페인 필드 — 내부/공개 공통 형태 */
 export interface CampaignInfo {
   name: string;
   company: string | null;
   gameName: string | null;
-  /** 지역별 게임명 (있으면 스토어 링크에 우선 표시) */
+  /** 지역별 게임명 (있으면 우선 표시) */
   regionalGameName: string | null;
   gameLogoUrl: string | null;
   gamePackageId: string | null;
@@ -37,6 +33,7 @@ export interface CampaignInfo {
   campaignType: string | null;
   startDate: string | null;
   endDate: string | null;
+  status?: string | null;
 }
 
 interface CampaignInfoTableProps {
@@ -45,68 +42,23 @@ interface CampaignInfoTableProps {
   nameCell?: React.ReactNode;
   /** 광고주 링크 (내부: 광고주 상세). 없으면 텍스트 */
   accountHref?: string | null;
-  /** 담당자 칸 — 내부 전용 (넘기면 표시) */
+  /** 담당자 — 내부 전용 (넘기면 표시) */
   assignee?: { name: string | null; avatarUrl: string | null };
-  /** Jira URL / Report URL(시트) 칸 — 넘기면 표시 (내부·공개 공통) */
+  /** Jira / 리포트 시트 링크 — 넘기면 표시 (내부·공개 공통) */
   links?: { jiraUrl: string | null; reportUrl: string | null };
-  /** 행 끝 "..." 메뉴 (수정/삭제) — 내부 전용 */
+  /** 오른쪽 끝 "..." 메뉴 (수정/삭제) — 내부 전용 */
   actions?: React.ReactNode;
-  /** 행 우클릭 메뉴 (ContextMenuContent) — 내부 전용 */
+  /** 우클릭 메뉴 (ContextMenuContent) — 내부 전용 */
   contextMenu?: React.ReactNode;
 }
 
-const REGION_EMOJI: Record<string, string> = {
-  KR: '🇰🇷',
-  JP: '🇯🇵',
-  TW: '🇹🇼',
-  US: '🇺🇸',
-  CN: '🇨🇳',
-};
-
-const getRegionDisplay = (region: string | null): string => {
-  if (!region) return 'Unknown';
-  const emoji = REGION_EMOJI[region] || '';
-  return emoji ? `${emoji} ${region}` : region;
-};
-
-const getTypeDisplay = (type: string | null): string =>
-  CAMPAIGN_TYPE_OPTIONS.find((option) => option.value === type)?.label ||
-  type ||
-  'Unknown';
-
-const getStoreFaviconUrl = (url: string | null): string | null => {
-  if (!url) return null;
-  if (/apps\.apple\.com|itunes\.apple\.com/i.test(url)) {
-    return 'https://www.google.com/s2/favicons?domain=apps.apple.com&sz=32';
-  }
-  if (/play\.google\.com/i.test(url)) {
-    return 'https://www.google.com/s2/favicons?domain=play.google.com&sz=32';
-  }
-  return null;
-};
-
-function LinkIconCell({ url }: { url: string | null }) {
-  return (
-    <TableCell className='text-center'>
-      {url ? (
-        <a
-          href={url}
-          target='_blank'
-          rel='noopener noreferrer'
-          className='inline-flex items-center justify-center text-primary hover:underline'
-        >
-          <ExternalLinkIcon className='h-4 w-4' />
-        </a>
-      ) : (
-        <span className='text-sm text-muted-foreground'>-</span>
-      )}
-    </TableCell>
-  );
-}
+const LINK_CLS =
+  'inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground';
 
 /**
- * 캠페인 상단 정보 표 (캠페인명 · 광고주 · 게임 · 지역 · MMP · 타입 · 기간 · 링크).
- * 내부 캠페인 상세와 공개 성과 뷰어가 공유 — 담당자·메뉴 같은 내부 전용 칸은 넘길 때만 표시.
+ * 캠페인 상단 정보 — 캠페인 현황 목록의 캠페인 줄과 같은 모양
+ * (캠페인·게임 / 광고주 / 리전 / MMP / 상태 / 기간 / 시트·JIRA).
+ * 내부 캠페인 상세와 공개 성과 뷰어가 공유 — 담당자·메뉴는 넘길 때만 표시.
  */
 export function CampaignInfoTable({
   campaign,
@@ -117,226 +69,193 @@ export function CampaignInfoTable({
   actions,
   contextMenu,
 }: CampaignInfoTableProps) {
-  const imageUrl = campaign.gameLogoUrl;
   const { gameStoreUrl, region } = campaign;
-
-  // 이미지 프리로드 (성능 개선)
-  useEffect(() => {
-    if (!imageUrl) return;
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = imageUrl;
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, [imageUrl]);
-
-  // 지역별 store URL — 링크용
   const regionalUrl = useMemo(
     () =>
       gameStoreUrl && region
         ? convertStoreUrlByRegion(gameStoreUrl, region)
-        : null,
+        : gameStoreUrl,
     [gameStoreUrl, region]
   );
+  const gameName = campaign.regionalGameName || campaign.gameName || '-';
+  const status = campaign.status ? STATUS_STYLE[campaign.status] : undefined;
+  const ended = campaign.status === 'holding' || campaign.status === 'end';
+  const days =
+    campaign.status === 'ongoing' ? dayCount(campaign.startDate) : null;
 
-  const logo = imageUrl ? (
-    <div className='w-6 h-6 rounded-lg border border-border overflow-hidden flex items-center justify-center bg-muted flex-shrink-0'>
-      <Image
-        src={imageUrl}
-        alt={campaign.gameName || 'Game'}
-        width={24}
-        height={24}
-        className='max-w-full max-h-full w-auto h-auto object-contain'
-        unoptimized
-      />
-    </div>
-  ) : (
-    <div className='w-6 h-6 rounded-lg border border-border bg-muted flex items-center justify-center flex-shrink-0'>
-      <span className='text-[8px] text-muted-foreground'>-</span>
-    </div>
+  const columns = cn(
+    'grid items-center gap-x-4',
+    assignee
+      ? 'grid-cols-[minmax(260px,2.4fr)_minmax(110px,1fr)_52px_minmax(100px,0.9fr)_72px_minmax(150px,1.1fr)_minmax(90px,0.8fr)_170px]'
+      : 'grid-cols-[minmax(260px,2.4fr)_minmax(110px,1fr)_52px_minmax(100px,0.9fr)_72px_minmax(150px,1.1fr)_170px]'
   );
 
   const row = (
-    <TableRow>
-      {/* Campaign Name */}
-      <TableCell>
-        {nameCell ?? (
-          <span className='block truncate text-sm font-medium'>
-            {campaign.name}
-          </span>
+    <div className={cn(columns, 'px-3 py-2')}>
+      {/* 캠페인 · 게임 */}
+      <div className='flex min-w-0 items-center gap-2.5'>
+        {regionalUrl ? (
+          <a
+            href={regionalUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            title='스토어에서 보기'
+          >
+            <GameIcon logo={campaign.gameLogoUrl} name={gameName} size='md' />
+          </a>
+        ) : (
+          <GameIcon logo={campaign.gameLogoUrl} name={gameName} size='md' />
         )}
-      </TableCell>
+        <div className='min-w-0'>
+          <div className='min-w-0 text-[13px] font-semibold'>
+            {nameCell ?? <span className='block truncate'>{campaign.name}</span>}
+          </div>
+          <div className='flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground'>
+            <GameThumbnailTooltip
+              imageUrl={campaign.gameLogoUrl}
+              gameName={gameName}
+              packageIdentifier={campaign.gamePackageId}
+              storeUrl={regionalUrl ?? null}
+              enableCopy
+            >
+              {regionalUrl ? (
+                <a
+                  href={regionalUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='flex min-w-0 items-center gap-1 hover:text-foreground'
+                >
+                  <StoreFavicon url={gameStoreUrl} />
+                  <span className='truncate'>{gameName}</span>
+                </a>
+              ) : (
+                <span className='truncate'>{gameName}</span>
+              )}
+            </GameThumbnailTooltip>
+            {campaign.campaignType && (
+              <span className='flex-shrink-0'>· {campaign.campaignType}</span>
+            )}
+          </div>
+        </div>
+      </div>
 
-      {/* Account */}
-      <TableCell>
+      {/* 광고주 */}
+      <div className='min-w-0 text-xs'>
         {campaign.company ? (
           accountHref ? (
             <Link
               href={accountHref}
-              className='text-sm font-medium text-primary hover:underline truncate block'
+              className='block truncate font-medium hover:text-primary hover:underline'
             >
               {campaign.company}
             </Link>
           ) : (
-            <span className='text-sm font-medium truncate block'>
-              {campaign.company}
-            </span>
+            <span className='block truncate font-medium'>{campaign.company}</span>
           )
         ) : (
-          <span className='text-sm text-muted-foreground'>알 수 없음</span>
+          <span className='text-muted-foreground'>-</span>
         )}
-      </TableCell>
+      </div>
 
-      {/* Game Name */}
-      <TableCell>
-        {regionalUrl ? (
-          <GameThumbnailTooltip
-            imageUrl={imageUrl}
-            gameName={campaign.regionalGameName || campaign.gameName || null}
-            packageIdentifier={campaign.gamePackageId || null}
-            storeUrl={regionalUrl}
-            storeFaviconUrl={getStoreFaviconUrl(gameStoreUrl)}
-            enableCopy={true}
-          >
-            <a
-              href={regionalUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='flex items-center gap-2 flex-1 min-w-0'
-            >
-              {logo}
-              <span className='text-sm truncate w-[180px] max-w-[180px] hover:text-primary'>
-                {campaign.regionalGameName || campaign.gameName || '-'}
-              </span>
-            </a>
-          </GameThumbnailTooltip>
-        ) : (
-          <div className='flex items-center gap-2 flex-1 min-w-0'>
-            {logo}
-            <span className='text-sm truncate w-[180px] max-w-[180px]'>
-              {campaign.gameName || '-'}
-            </span>
-          </div>
+      {/* 리전 */}
+      <div>
+        {region && (
+          <span className='rounded border px-1 py-px text-[10px] font-medium text-muted-foreground'>
+            {region}
+          </span>
         )}
-      </TableCell>
-
-      {/* Assigned User (내부 전용) */}
-      {assignee && (
-        <TableCell>
-          <div className='flex items-center gap-2'>
-            {assignee.name ? (
-              <>
-                <Avatar className='h-5 w-5'>
-                  {assignee.avatarUrl ? (
-                    <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
-                  ) : null}
-                  <AvatarFallback className='text-xs'>
-                    {assignee.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className='text-xs font-medium truncate'>
-                  {assignee.name}
-                </div>
-              </>
-            ) : (
-              <div className='text-xs text-muted-foreground'>미지정</div>
-            )}
-          </div>
-        </TableCell>
-      )}
-
-      {/* Region */}
-      <TableCell className='text-center'>
-        <div className='text-sm text-muted-foreground'>
-          {getRegionDisplay(region)}
-        </div>
-      </TableCell>
+      </div>
 
       {/* MMP */}
-      <TableCell className='text-center'>
-        <MmpIcon mmp={campaign.mmp} />
-      </TableCell>
+      <div className='flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground'>
+        <MmpLogo mmp={campaign.mmp} small />
+        <span className='truncate'>{campaign.mmp ?? '-'}</span>
+      </div>
 
-      {/* Type */}
-      <TableCell>
-        <div className='text-sm text-muted-foreground'>
-          {getTypeDisplay(campaign.campaignType)}
+      {/* 상태 */}
+      <div className={cn('flex items-center gap-1.5 text-xs', status?.text ?? 'text-muted-foreground')}>
+        {status && <span className={cn('h-1.5 w-1.5 rounded-full', status.dot)} />}
+        {status?.label ?? campaign.status ?? '-'}
+      </div>
+
+      {/* 기간 */}
+      <div className='flex items-center gap-2 whitespace-nowrap text-xs tabular-nums'>
+        <span className={cn(ended && 'text-muted-foreground')}>
+          {shortDate(campaign.startDate)} →{' '}
+          {ended || campaign.endDate ? shortDate(campaign.endDate) : ''}
+        </span>
+        {days !== null && <span className='font-semibold'>{days}일째</span>}
+      </div>
+
+      {/* 담당자 (내부 전용) */}
+      {assignee && (
+        <div className='flex min-w-0 items-center gap-1.5 text-xs'>
+          {assignee.name ? (
+            <>
+              <Avatar className='h-4 w-4'>
+                {assignee.avatarUrl ? (
+                  <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
+                ) : null}
+                <AvatarFallback className='text-[9px]'>
+                  {assignee.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className='truncate'>{assignee.name}</span>
+            </>
+          ) : (
+            <span className='text-muted-foreground'>미지정</span>
+          )}
         </div>
-      </TableCell>
-
-      {/* Date Range */}
-      <TableCell>
-        <div className='text-sm text-muted-foreground'>
-          {formatDateYYYYMMDD(campaign.startDate)} ~{' '}
-          {formatDateYYYYMMDD(campaign.endDate)}
-        </div>
-      </TableCell>
-
-      {/* Jira / Report URL */}
-      {links && (
-        <>
-          <LinkIconCell url={links.jiraUrl} />
-          <LinkIconCell url={links.reportUrl} />
-        </>
       )}
 
-      {/* Actions (내부 전용) */}
-      {actions && (
-        <TableCell style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          {actions}
-        </TableCell>
-      )}
-    </TableRow>
+      {/* 시트 · JIRA · 메뉴 */}
+      <div className='flex items-center justify-end gap-1'>
+        {links?.reportUrl && (
+          <a href={links.reportUrl} target='_blank' rel='noopener noreferrer' className={LINK_CLS}>
+            <ServiceFavicon service='sheet' className='h-3.5 w-3.5' />
+            시트
+          </a>
+        )}
+        {links?.jiraUrl && (
+          <a href={links.jiraUrl} target='_blank' rel='noopener noreferrer' className={LINK_CLS}>
+            <ServiceFavicon service='jira' className='h-3.5 w-3.5' />
+            JIRA
+          </a>
+        )}
+        {actions}
+      </div>
+    </div>
   );
 
   return (
-    <TableWrapper>
+    <div className='overflow-hidden rounded-xl border bg-card'>
       <div className='overflow-x-auto'>
-        <Table style={{ tableLayout: 'fixed', width: '100%' }}>
-          <TableHeader className={TABLE_STYLES.header}>
-            <TableRow>
-              <TableHead style={{ width: '200px' }}>캠페인명</TableHead>
-              <TableHead style={{ width: '150px' }}>광고주</TableHead>
-              <TableHead style={{ width: '250px' }}>게임명</TableHead>
-              {assignee && (
-                <TableHead style={{ width: '160px' }}>담당자</TableHead>
-              )}
-              <TableHead style={{ width: '120px' }} className='text-center'>
-                지역
-              </TableHead>
-              <TableHead style={{ width: '80px' }} className='text-center'>
-                MMP
-              </TableHead>
-              <TableHead style={{ width: '120px' }}>타입</TableHead>
-              <TableHead style={{ width: '200px' }}>기간</TableHead>
-              {links && (
-                <>
-                  <TableHead style={{ width: '100px' }} className='text-center'>
-                    Jira URL
-                  </TableHead>
-                  <TableHead style={{ width: '100px' }} className='text-center'>
-                    Report URL
-                  </TableHead>
-                </>
-              )}
-              {actions && <TableHead style={{ width: '60px' }}></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody className={TABLE_STYLES.body}>
-            {contextMenu ? (
-              <ContextMenu>
-                <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-                {contextMenu}
-              </ContextMenu>
-            ) : (
-              row
+        <div className={assignee ? 'min-w-[920px]' : 'min-w-[820px]'}>
+          <div
+            className={cn(
+              columns,
+              'border-b bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground'
             )}
-          </TableBody>
-        </Table>
+          >
+            <span>캠페인 · 게임</span>
+            <span>광고주</span>
+            <span>리전</span>
+            <span>MMP</span>
+            <span>상태</span>
+            <span>기간</span>
+            {assignee && <span>담당자</span>}
+            <span />
+          </div>
+          {contextMenu ? (
+            <ContextMenu>
+              <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+              {contextMenu}
+            </ContextMenu>
+          ) : (
+            row
+          )}
+        </div>
       </div>
-    </TableWrapper>
+    </div>
   );
 }

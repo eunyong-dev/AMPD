@@ -56,7 +56,7 @@ const MARKET_BADGE: Record<string, { label: string; cls: string }> = {
   },
 };
 
-const STATUS_STYLE: Record<string, { label: string; dot: string; text: string }> = {
+export const STATUS_STYLE: Record<string, { label: string; dot: string; text: string }> = {
   planning: { label: '계획', dot: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-400' },
   ongoing: { label: '진행중', dot: 'bg-green-500', text: 'text-green-700 dark:text-green-400' },
   holding: { label: '홀딩', dot: 'bg-red-500', text: 'text-red-700 dark:text-red-400' },
@@ -93,11 +93,11 @@ export type AccordionCampaign = Pick<
 type Campaign = AccordionCampaign;
 const DAY_MS = 86_400_000;
 
-const shortDate = (d: string | null) =>
+export const shortDate = (d: string | null) =>
   d && !d.startsWith('1900') ? `${d.slice(2, 4)}.${d.slice(5, 7)}.${d.slice(8, 10)}` : '';
 
 // 진행중: 시작일부터 며칠째 (시작일 = 1일째)
-function dayCount(start: string | null) {
+export function dayCount(start: string | null) {
   if (!start || start.startsWith('1900')) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -150,7 +150,7 @@ function buildGroups(campaigns: Campaign[]): Group[] {
   );
 }
 
-function GameIcon({ logo, name, size }: { logo: string | null; name: string; size: 'sm' | 'md' }) {
+export function GameIcon({ logo, name, size }: { logo: string | null; name: string; size: 'sm' | 'md' }) {
   const [failed, setFailed] = useState(false);
   const box = size === 'md' ? 'h-7 w-7 rounded-md' : 'h-6 w-6 rounded-md';
   if (!logo || failed) {
@@ -179,7 +179,7 @@ function GameIcon({ logo, name, size }: { logo: string | null; name: string; siz
 }
 
 // 게임명 앞 스토어 아이콘 — Google Play / App Store 파비콘
-function StoreFavicon({ url }: { url: string | null }) {
+export function StoreFavicon({ url }: { url: string | null }) {
   const [failed, setFailed] = useState(false);
   const domain = !url
     ? null
