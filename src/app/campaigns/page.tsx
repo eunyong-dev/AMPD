@@ -283,6 +283,35 @@ export default function AllCampaignsPage() {
     return counts;
   }, [campaigns, selectedUserIds, selectedRegions, searchTerm]);
 
+  // 지역 드롭다운 개수 — 지역만 빼고 나머지 필터(상태·담당자·검색) 반영
+  const regionCounts = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    const counts: Record<string, number> = {};
+    for (const c of campaigns) {
+      if (statusFilter !== 'all' && c.status !== statusFilter) continue;
+      if (
+        selectedUserIds.length > 0 &&
+        !selectedUserIds.includes('all') &&
+        !(c.assigned_user_id && selectedUserIds.includes(c.assigned_user_id))
+      )
+        continue;
+      if (
+        q &&
+        ![
+          c.name,
+          c.game_name,
+          c.assigned_user_name,
+          c.account_company,
+          c.regional_game_name,
+          c.game_package_identifier,
+        ].some((v) => (v ?? '').toLowerCase().includes(q))
+      )
+        continue;
+      if (c.region) counts[c.region] = (counts[c.region] ?? 0) + 1;
+    }
+    return counts;
+  }, [campaigns, statusFilter, selectedUserIds, searchTerm]);
+
   // 상태별, 담당자별, 지역별, 검색어 필터링된 캠페인
   const filteredCampaigns = useMemo(() => {
     let filtered = campaigns;
@@ -467,7 +496,10 @@ export default function AllCampaignsPage() {
                         onCheckedChange={() => {}}
                         className='data-[state=checked]:bg-black data-[state=checked]:border-black'
                       />
-                      <span className='text-xs'>{region.label}</span>
+                      <span className='flex-1 text-xs'>{region.label}</span>
+                      <span className='text-xs tabular-nums text-muted-foreground'>
+                        {regionCounts[region.value] ?? 0}
+                      </span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
