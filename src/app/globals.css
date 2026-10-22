@@ -133,9 +133,29 @@
   }
 }
 @keyframes modal-pop-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
   to {
     opacity: 0;
-    transform: translate(-50%, -48.5%) scale(0.96);
+    transform: translate(-50%, -48%) scale(0.95);
+  }
+}
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(3px);
+  }
+}
+@keyframes modal-backdrop-out {
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0);
   }
 }
 @keyframes modal-content-in {
@@ -152,7 +172,19 @@
   animation: modal-pop 520ms cubic-bezier(0.2, 0.9, 0.25, 1) both !important;
 }
 .modal-pop[data-state='closed'] {
-  animation: modal-pop-out 180ms ease-in both !important;
+  animation: modal-pop-out 220ms cubic-bezier(0.4, 0, 1, 1) both !important;
+}
+.modal-pop {
+  will-change: transform, opacity;
+}
+/* 모달 뒤 어두운 배경 — 모달(.modal-pop) 바로 앞 형제가 오버레이 */
+div:has(+ .modal-pop)[data-state='open'] {
+  background-color: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(3px);
+  animation: modal-backdrop-in 320ms ease-out both !important;
+}
+div:has(+ .modal-pop)[data-state='closed'] {
+  animation: modal-backdrop-out 220ms ease-in both !important;
 }
 /* 모달 틀이 먼저 뜨고 안쪽 내용이 살짝 늦게 올라오며 나타남 */
 .modal-pop-content {
@@ -161,7 +193,8 @@
 @media (prefers-reduced-motion: reduce) {
   .modal-pop[data-state='open'],
   .modal-pop[data-state='closed'],
-  .modal-pop-content {
+  .modal-pop-content,
+  div:has(+ .modal-pop) {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
   }
