@@ -196,6 +196,18 @@ export function CampaignPerformance({
     ];
   }, [firstDate, lastDate]);
 
+  // 기간을 고르지 않았을 때 버튼 글자 — 실제 날짜 + "최근 60일"
+  const defaultRangeLabel = useMemo(() => {
+    if (!lastDate) return '기간 선택';
+    const from = new Date(lastDate);
+    from.setDate(from.getDate() - 59);
+    const ymd = (d: Date) =>
+      `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(
+        d.getDate()
+      ).padStart(2, '0')}`;
+    return `${ymd(from)} ~ ${ymd(lastDate)} · 최근 60일`;
+  }, [lastDate]);
+
   // 전체 데이터 + 날짜 범위 조합으로 화면에 표시할 데이터를 도출
   // dateRange 미설정 시: 최신 날짜 기준 60일 (마지막 날짜 포함)
   // dateRange 설정 시: 해당 범위 (부분 설정도 허용)
@@ -293,7 +305,7 @@ export function CampaignPerformance({
                 value={dateRange}
                 onChange={setDateRange}
                 presets={datePickerPresets}
-                placeholder={lastDate ? '최근 60일' : '기간 선택'}
+                placeholder={defaultRangeLabel}
                 triggerClassName='max-[1100px]:justify-center'
                 hideLabelClassName='max-[1100px]:hidden'
               />

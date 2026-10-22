@@ -36,15 +36,15 @@ interface DateRangePickerProps {
   hideLabelClassName?: string;
 }
 
+// 2026.08.24 ~ 2026.10.22
+const ymd = (d: Date) =>
+  `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
+
 const formatRangeLabel = (range: DateRange | undefined, fallback: string) => {
-  if (range?.from && range?.to) {
-    return `${range.from.toLocaleDateString(
-      'ko-KR'
-    )} - ${range.to.toLocaleDateString('ko-KR')}`;
-  }
-  if (range?.from) {
-    return `${range.from.toLocaleDateString('ko-KR')} - ...`;
-  }
+  if (range?.from && range?.to) return `${ymd(range.from)} ~ ${ymd(range.to)}`;
+  if (range?.from) return `${ymd(range.from)} ~ …`;
   return fallback;
 };
 
