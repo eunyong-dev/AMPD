@@ -84,8 +84,8 @@ export function CampaignInfoTable({
   const columns = cn(
     'grid items-center gap-x-4',
     assignee
-      ? 'grid-cols-[minmax(260px,2.4fr)_minmax(110px,1fr)_52px_minmax(100px,0.9fr)_72px_minmax(150px,1.1fr)_minmax(90px,0.8fr)_170px]'
-      : 'grid-cols-[minmax(260px,2.4fr)_minmax(110px,1fr)_52px_minmax(100px,0.9fr)_72px_minmax(150px,1.1fr)_170px]'
+      ? 'grid-cols-[minmax(240px,340px)_130px_44px_100px_64px_150px_110px_1fr_170px]'
+      : 'grid-cols-[minmax(240px,340px)_130px_44px_100px_64px_150px_1fr_170px]'
   );
 
   const row = (
@@ -206,6 +206,8 @@ export function CampaignInfoTable({
         </div>
       )}
 
+      <div />
+
       {/* 시트 · JIRA · 메뉴 */}
       <div className='flex items-center justify-end gap-1'>
         {links && (
@@ -222,7 +224,7 @@ export function CampaignInfoTable({
   return (
     <div className='overflow-hidden rounded-xl border bg-card'>
       <div className='overflow-x-auto'>
-        <div className={assignee ? 'min-w-[920px]' : 'min-w-[820px]'}>
+        <div className={assignee ? 'min-w-[1150px]' : 'min-w-[1030px]'}>
           <div
             className={cn(
               columns,
@@ -236,6 +238,7 @@ export function CampaignInfoTable({
             <span>상태</span>
             <span>기간</span>
             {assignee && <span>담당자</span>}
+            <span />
             <span />
           </div>
           {contextMenu ? (
