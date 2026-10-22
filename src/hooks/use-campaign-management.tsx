@@ -35,6 +35,7 @@ export interface Campaign {
   game_package_identifier?: string | null;
   game_logo_url?: string | null;
   account_company?: string;
+  account_country?: string | null;
   assigned_user_id?: string;
   assigned_user_name?: string;
   assigned_user_avatar_url?: string | null;
@@ -92,6 +93,7 @@ export async function getCampaignById(
           accounts(
             id,
             company,
+            country,
             assigned_user_id,
             user_profiles!assigned_user_id(
               display_name,
@@ -123,6 +125,7 @@ export async function getCampaignById(
       game_package_identifier: (data.games as any)?.package_identifier || null,
       game_logo_url: (data.games as any)?.logo_url || null,
       account_company: (data.games as any)?.accounts?.company || null,
+      account_country: (data.games as any)?.accounts?.country || null,
       assigned_user_id: (data.games as any)?.accounts?.assigned_user_id || null,
       assigned_user_name:
         (data.games as any)?.accounts?.user_profiles?.display_name || null,
@@ -158,6 +161,7 @@ export async function getCampaignsByAccount(
         accounts(
           id,
           company,
+          country,
           assigned_user_id,
           user_profiles!assigned_user_id(
             display_name,
@@ -186,6 +190,7 @@ export async function getCampaignsByAccount(
     game_package_identifier: campaign.games?.package_identifier || null,
     game_logo_url: campaign.games?.logo_url || null,
     account_company: campaign.games?.accounts?.company || null,
+    account_country: campaign.games?.accounts?.country || null,
     assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
     assigned_user_name:
       campaign.games?.accounts?.user_profiles?.display_name || null,
@@ -212,6 +217,7 @@ export async function getAllCampaigns(): Promise<Campaign[]> {
         accounts(
           id,
           company,
+          country,
           assigned_user_id,
           user_profiles!assigned_user_id(
             display_name,
@@ -239,6 +245,7 @@ export async function getAllCampaigns(): Promise<Campaign[]> {
     game_package_identifier: campaign.games?.package_identifier || null,
     game_logo_url: campaign.games?.logo_url || null,
     account_company: campaign.games?.accounts?.company || null,
+    account_country: campaign.games?.accounts?.country || null,
     assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
     assigned_user_name:
       campaign.games?.accounts?.user_profiles?.display_name || null,
@@ -265,6 +272,7 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
         accounts(
           id,
           company,
+          country,
           assigned_user_id,
           user_profiles!assigned_user_id(
             display_name,
@@ -293,6 +301,7 @@ export async function getMyCampaigns(userId: string): Promise<Campaign[]> {
       game_package_identifier: campaign.games?.package_identifier || null,
       game_logo_url: campaign.games?.logo_url || null,
         account_company: campaign.games?.accounts?.company || null,
+        account_country: campaign.games?.accounts?.country || null,
       assigned_user_id: campaign.games?.accounts?.assigned_user_id || null,
       assigned_user_name:
         campaign.games?.accounts?.user_profiles?.display_name || null,
@@ -341,6 +350,7 @@ export async function createCampaign(
         accounts(
           id,
           company,
+          country,
           assigned_user_id,
           user_profiles!assigned_user_id(
             display_name,
@@ -390,6 +400,7 @@ export async function createCampaign(
     game_package_identifier: (data.games as any)?.package_identifier || null,
     game_logo_url: (data.games as any)?.logo_url || null,
     account_company: (data.games as any)?.accounts?.company || null,
+    account_country: (data.games as any)?.accounts?.country || null,
     assigned_user_id: (data.games as any)?.accounts?.assigned_user_id || null,
     assigned_user_name:
       (data.games as any)?.accounts?.user_profiles?.display_name || null,
@@ -425,6 +436,7 @@ export async function updateCampaign(
         accounts(
           id,
           company,
+          country,
           assigned_user_id,
           user_profiles!assigned_user_id(
             display_name,
@@ -449,6 +461,7 @@ export async function updateCampaign(
     game_package_identifier: (data.games as any)?.package_identifier || null,
     game_logo_url: (data.games as any)?.logo_url || null,
     account_company: (data.games as any)?.accounts?.company || null,
+    account_country: (data.games as any)?.accounts?.country || null,
     assigned_user_id: (data.games as any)?.accounts?.assigned_user_id || null,
     assigned_user_name:
       (data.games as any)?.accounts?.user_profiles?.display_name || null,

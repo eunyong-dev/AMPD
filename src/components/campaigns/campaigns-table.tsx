@@ -225,8 +225,43 @@ const GameLogo = React.memo(
 );
 GameLogo.displayName = 'GameLogo';
 
+// 광고주 국가 → 시장 배지 (accounts.country)
+const MARKET_BADGE: Record<string, { label: string; cls: string }> = {
+  CN: {
+    label: '중화권',
+    cls: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400',
+  },
+  KR: {
+    label: '한국',
+    cls: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+  },
+  JP: {
+    label: '일본',
+    cls: 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
+  },
+  US: {
+    label: '미국',
+    cls: 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400',
+  },
+};
+
+function MarketBadge({ country }: { country?: string | null }) {
+  const badge = country ? MARKET_BADGE[country] : undefined;
+  if (!badge) return null;
+  return (
+    <span
+      className={cn(
+        'flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+        badge.cls
+      )}
+    >
+      {badge.label}
+    </span>
+  );
+}
+
 // 광고주 묶음 줄 — 그 광고주가 가진 게임 아이콘을 겹쳐서 (최대 6개, 넘치면 +N)
-const MAX_GROUP_ICONS = 6;
+const MAX_GROUP_ICONS = 4;
 function GroupGameIcons({
   games,
 }: {
@@ -236,12 +271,12 @@ function GroupGameIcons({
   const shown = games.slice(0, MAX_GROUP_ICONS);
   const rest = games.length - shown.length;
   return (
-    <div className='ml-1 flex items-center -space-x-1.5'>
+    <div className='flex w-[108px] flex-shrink-0 items-center -space-x-2'>
       {shown.map((g) => (
         <GroupGameIcon key={g.key} logo={g.logo} name={g.name} />
       ))}
       {rest > 0 && (
-        <span className='relative flex h-6 w-6 items-center justify-center rounded-md bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-background'>
+        <span className='relative flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-background'>
           +{rest}
         </span>
       )}
@@ -255,7 +290,7 @@ function GroupGameIcon({ logo, name }: { logo: string | null; name: string }) {
     return (
       <span
         title={name}
-        className='relative flex h-6 w-6 items-center justify-center rounded-md bg-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-background'
+        className='relative flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-background'
       >
         {name.trim().charAt(0).toUpperCase() || '-'}
       </span>
@@ -268,7 +303,7 @@ function GroupGameIcon({ logo, name }: { logo: string | null; name: string }) {
       alt={name}
       title={name}
       onError={() => setFailed(true)}
-      className='relative h-6 w-6 rounded-md object-cover ring-2 ring-background'
+      className='relative h-7 w-7 rounded-lg object-cover ring-2 ring-background'
     />
   );
 }
@@ -967,6 +1002,30 @@ export function CampaignsTable({
     }
     return m;
   }, [campaigns]);
+  // 광고주별 진행 지역 (KR·JP·TW·US 순) + 광고주 국가
+  const { groupRegions, groupCountry } = useMemo(() => {
+    const regions = new Map<string, Set<string>>();
+    const country = new Map<string, string | null>();
+    for (const c of campaigns) {
+      const k = c.account_company ?? '';
+      if (c.region) {
+        const set = regions.get(k) ?? new Set<string>();
+        set.add(c.region);
+        regions.set(k, set);
+      }
+      if (!country.has(k)) country.set(k, c.account_country ?? null);
+    }
+    const order = (r: string) => REGION_PRIORITY[r] ?? 99;
+    return {
+      groupRegions: new Map(
+        [...regions].map(([k, set]) => [
+          k,
+          [...set].sort((a, b) => order(a) - order(b) || a.localeCompare(b)),
+        ])
+      ),
+      groupCountry: country,
+    };
+  }, [campaigns]);
   const groupSizes = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of campaigns) {
@@ -1188,31 +1247,39 @@ export function CampaignsTable({
                       className='cursor-pointer bg-muted/30 hover:bg-muted/50'
                       onClick={() => toggleGroup(company)}
                     >
-                      <TableCell colSpan={visibleColumnCount} className='py-1.5'>
-                        <div className='flex items-center gap-2 text-xs'>
+                      <TableCell colSpan={visibleColumnCount} className='py-2'>
+                        <div className='flex items-center gap-3'>
                           <ChevronRight
                             className={cn(
-                              'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                              'h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform',
                               !collapsedGroups.has(company) && 'rotate-90'
                             )}
                           />
-                          {company ? (
-                            <Link
-                              href={accountUrl(company)}
-                              onClick={(e) => e.stopPropagation()}
-                              className='font-semibold hover:underline'
-                            >
-                              {company}
-                            </Link>
-                          ) : (
-                            <span className='font-semibold text-muted-foreground'>
-                              광고주 없음
-                            </span>
-                          )}
-                          <span className='tabular-nums text-muted-foreground'>
-                            {groupSizes.get(company) ?? 0}
-                          </span>
                           <GroupGameIcons games={groupGames.get(company) ?? []} />
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2'>
+                              {company ? (
+                                <Link
+                                  href={accountUrl(company)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className='truncate text-sm font-semibold hover:underline'
+                                >
+                                  {company}
+                                </Link>
+                              ) : (
+                                <span className='text-sm font-semibold text-muted-foreground'>
+                                  광고주 없음
+                                </span>
+                              )}
+                              <MarketBadge country={groupCountry.get(company)} />
+                            </div>
+                            <div className='text-xs text-muted-foreground'>
+                              {groupSizes.get(company) ?? 0}개 캠페인
+                              {(groupRegions.get(company) ?? []).map((r) => (
+                                <span key={r}> · {r}</span>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>
