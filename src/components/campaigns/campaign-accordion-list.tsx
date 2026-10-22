@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ChevronDown,
   EditIcon,
@@ -303,12 +304,29 @@ function CampaignRow({
     dot: 'bg-muted-foreground',
     text: 'text-muted-foreground',
   };
+  const router = useRouter();
   const gameName = campaign.regional_game_name || campaign.game_name || '-';
   const days = campaign.status === 'ongoing' ? dayCount(campaign.start_date) : null;
+  const canOpen = !!campaign.daily_report_url;
+
+  // 줄 아무 데나 누르면 성과 화면으로 (링크·버튼·메뉴를 누른 경우는 그 동작 우선)
+  const handleRowClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canOpen) return;
+    if ((e.target as HTMLElement).closest('a, button, [role="menu"], [role="menuitem"]')) return;
+    if (e.metaKey || e.ctrlKey) window.open(href, '_blank');
+    else router.push(href);
+  };
   const ended = campaign.status === 'holding' || campaign.status === 'end';
 
   return (
-    <div className='grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] items-center gap-x-3 px-3 py-1.5 hover:bg-muted/30'>
+    <div
+      onClick={handleRowClick}
+      title={canOpen ? undefined : '리포트 미연동 — 성과 화면 없음'}
+      className={cn(
+        'grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] items-center gap-x-3 px-3 py-1.5',
+        canOpen ? 'cursor-pointer hover:bg-muted/50' : 'hover:bg-muted/20'
+      )}
+    >
       {/* 캠페인 · 게임 */}
       <div className='flex min-w-0 items-center gap-2.5'>
         {campaign.game_store_url ? (
