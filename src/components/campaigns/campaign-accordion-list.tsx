@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { MmpLogo } from '@/components/common/mmp-icon';
+import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { ServiceFavicon } from '@/components/common/service-favicon';
 import { REGION_PRIORITY } from '@/lib/utils/campaign-sort';
 import { accountUrl } from '@/lib/utils/account-url';
@@ -283,10 +284,29 @@ function CampaignRow({
             </span>
           )}
           <div className='flex min-w-0 items-center gap-1 text-xs text-muted-foreground'>
-            <StoreFavicon url={campaign.game_store_url ?? null} />
-            <span className='truncate'>
-              {gameName} · {campaign.campaign_type}
-            </span>
+            {/* 게임명에 마우스를 올리면 썸네일 툴팁, 누르면 스토어 */}
+            <GameThumbnailTooltip
+              imageUrl={campaign.game_logo_url ?? null}
+              gameName={gameName}
+              packageIdentifier={campaign.game_package_identifier ?? null}
+              storeUrl={campaign.game_store_url ?? null}
+              enableCopy
+            >
+              {campaign.game_store_url ? (
+                <a
+                  href={campaign.game_store_url}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='flex min-w-0 items-center gap-1 hover:text-foreground'
+                >
+                  <StoreFavicon url={campaign.game_store_url} />
+                  <span className='truncate'>{gameName}</span>
+                </a>
+              ) : (
+                <span className='truncate'>{gameName}</span>
+              )}
+            </GameThumbnailTooltip>
+            <span className='flex-shrink-0'>· {campaign.campaign_type}</span>
           </div>
         </div>
       </div>
