@@ -321,6 +321,8 @@ function CampaignRow({
   return (
     <div
       onClick={handleRowClick}
+      // 마우스를 올리면 성과 화면 코드를 미리 받아 둔다 (눌렀을 때 바로 열리게)
+      onMouseEnter={() => canOpen && router.prefetch(href)}
       title={canOpen ? undefined : '리포트 미연동 — 성과 화면 없음'}
       className={cn(
         'grid grid-cols-[minmax(240px,2.4fr)_52px_minmax(100px,1fr)_72px_minmax(150px,1.1fr)_150px] items-center gap-x-3 px-3 py-1.5',
