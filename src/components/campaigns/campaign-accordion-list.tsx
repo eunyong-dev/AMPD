@@ -206,21 +206,31 @@ function GroupHeader({
   open,
   isAdNetwork,
   onToggle,
+  companyHref,
 }: {
   group: Group;
   open: boolean;
   isAdNetwork: boolean;
   onToggle: () => void;
+  /** 광고주명을 누르면 이동할 주소 (없으면 텍스트) */
+  companyHref?: string | null;
 }) {
   const shown = group.games.slice(0, MAX_ICONS);
   const badge = group.country ? MARKET_BADGE[group.country] : undefined;
   return (
-    <button
-      type='button'
+    <div
+      role='button'
+      tabIndex={0}
       onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
       aria-expanded={open}
       className={cn(
-        'flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40',
+        'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         open && 'bg-primary/5'
       )}
     >
@@ -231,9 +241,20 @@ function GroupHeader({
       </div>
       <div className='min-w-0'>
         <div className='flex items-center gap-2'>
-          <span className='truncate text-[13px] font-semibold'>
-            {group.company || '광고주 없음'}
-          </span>
+          {companyHref && group.company ? (
+            // 광고주명 → 광고주 페이지 (줄 접기/펼치기와 따로)
+            <Link
+              href={companyHref}
+              onClick={(e) => e.stopPropagation()}
+              className='truncate text-[13px] font-semibold hover:text-primary hover:underline'
+            >
+              {group.company}
+            </Link>
+          ) : (
+            <span className='truncate text-[13px] font-semibold'>
+              {group.company || '광고주 없음'}
+            </span>
+          )}
           {badge && (
             <span className={cn('flex-shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium', badge.cls)}>
               {badge.label}
@@ -258,7 +279,7 @@ function GroupHeader({
           open && 'rotate-180'
         )}
       />
-    </button>
+    </div>
   );
 }
 
@@ -410,6 +431,7 @@ function Section({
   isAdNetwork,
   renderRows,
   action,
+  companyHref,
 }: {
   title: string;
   hint: string;
@@ -419,6 +441,7 @@ function Section({
   isAdNetwork: boolean;
   renderRows: (g: Group) => React.ReactNode;
   action?: React.ReactNode;
+  companyHref?: (company: string) => string | null;
 }) {
   if (groups.length === 0) return null;
   return (
@@ -440,7 +463,13 @@ function Section({
               open && 'border-primary/30 shadow-sm'
             )}
           >
-            <GroupHeader group={g} open={open} isAdNetwork={isAdNetwork} onToggle={() => onToggle(g.company)} />
+            <GroupHeader
+              group={g}
+              open={open}
+              isAdNetwork={isAdNetwork}
+              onToggle={() => onToggle(g.company)}
+              companyHref={companyHref?.(g.company)}
+            />
             {open && renderRows(g)}
           </div>
         );
@@ -492,6 +521,11 @@ export function CampaignAccordionList<T extends AccordionCampaign>({
       return next;
     });
 
+  // 내부 화면: 광고주명 → 광고주 페이지 / 공개 뷰어: 링크 없음
+  const companyHref = readOnly
+    ? undefined
+    : (company: string) => (company ? accountUrl(company) : null);
+
   const toggleAllButton = (
     <button
       type='button'
@@ -535,13 +569,6 @@ export function CampaignAccordionList<T extends AccordionCampaign>({
           </div>
         </div>
       </div>
-      {g.company && !readOnly && (
-        <div className='border-t px-3 py-1.5 text-right'>
-          <Link href={accountUrl(g.company)} className='text-xs text-muted-foreground hover:text-foreground hover:underline'>
-            {g.company} 광고주 페이지 →
-          </Link>
-        </div>
-      )}
     </div>
   );
 
@@ -556,6 +583,7 @@ export function CampaignAccordionList<T extends AccordionCampaign>({
         isAdNetwork={false}
         renderRows={renderRows}
         action={toggleAllButton}
+        companyHref={companyHref}
       />
       <Section
         title='애드네트워크'
@@ -565,6 +593,7 @@ export function CampaignAccordionList<T extends AccordionCampaign>({
         onToggle={toggle}
         isAdNetwork
         renderRows={renderRows}
+        companyHref={companyHref}
       />
 
       <DeleteConfirmationDialog
