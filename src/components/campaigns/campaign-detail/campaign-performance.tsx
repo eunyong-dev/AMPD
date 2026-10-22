@@ -58,7 +58,8 @@ const toIso = (d: Date) =>
     d.getDate()
   ).padStart(2, '0')}`;
 
-const TAB_TRIGGER_CLS = 'rounded-lg text-sm px-3 py-1';
+// 캠페인 현황 상단과 같은 크기 (높이 32px · 글자 12px)
+const TAB_TRIGGER_CLS = 'rounded-md text-xs px-2.5 py-1';
 
 interface CampaignPerformanceProps {
   /** 시트 전체 행 (순서 무관 — 내부에서 날짜 오름차순 정렬) */
@@ -263,17 +264,17 @@ export function CampaignPerformance({
         {initialLoading ? (
           // 처음 불러오는 동안은 탭·기간 선택도 스켈레톤 (데이터 기준 프리셋이 아직 없음)
           <>
-            <Skeleton className='h-9 w-[153px] rounded-xl' />
+            <Skeleton className='h-8 w-[136px] rounded-lg' />
             <div className='flex items-center gap-2'>
-              <Skeleton className='h-9 w-[107px] rounded-xl' />
+              <Skeleton className='h-8 w-[100px] rounded-lg' />
               {toolbarActions && (
-                <Skeleton className='h-9 w-[320px] max-w-[40vw] rounded-xl' />
+                <Skeleton className='h-8 w-[300px] max-w-[40vw] rounded-lg' />
               )}
             </div>
           </>
         ) : (
         <>
-        <TabsList className='rounded-xl h-9'>
+        <TabsList className='rounded-lg h-8 p-0.5'>
           <TabsTrigger value='daily' className={TAB_TRIGGER_CLS}>
             일간
           </TabsTrigger>
@@ -284,7 +285,8 @@ export function CampaignPerformance({
             차트
           </TabsTrigger>
         </TabsList>
-        <div className='flex flex-wrap items-center gap-2'>
+        {/* 오른쪽 버튼들 — 캠페인 현황 필터 버튼과 같은 크기 (높이 32px · 글자 12px · 아이콘 14px) */}
+        <div className='flex flex-wrap items-center gap-2 [&>button]:h-8 [&>button]:gap-1.5 [&>button]:px-2.5 [&>button]:text-xs [&_button_svg]:h-3.5 [&_button_svg]:w-3.5'>
           {activeTab !== 'monthly' && (
             <>
               <DateRangePicker
@@ -328,7 +330,7 @@ export function CampaignPerformance({
               value={granularity}
               onValueChange={(v) => setGranularity(v as ChartGranularity)}
             >
-              <SelectTrigger className='h-9 w-auto gap-2 flex-shrink-0'>
+              <SelectTrigger className='h-8 w-auto gap-2 flex-shrink-0 text-xs'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
