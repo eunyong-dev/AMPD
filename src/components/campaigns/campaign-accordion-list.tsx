@@ -20,7 +20,7 @@ import {
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { MmpLogo } from '@/components/common/mmp-icon';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
-import { ServiceFavicon } from '@/components/common/service-favicon';
+import { ServiceLink } from '@/components/common/service-favicon';
 import { REGION_PRIORITY } from '@/lib/utils/campaign-sort';
 import { accountUrl } from '@/lib/utils/account-url';
 import { canManageResource } from '@/lib/utils/permissions';
@@ -370,28 +370,8 @@ function CampaignRow({
 
       {/* 시트 · JIRA · 메뉴 */}
       <div className='flex items-center justify-end gap-1 text-xs'>
-        {campaign.daily_report_url && (
-          <a
-            href={campaign.daily_report_url}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
-          >
-            <ServiceFavicon service='sheet' className='h-3.5 w-3.5' />
-            시트
-          </a>
-        )}
-        {campaign.jira_url && (
-          <a
-            href={campaign.jira_url}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground'
-          >
-            <ServiceFavicon service='jira' className='h-3.5 w-3.5' />
-            JIRA
-          </a>
-        )}
+        <ServiceLink service='sheet' url={campaign.daily_report_url} />
+        <ServiceLink service='jira' url={campaign.jira_url} />
         {!readOnly && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

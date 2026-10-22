@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { GameThumbnailTooltip } from '@/components/common/game-thumbnail-tooltip';
 import { MmpLogo } from '@/components/common/mmp-icon';
-import { ServiceFavicon } from '@/components/common/service-favicon';
+import { ServiceLink } from '@/components/common/service-favicon';
 import {
   GameIcon,
   STATUS_STYLE,
@@ -52,8 +52,6 @@ interface CampaignInfoTableProps {
   contextMenu?: React.ReactNode;
 }
 
-const LINK_CLS =
-  'inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground';
 
 /**
  * 캠페인 상단 정보 — 캠페인 현황 목록의 캠페인 줄과 같은 모양
@@ -210,17 +208,11 @@ export function CampaignInfoTable({
 
       {/* 시트 · JIRA · 메뉴 */}
       <div className='flex items-center justify-end gap-1'>
-        {links?.reportUrl && (
-          <a href={links.reportUrl} target='_blank' rel='noopener noreferrer' className={LINK_CLS}>
-            <ServiceFavicon service='sheet' className='h-3.5 w-3.5' />
-            시트
-          </a>
-        )}
-        {links?.jiraUrl && (
-          <a href={links.jiraUrl} target='_blank' rel='noopener noreferrer' className={LINK_CLS}>
-            <ServiceFavicon service='jira' className='h-3.5 w-3.5' />
-            JIRA
-          </a>
+        {links && (
+          <>
+            <ServiceLink service='sheet' url={links.reportUrl} />
+            <ServiceLink service='jira' url={links.jiraUrl} />
+          </>
         )}
         {actions}
       </div>

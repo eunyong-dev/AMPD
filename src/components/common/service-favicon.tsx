@@ -29,3 +29,46 @@ export function ServiceFavicon({
     />
   );
 }
+
+const SERVICE_LABEL: Record<'sheet' | 'jira', string> = {
+  sheet: '시트',
+  jira: 'JIRA',
+};
+
+/**
+ * 시트 / JIRA 링크 버튼 — 주소가 없으면 자리를 비우지 않고 흐린 비활성 모양으로
+ * (줄마다 위치가 같아서 어느 캠페인에 없는지 한눈에 보인다)
+ */
+export function ServiceLink({
+  service,
+  url,
+}: {
+  service: 'sheet' | 'jira';
+  url: string | null | undefined;
+}) {
+  const base =
+    'inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-[11px]';
+  if (!url) {
+    return (
+      <span
+        aria-disabled
+        title={`${SERVICE_LABEL[service]} 연결 안 됨`}
+        className={`${base} cursor-not-allowed text-muted-foreground/50 [&_img]:opacity-40 [&_img]:grayscale`}
+      >
+        <ServiceFavicon service={service} className='h-3.5 w-3.5' />
+        {SERVICE_LABEL[service]}
+      </span>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target='_blank'
+      rel='noopener noreferrer'
+      className={`${base} text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground`}
+    >
+      <ServiceFavicon service={service} className='h-3.5 w-3.5' />
+      {SERVICE_LABEL[service]}
+    </a>
+  );
+}
