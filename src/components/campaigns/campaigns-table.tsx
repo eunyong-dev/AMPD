@@ -225,6 +225,54 @@ const GameLogo = React.memo(
 );
 GameLogo.displayName = 'GameLogo';
 
+// 광고주 묶음 줄 — 그 광고주가 가진 게임 아이콘을 겹쳐서 (최대 6개, 넘치면 +N)
+const MAX_GROUP_ICONS = 6;
+function GroupGameIcons({
+  games,
+}: {
+  games: { key: string; logo: string | null; name: string }[];
+}) {
+  if (games.length === 0) return null;
+  const shown = games.slice(0, MAX_GROUP_ICONS);
+  const rest = games.length - shown.length;
+  return (
+    <div className='ml-1 flex items-center -space-x-1.5'>
+      {shown.map((g) => (
+        <GroupGameIcon key={g.key} logo={g.logo} name={g.name} />
+      ))}
+      {rest > 0 && (
+        <span className='relative flex h-6 w-6 items-center justify-center rounded-md bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-background'>
+          +{rest}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function GroupGameIcon({ logo, name }: { logo: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!logo || failed) {
+    return (
+      <span
+        title={name}
+        className='relative flex h-6 w-6 items-center justify-center rounded-md bg-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-background'
+      >
+        {name.trim().charAt(0).toUpperCase() || '-'}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logo}
+      alt={name}
+      title={name}
+      onError={() => setFailed(true)}
+      className='relative h-6 w-6 rounded-md object-cover ring-2 ring-background'
+    />
+  );
+}
+
 // 컴포넌트: Game Name Cell
 interface GameNameCellProps {
   campaign: Campaign;
@@ -901,6 +949,24 @@ export function CampaignsTable({
       return next;
     });
   }, []);
+  // 광고주별 게임 아이콘 (중복 게임 제외, 묶음 줄에 겹쳐 보여줌)
+  const groupGames = useMemo(() => {
+    const m = new Map<string, { key: string; logo: string | null; name: string }[]>();
+    for (const c of campaigns) {
+      const company = c.account_company ?? '';
+      const key = c.game_id ?? c.game_name ?? c.id;
+      const list = m.get(company) ?? [];
+      if (!list.some((g) => g.key === key)) {
+        list.push({
+          key,
+          logo: c.game_logo_url ?? null,
+          name: c.game_name ?? '',
+        });
+      }
+      m.set(company, list);
+    }
+    return m;
+  }, [campaigns]);
   const groupSizes = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of campaigns) {
@@ -1146,6 +1212,7 @@ export function CampaignsTable({
                           <span className='tabular-nums text-muted-foreground'>
                             {groupSizes.get(company) ?? 0}
                           </span>
+                          <GroupGameIcons games={groupGames.get(company) ?? []} />
                         </div>
                       </TableCell>
                     </TableRow>
