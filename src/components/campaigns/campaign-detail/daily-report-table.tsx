@@ -235,11 +235,11 @@ export function DailyReportTable({
           <Table
             style={{ width: 'max-content', minWidth: '100%' }}
             className={cn(
-              'text-xs tabular-nums [&_td]:cursor-default [&_th]:cursor-default',
+              'border-separate border-spacing-0 text-xs tabular-nums [&_td]:cursor-default [&_th]:cursor-default',
               dragging && 'select-none'
             )}
           >
-            <TableHeader className='sticky top-0 z-30 bg-muted [&_tr]:border-b'>
+            <TableHeader className='sticky top-0 z-30 bg-muted [&_tr]:border-0'>
               {/* 그룹 제목 */}
               <TableRow className='hover:bg-transparent'>
                 {groupSpans.map((g, i) => (
@@ -247,7 +247,7 @@ export function DailyReportTable({
                     key={i}
                     colSpan={g.span}
                     className={cn(
-                      'h-6 bg-muted px-2 py-0 text-center text-[11px] font-medium',
+                      'h-6 border-b bg-muted px-2 py-0 text-center text-[11px] font-medium',
                       g.group === 'cohortRevenue' || g.group === 'cohortRoas'
                         ? 'text-primary'
                         : 'text-muted-foreground',
@@ -265,7 +265,7 @@ export function DailyReportTable({
                   <TableHead
                     key={h}
                     className={cn(
-                      'h-8 whitespace-nowrap bg-muted px-3 py-0 text-xs',
+                      'h-8 whitespace-nowrap border-b bg-muted px-3 py-0 text-xs',
                       isDateHeader(h)
                         ? cn(stickyDate, 'bg-muted text-left')
                         : 'text-right',
@@ -278,12 +278,12 @@ export function DailyReportTable({
                 ))}
               </TableRow>
               {/* 기간 합계 */}
-              <TableRow className='border-b-2 hover:bg-transparent'>
+              <TableRow className='hover:bg-transparent'>
                 {cols.map((h, i) => (
                   <TableHead
                     key={h}
                     className={cn(
-                      'h-8 whitespace-nowrap bg-blue-50 px-3 py-0 text-xs font-semibold text-foreground dark:bg-slate-800',
+                      'h-8 whitespace-nowrap border-b-2 bg-blue-50 px-3 py-0 text-xs font-semibold text-foreground dark:bg-slate-800',
                       isDateHeader(h) ? cn(stickyDate, 'text-left') : 'text-right',
                       groupStart.has(i) && 'border-l'
                     )}
@@ -309,7 +309,7 @@ export function DailyReportTable({
                       shadedWeek[rowIndex]
                         ? 'bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-800/70 dark:hover:bg-slate-800'
                         : 'bg-background hover:bg-slate-50 dark:hover:bg-slate-900',
-                      weekEnd && 'border-b-2 border-border'
+                      'border-0'
                     )}
                   >
                     {cols.map((header, cellIndex) => {
@@ -330,6 +330,7 @@ export function DailyReportTable({
                           : undefined;
                       const cls = cn(
                         'whitespace-nowrap px-3 py-1.5',
+                        weekEnd ? 'border-b-2 border-border' : 'border-b',
                         isDateCol
                           ? cn(
                               stickyDate,
