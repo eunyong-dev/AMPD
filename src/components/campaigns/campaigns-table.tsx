@@ -13,7 +13,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1249,12 +1249,6 @@ export function CampaignsTable({
                     >
                       <TableCell colSpan={visibleColumnCount} className='py-2'>
                         <div className='flex items-center gap-3'>
-                          <ChevronRight
-                            className={cn(
-                              'h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform',
-                              !collapsedGroups.has(company) && 'rotate-90'
-                            )}
-                          />
                           <GroupGameIcons games={groupGames.get(company) ?? []} />
                           <div className='min-w-0'>
                             <div className='flex items-center gap-2'>
@@ -1280,6 +1274,13 @@ export function CampaignsTable({
                               ))}
                             </div>
                           </div>
+                          {/* 접기 표시 — 오른쪽 끝, 펼침 ▲ / 접힘 ▼ */}
+                          <ChevronDown
+                            className={cn(
+                              'ml-auto h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform',
+                              !collapsedGroups.has(company) && 'rotate-180'
+                            )}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>
