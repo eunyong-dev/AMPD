@@ -3,13 +3,19 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ClipboardListIcon,
+  MapPinIcon,
   UsersIcon,
   ChevronDownIcon,
   ColumnsIcon,
+  GlobeIcon,
   SearchIcon,
+  TargetIcon,
 } from 'lucide-react';
 import { AccessControl } from '@/components/access-control';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatBreakdownCard } from '@/components/common/stat-breakdown-card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -36,9 +42,7 @@ import { CampaignsTable } from '@/components/campaigns/campaigns-table';
 import { EditCampaignForm } from '@/components/campaigns/edit-campaign-form';
 import { canManageResource } from '@/lib/utils/permissions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
 
-const REGION_FLAGS = { KR: '🇰🇷', JP: '🇯🇵', TW: '🇹🇼', US: '🇺🇸' } as const;
 const FILTER_STORAGE_KEY = 'campaigns:filters';
 const STATUS_VALUES = ['all', 'planning', 'ongoing', 'holding', 'end'];
 
@@ -203,56 +207,26 @@ export default function AllCampaignsPage() {
     setShowEditCampaignForm(true);
   }, []);
 
-  // 상태·지역 버튼 안 개수 — 자기 차원만 빼고 나머지 필터를 반영 (누르면 나오는 개수)
-  const { stats, campaignStatsByRegion } = useMemo(() => {
-    const q = searchTerm.toLowerCase().trim();
-    const byStatus = (c: Campaign) =>
-      statusFilter === 'all' || c.status === statusFilter;
-    const byUser = (c: Campaign) =>
-      selectedUserIds.length === 0 ||
-      selectedUserIds.includes('all') ||
-      (!!c.assigned_user_id && selectedUserIds.includes(c.assigned_user_id));
-    const byRegion = (c: Campaign) =>
-      selectedRegions.length === 0 ||
-      selectedRegions.includes('all') ||
-      (!!c.region && selectedRegions.includes(c.region));
-    const bySearch = (c: Campaign) =>
-      !q ||
-      [
-        c.name,
-        c.game_name,
-        c.assigned_user_name,
-        c.account_company,
-        c.regional_game_name,
-        c.game_package_identifier,
-      ].some((v) => (v ?? '').toLowerCase().includes(q));
-
-    const forStatus = campaigns.filter(
-      (c) => byUser(c) && byRegion(c) && bySearch(c)
-    );
-    const forRegion = campaigns.filter(
-      (c) => byStatus(c) && byUser(c) && bySearch(c)
-    );
-    const countStatus = (k: string) =>
-      forStatus.filter((c) => c.status === k).length;
-    const countRegion = (k: string) =>
-      forRegion.filter((c) => c.region === k).length;
+  // 통계 계산
+  const stats = useMemo(() => {
     return {
-      stats: {
-        total: forStatus.length,
-        planning: countStatus('planning'),
-        ongoing: countStatus('ongoing'),
-        holding: countStatus('holding'),
-        end: countStatus('end'),
-      },
-      campaignStatsByRegion: {
-        KR: countRegion('KR'),
-        JP: countRegion('JP'),
-        TW: countRegion('TW'),
-        US: countRegion('US'),
-      },
+      total: campaigns.length,
+      planning: campaigns.filter((c) => c.status === 'planning').length,
+      ongoing: campaigns.filter((c) => c.status === 'ongoing').length,
+      holding: campaigns.filter((c) => c.status === 'holding').length,
+      end: campaigns.filter((c) => c.status === 'end').length,
     };
-  }, [campaigns, statusFilter, selectedUserIds, selectedRegions, searchTerm]);
+  }, [campaigns]);
+
+  // 지역별 캠페인 통계
+  const campaignStatsByRegion = useMemo(() => {
+    return {
+      KR: campaigns.filter((c) => c.region === 'KR').length,
+      JP: campaigns.filter((c) => c.region === 'JP').length,
+      TW: campaigns.filter((c) => c.region === 'TW').length,
+      US: campaigns.filter((c) => c.region === 'US').length,
+    };
+  }, [campaigns]);
 
   // 담당자 선택 토글
   const toggleUserSelection = useCallback((userId: string) => {
@@ -286,6 +260,13 @@ export default function AllCampaignsPage() {
     });
   }, []);
 
+  // 지역 옵션
+  const regionOptions = [
+    { value: 'KR', label: '🇰🇷 Korea', code: 'KR' },
+    { value: 'JP', label: '🇯🇵 Japan', code: 'JP' },
+    { value: 'TW', label: '🇹🇼 Taiwan', code: 'TW' },
+    { value: 'US', label: '🇺🇸 United States', code: 'US' },
+  ];
 
   // 상태별, 담당자별, 지역별, 검색어 필터링된 캠페인
   const filteredCampaigns = useMemo(() => {
@@ -377,135 +358,148 @@ export default function AllCampaignsPage() {
   return (
     <AccessControl>
       <div className='flex flex-col gap-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0'>
-        {/* 제목 + 요약 */}
-        <div>
-          <h1 className='text-xl font-semibold tracking-tight'>캠페인</h1>
-          <p className='mt-1 text-sm text-muted-foreground'>
-            전체{' '}
-            <span className='font-medium text-foreground tabular-nums'>
-              {campaigns.length}
-            </span>
-            개 · 진행중{' '}
-            <span className='font-medium text-foreground tabular-nums'>
-              {campaigns.filter((c) => c.status === 'ongoing').length}
-            </span>
-            개 · 지금 보는 목록{' '}
-            <span className='font-medium text-foreground tabular-nums'>
-              {filteredCampaigns.length}
-            </span>
-            개
-          </p>
+        {/* Campaign Statistics */}
+        <div className='grid grid-cols-1 min-[1950px]:grid-cols-2 gap-4'>
+          {/* By Status */}
+          <StatBreakdownCard
+            icon={<TargetIcon className='h-4 w-4 text-muted-foreground' />}
+            title='상태별 캠페인'
+            items={[
+              { key: 'planning', label: '계획', value: stats.planning, color: '#eab308' },
+              { key: 'ongoing', label: '진행중', value: stats.ongoing, color: '#22c55e' },
+              { key: 'holding', label: '홀딩', value: stats.holding, color: '#ef4444' },
+              { key: 'end', label: '종료', value: stats.end, color: '#94a3b8' },
+            ]}
+          />
+
+          {/* By Region */}
+          <StatBreakdownCard
+            icon={<MapPinIcon className='h-4 w-4 text-muted-foreground' />}
+            title='지역별 캠페인'
+            items={[
+              { key: 'KR', label: '🇰🇷 KR', value: campaignStatsByRegion.KR, color: '#3b82f6' },
+              { key: 'JP', label: '🇯🇵 JP', value: campaignStatsByRegion.JP, color: '#a855f7' },
+              { key: 'TW', label: '🇹🇼 TW', value: campaignStatsByRegion.TW, color: '#14b8a6' },
+              { key: 'US', label: '🇺🇸 US', value: campaignStatsByRegion.US, color: '#f97316' },
+            ]}
+          />
         </div>
 
-        {/* 툴바 — 상태·지역 버튼 안에 개수. 좁으면 검색 줄이 아래로 내려간다 */}
-        <div className='rounded-xl border bg-card p-2'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <div className='flex flex-wrap items-center gap-2'>
-              <div className='flex rounded-lg bg-muted p-0.5'>
-                {(
-                  [
-                    ['all', '전체', null, stats.total],
-                    ['planning', '계획', 'bg-yellow-500', stats.planning],
-                    ['ongoing', '진행중', 'bg-green-500', stats.ongoing],
-                    ['holding', '홀딩', 'bg-red-500', stats.holding],
-                    ['end', '종료', 'bg-slate-400', stats.end],
-                  ] as const
-                ).map(([key, label, dot, count]) => (
-                  <button
-                    key={key}
-                    type='button'
-                    onClick={() => setStatusFilter(key)}
-                    aria-pressed={statusFilter === key}
-                    className={cn(
-                      'inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
-                      statusFilter === key &&
-                        'bg-background text-foreground shadow-sm'
-                    )}
-                  >
-                    {dot && (
-                      <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />
-                    )}
-                    {label}
-                    <span className='font-mono text-xs tabular-nums text-muted-foreground'>
-                      {count}
-                    </span>
-                  </button>
-                ))}
-              </div>
+        {/* Search - 1450px 이하일 때 위쪽에 표시 */}
+        <div className='search-break:hidden'>
+          <div className='relative w-full'>
+            <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+            <Input
+              placeholder='캠페인·게임·광고주·패키지명 검색'
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className='pl-10 h-9 w-full'
+              autoComplete='off'
+            />
+          </div>
+        </div>
 
-              <span className='hidden h-5 w-px bg-border xl:block' />
+        {/* Status Tabs and Filters */}
+        <div className='overflow-x-auto py-1'>
+          <div className='flex items-center justify-between gap-4 min-w-max'>
+            <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+              <TabsList className='rounded-xl h-9'>
+                <TabsTrigger
+                  value='all'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  전체
+                </TabsTrigger>
+                <TabsTrigger
+                  value='planning'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  계획
+                </TabsTrigger>
+                <TabsTrigger
+                  value='ongoing'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  진행중
+                </TabsTrigger>
+                <TabsTrigger
+                  value='holding'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  홀딩
+                </TabsTrigger>
+                <TabsTrigger
+                  value='end'
+                  className='rounded-lg text-sm px-3 py-1'
+                >
+                  종료
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-              {/* 지역 칩 — 넓은 화면에서만. 좁으면 아래 줄의 지역 드롭다운 */}
-              <div className='hidden gap-1 xl:flex'>
-                {(['KR', 'JP', 'TW', 'US'] as const).map((region) => {
-                  const on = selectedRegions.includes(region);
-                  return (
-                    <button
-                      key={region}
-                      type='button'
-                      onClick={() => toggleRegionSelection(region)}
-                      aria-pressed={on}
-                      className={cn(
-                        'inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-sm transition-colors hover:bg-muted',
-                        on &&
-                          'border-primary/60 bg-primary/10 hover:bg-primary/15'
-                      )}
-                    >
-                      <span>{REGION_FLAGS[region]}</span>
-                      {region}
-                      <span className='font-mono text-xs tabular-nums text-muted-foreground'>
-                        {campaignStatsByRegion[region]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className='flex min-w-full flex-1 items-center gap-2 sm:min-w-[480px]'>
-              <div className='relative min-w-0 flex-1'>
+            {/* Search and Filters */}
+            <div className='flex items-center gap-2 flex-shrink-0'>
+              {/* Search - 1450px 이상일 때 필터와 함께 표시 */}
+              <div className='hidden search-break:block relative flex-1 max-w-md min-w-0'>
                 <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
                 <Input
                   placeholder='캠페인·게임·광고주·패키지명 검색'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className='h-8 pl-9'
+                  className='pl-10 h-9'
                   autoComplete='off'
                 />
               </div>
-
-              {/* 좁은 화면용 지역 선택 (칩과 같은 개수) */}
+              {/* Region Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant='outline' size='sm' className='xl:hidden'>
-                    {selectedRegions.filter((r) => r !== 'all').length === 0
-                      ? '전체 지역'
-                      : selectedRegions.filter((r) => r !== 'all').join(', ')}
-                    <ChevronDownIcon className='h-4 w-4 opacity-60' />
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='w-auto justify-between flex-shrink-0'
+                  >
+                    <GlobeIcon className='h-4 w-4' />
+                    <span className='hidden filter-break:inline'>
+                      {selectedRegions.length === 0
+                        ? '전체 지역'
+                        : selectedRegions.includes('all')
+                        ? '전체 지역'
+                        : `${selectedRegions.length}개 선택`}
+                    </span>
+                    <ChevronDownIcon className='hidden filter-break:block h-4 w-4' />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' className='w-44'>
-                  {(['KR', 'JP', 'TW', 'US'] as const).map((region) => (
+                <DropdownMenuContent className='w-[180px]'>
+                  <DropdownMenuItem
+                    onClick={() => toggleRegionSelection('all')}
+                    onSelect={(e) => e.preventDefault()}
+                    className='flex items-center gap-2'
+                  >
+                    <Checkbox
+                      checked={selectedRegions.includes('all')}
+                      onCheckedChange={() => {}}
+                      className='data-[state=checked]:bg-black data-[state=checked]:border-black'
+                    />
+                    <span>전체 지역</span>
+                  </DropdownMenuItem>
+                  {regionOptions.map((region) => (
                     <DropdownMenuItem
-                      key={region}
-                      onClick={() => toggleRegionSelection(region)}
+                      key={region.value}
+                      onClick={() => toggleRegionSelection(region.value)}
                       onSelect={(e) => e.preventDefault()}
                       className='flex items-center gap-2'
                     >
                       <Checkbox
-                        checked={selectedRegions.includes(region)}
+                        checked={selectedRegions.includes(region.value)}
                         onCheckedChange={() => {}}
+                        className='data-[state=checked]:bg-black data-[state=checked]:border-black'
                       />
-                      <span>
-                        {REGION_FLAGS[region]} {region}
-                      </span>
-                      <span className='ml-auto font-mono text-xs tabular-nums text-muted-foreground'>
-                        {campaignStatsByRegion[region]}
-                      </span>
+                      <span className='text-xs'>{region.label}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
               {/* Assigned User Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
