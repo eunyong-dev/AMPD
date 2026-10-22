@@ -5,6 +5,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export interface FilterTabOption<T extends string> {
   value: T;
   label: string;
+  /** 이름 뒤 개수 (흐린 글자) */
+  count?: number;
+  /** 이름 앞 색 점 (예: 'bg-green-400') */
+  dotClassName?: string;
 }
 
 interface FilterTabsProps<T extends string> {
@@ -45,7 +49,17 @@ export function FilterTabs<T extends string>({
                 : 'rounded-lg text-sm px-3 py-1'
             }
           >
+            {opt.dotClassName && (
+              <span
+                className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${opt.dotClassName}`}
+              />
+            )}
             {opt.label}
+            {opt.count !== undefined && (
+              <span className='ml-1.5 tabular-nums text-muted-foreground'>
+                {opt.count}
+              </span>
+            )}
           </TabsTrigger>
         ))}
       </TabsList>

@@ -233,11 +233,19 @@ export default function PublicCampaignsPage() {
   );
 
   // 탭 옵션 (개수 표시) — 0건이어도 5개 탭 모두 항상 표시 (내부 캠페인 페이지와 동일)
-  const tabOptions: FilterTabOption<StatusTab>[] = TAB_ORDER.map((k) => {
-    const name = k === 'all' ? '전체' : STATUS[k].label;
-    const n = k === 'all' ? view.total : view.statusCounts[k] ?? 0;
-    return { value: k, label: `${name} ${n}` };
-  });
+  // 내부 캠페인 현황과 같은 색 점 (계획 노랑 · 진행중 초록 · 홀딩 빨강 · 종료 회색)
+  const TAB_DOT: Partial<Record<StatusTab, string>> = {
+    planning: 'bg-yellow-400',
+    ongoing: 'bg-green-400',
+    holding: 'bg-red-400',
+    end: 'bg-slate-400',
+  };
+  const tabOptions: FilterTabOption<StatusTab>[] = TAB_ORDER.map((k) => ({
+    value: k,
+    label: k === 'all' ? '전체' : STATUS[k].label,
+    count: k === 'all' ? view.total : view.statusCounts[k] ?? 0,
+    dotClassName: TAB_DOT[k],
+  }));
 
   // 내부 캠페인 현황과 같은 광고주별 목록에 넘길 형태
   const accordionRows = useMemo(
