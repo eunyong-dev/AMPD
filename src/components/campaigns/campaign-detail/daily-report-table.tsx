@@ -38,10 +38,15 @@ interface DailyReportTableProps {
   data: SheetRow[];
   headers: string[];
   onRetry: () => void;
+  /** monthly: 월간 집계 (첫 칸 Month, 행마다 번갈아 배경) */
+  variant?: 'daily' | 'monthly';
 }
 
 const isDateHeader = (h: string) =>
-  h === '날짜' || h === 'date' || h.toLowerCase() === 'date';
+  h === '날짜' ||
+  h === 'date' ||
+  h.toLowerCase() === 'date' ||
+  h === 'Month';
 const isNoteHeader = (h: string) => h === '비고' || h.toLowerCase() === 'note';
 const isCohortRevenue = (h: string) => /^d\d+\s*revenue$/i.test(h.trim());
 const isCohortRoas = (h: string) => /^d\d+\s*roas$/i.test(h.trim());
@@ -130,17 +135,22 @@ export function DailyReportTable({
   data,
   headers,
   onRetry,
+  variant = 'daily',
 }: DailyReportTableProps) {
+  const monthly = variant === 'monthly';
   // 칸 순서: 날짜 · 기본 지표 · 코호트 매출 · 코호트 ROAS · 비고(맨 끝)
   const cols = React.useMemo(() => {
     const order: Group[] = ['base', 'cohortRevenue', 'cohortRoas', 'note'];
     const dateH = headers.filter(isDateHeader);
-    const rest = headers.filter((h) => !isDateHeader(h));
+    // 월간 집계에서 비고는 의미 없는 숫자(0)라 뺀다
+    const rest = headers.filter(
+      (h) => !isDateHeader(h) && !(monthly && isNoteHeader(h))
+    );
     return [
       ...dateH,
       ...order.flatMap((g) => rest.filter((h) => groupOf(h) === g)),
     ];
-  }, [headers]);
+  }, [headers, monthly]);
 
   const dateHeader = cols.find(isDateHeader);
 
@@ -153,6 +163,7 @@ export function DailyReportTable({
     const dh = cols.find(isDateHeader);
     let shade = false;
     let prevKey: number | null = null;
+    if (monthly) return rows.map((_, i) => i % 2 === 1);
     return rows.map((r) => {
       const d = dh ? parseSheetDate(r[dh] as string) : null;
       if (!d) return shade;
@@ -163,7 +174,7 @@ export function DailyReportTable({
       prevKey = key;
       return shade;
     });
-  }, [rows, cols]);
+  }, [rows, cols, monthly]);
 
   const { containerRef, dragging, cellProps, selectionStyle, chip } =
     useCellSelection(rows, cols);
@@ -262,7 +273,7 @@ export function DailyReportTable({
                     )}
                     style={isDateHeader(h) ? { width: '1px' } : undefined}
                   >
-                    {isDateHeader(h) ? 'Date' : shortLabel(h)}
+                    {isDateHeader(h) ? (monthly ? 'Month' : 'Date') : shortLabel(h)}
                   </TableHead>
                 ))}
               </TableRow>
@@ -284,7 +295,10 @@ export function DailyReportTable({
             </TableHeader>
             <TableBody>
               {rows.map((row, rowIndex) => {
-                const date = dateHeader ? parseSheetDate(row[dateHeader] as string) : null;
+                const date =
+                  dateHeader && !monthly
+                    ? parseSheetDate(row[dateHeader] as string)
+                    : null;
                 const day = date ? date.getDay() : null;
                 // 최신순이라 월요일 줄 아래가 주 경계
                 const weekEnd = day === 1;
@@ -293,8 +307,8 @@ export function DailyReportTable({
                     key={rowIndex}
                     className={cn(
                       shadedWeek[rowIndex]
-                        ? 'bg-muted/50 hover:bg-muted/70'
-                        : 'bg-background hover:bg-muted/30',
+                        ? 'bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-800/70 dark:hover:bg-slate-800'
+                        : 'bg-background hover:bg-slate-50 dark:hover:bg-slate-900',
                       weekEnd && 'border-b-2 border-border'
                     )}
                   >
@@ -320,7 +334,9 @@ export function DailyReportTable({
                           ? cn(
                               stickyDate,
                               'z-10 font-medium',
-                              shadedWeek[rowIndex] ? 'bg-muted' : 'bg-background'
+                              shadedWeek[rowIndex]
+                                ? 'bg-slate-100 dark:bg-slate-800'
+                                : 'bg-background'
                             )
                           : 'text-right',
                         groupStart.has(cellIndex) && 'border-l'
@@ -335,7 +351,9 @@ export function DailyReportTable({
                             style={cellStyle}
                             {...cellProps(rowIndex, cellIndex)}
                           >
-                            {date ? (
+                            {monthly ? (
+                              String(cellValue ?? '').replace('-', '.')
+                            ) : date ? (
                               <span className='flex items-center gap-1.5'>
                                 <span>
                                   {`${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`}

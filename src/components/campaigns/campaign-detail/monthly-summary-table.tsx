@@ -1,17 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { TableWrapper, TABLE_STYLES } from '@/components/common/table-wrapper';
-import { isRoasColumn, roasBgStyle } from '@/lib/utils/roas';
-import { useCellSelection } from './use-cell-selection';
+import { DailyReportTable } from './daily-report-table';
 
 type MonthlyRow = Record<string, unknown>;
 
@@ -19,15 +9,12 @@ interface MonthlySummaryTableProps {
   rows: MonthlyRow[];
 }
 
+/** 월간 집계 — 일간 표와 같은 모양 (묶음 제목·합계 줄·최신 월이 위로) */
 export function MonthlySummaryTable({ rows }: MonthlySummaryTableProps) {
-  // 'Month' 를 첫 열로 두고 나머지를 이어붙인 통합 헤더 (셀 선택용)
   const headers = React.useMemo(() => {
     if (!rows || rows.length === 0) return [];
     return ['Month', ...Object.keys(rows[0]).filter((k) => k !== 'Month')];
   }, [rows]);
-
-  const { containerRef, dragging, cellProps, selectionStyle, chip } =
-    useCellSelection(rows ?? [], headers);
 
   if (!rows || rows.length === 0) {
     return (
@@ -38,74 +25,13 @@ export function MonthlySummaryTable({ rows }: MonthlySummaryTableProps) {
   }
 
   return (
-    <div ref={containerRef} className='relative h-full min-h-0'>
-      <TableWrapper fillHeight className='max-h-full h-full'>
-        <Table
-          style={{ width: 'max-content', minWidth: '100%' }}
-          className={`[&_td]:cursor-default [&_th]:cursor-default ${
-            dragging ? 'select-none' : ''
-          }`}
-        >
-          <TableHeader className={TABLE_STYLES.header}>
-            <TableRow>
-              {headers.map((header, index) => (
-                <TableHead
-                  key={header}
-                  className={`whitespace-nowrap ${
-                    index === 0 ? 'sticky left-0 z-30 bg-muted' : ''
-                  } ${index >= 1 && index <= 4 ? 'text-center' : ''}`}
-                  style={index === 0 ? { width: '1px' } : undefined}
-                >
-                  {header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody className={TABLE_STYLES.body}>
-            {rows.map((row, rowIndex) => (
-              <TableRow key={(row.Month as string | undefined) ?? rowIndex}>
-                {headers.map((header, cellIndex) => {
-                  const isLabelCol = cellIndex === 0;
-                  let cellClassName = 'whitespace-nowrap';
-                  if (isLabelCol) {
-                    cellClassName +=
-                      ' sticky left-0 z-10 bg-muted font-medium';
-                  }
-                  if (cellIndex >= 1 && cellIndex <= 4) {
-                    cellClassName += ' text-center';
-                  }
-
-                  const overlay = selectionStyle(rowIndex, cellIndex);
-                  const baseStyle =
-                    !isLabelCol && isRoasColumn(header)
-                      ? roasBgStyle(row[header])
-                      : undefined;
-                  const widthStyle = isLabelCol
-                    ? { width: '1px' as const }
-                    : undefined;
-                  const cellStyle: React.CSSProperties | undefined =
-                    baseStyle || overlay || widthStyle
-                      ? { ...baseStyle, ...overlay, ...widthStyle }
-                      : undefined;
-
-                  return (
-                    <TableCell
-                      key={header}
-                      className={cellClassName}
-                      style={cellStyle}
-                      {...cellProps(rowIndex, cellIndex)}
-                    >
-                      {row[header] as React.ReactNode}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableWrapper>
-
-      {chip}
-    </div>
+    <DailyReportTable
+      variant='monthly'
+      loading={false}
+      error={null}
+      data={rows}
+      headers={headers}
+      onRetry={() => {}}
+    />
   );
 }
