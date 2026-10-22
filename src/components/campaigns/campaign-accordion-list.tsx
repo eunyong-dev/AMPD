@@ -471,7 +471,8 @@ function Section({
       <div className='flex items-baseline gap-2 px-1'>
         <h2 className='text-sm font-semibold'>{title}</h2>
         <span className='text-xs text-muted-foreground'>
-          {groups.length}곳 · {hint}
+          {groups.length}곳 ·{' '}
+          {groups.reduce((n, g) => n + g.campaigns.length, 0)}개 캠페인 · {hint}
         </span>
         {action && <div className='ml-auto'>{action}</div>}
       </div>
