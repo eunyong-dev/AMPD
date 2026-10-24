@@ -182,6 +182,7 @@ export function SharedCampaignView({ inModal = false }: { inModal?: boolean }) {
                   }}
                   loadList={loadPublicSwitcherCampaigns}
                   hrefFor={shareCampaignHref}
+                  replace={inModal}
                 />
               }
             />

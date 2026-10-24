@@ -345,6 +345,7 @@ export function CampaignDetailView({ inModal = false }: { inModal?: boolean }) {
                   account_company: campaign.account_company ?? null,
                   region: campaign.region ?? null,
                 }}
+                replace={inModal}
               />
             }
             accountHref={

@@ -43,6 +43,11 @@ interface CampaignSwitcherProps {
   loadList?: () => Promise<CampaignListItem[]>;
   /** 선택 시 이동할 주소 — 기본: 내부 상세 /campaigns/[id] */
   hrefFor?: (id: string) => string;
+  /**
+   * 기록을 쌓지 않고 바꿔치기 — 성과 모달 안에서 사용.
+   * push 로 쌓으면 모달 닫기(router.back)가 바로 전 캠페인 모달로 돌아가 전환한 횟수만큼 닫아야 했음
+   */
+  replace?: boolean;
 }
 
 export interface CampaignListItem {
@@ -66,6 +71,7 @@ export function CampaignSwitcher({
   currentCampaign,
   loadList,
   hrefFor,
+  replace = false,
 }: CampaignSwitcherProps) {
   const router = useRouter();
   const { profile } = useUserContext();
@@ -205,9 +211,11 @@ export function CampaignSwitcher({
         return;
       }
       setOpen(false);
-      router.push(hrefFor ? hrefFor(id) : `/campaigns/${id}`);
+      const href = hrefFor ? hrefFor(id) : `/campaigns/${id}`;
+      if (replace) router.replace(href);
+      else router.push(href);
     },
-    [currentCampaign.id, router, hrefFor]
+    [currentCampaign.id, router, hrefFor, replace]
   );
 
   // 키보드 네비게이션 (input 에서 발생) — Popover 의 기본 focus 가두기 회피
