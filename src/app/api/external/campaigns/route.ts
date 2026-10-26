@@ -19,6 +19,10 @@ const ADJUST_ORIGIN_PATTERNS: (string | RegExp)[] = [
   'https://www.adjust.com',
 ];
 
+const TENJIN_ORIGIN_PATTERNS: (string | RegExp)[] = [
+  'https://dashboard.tenjin.com',
+];
+
 // 종료 · 보류 캠페인은 종료일로부터 이만큼 지나면 동기화 대상에서 뺌
 // (종료 직전 설치 유저의 D30 매출이 종료 뒤 30일까지 쌓이므로 그때까지만 조회 — 그 뒤엔 데이터가 안 바뀌는데
 //  매번 MMP 를 다시 조회해 동기화가 느려졌음)
@@ -54,15 +58,17 @@ function matchesAny(
  * Origin → MMP 매핑
  * - AppsFlyer 콘솔: 'AppsFlyer'
  * - Adjust 콘솔: 'Adjust'
+ * - Tenjin 대시보드: 'Tenjin'
  * - localhost: null (로컬 개발 — 전체 반환)
  * - 그 외: undefined (차단)
  */
 function detectMmpFromOrigin(
   origin: string | null
-): 'AppsFlyer' | 'Adjust' | null | undefined {
+): 'AppsFlyer' | 'Adjust' | 'Tenjin' | null | undefined {
   if (!origin) return undefined;
   if (matchesAny(origin, APPSFLYER_ORIGIN_PATTERNS)) return 'AppsFlyer';
   if (matchesAny(origin, ADJUST_ORIGIN_PATTERNS)) return 'Adjust';
+  if (matchesAny(origin, TENJIN_ORIGIN_PATTERNS)) return 'Tenjin';
   if (LOCAL_ORIGIN_PATTERN.test(origin)) return null;
   return undefined;
 }
@@ -94,10 +100,10 @@ export async function OPTIONS(request: NextRequest) {
 /**
  * GET /api/external/campaigns
  * 사용자의 API key 로 인증해서 캠페인 리스트 반환.
- * AppsFlyer / Adjust 북마클릿이 호출용.
+ * AppsFlyer / Adjust / Tenjin 북마클릿이 호출용.
  *
  * Headers: X-API-Key
- * Origin 에 따라 MMP 자동 필터 (AppsFlyer 콘솔 → AppsFlyer 캠페인만, Adjust 콘솔 → Adjust 캠페인만)
+ * Origin 에 따라 MMP 자동 필터 (AppsFlyer 콘솔 → AppsFlyer 캠페인만, Adjust 콘솔 → Adjust 캠페인만, Tenjin → Tenjin 캠페인만)
  * 종료(end) · 보류(holding) 이고 종료일이 30일 넘게 지난 캠페인은 제외 (종료일 없는 건 그대로 포함)
  * Returns: [{ name, app_package_identifier, region, start_date, end_date, status, ... }]
  */
@@ -111,7 +117,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          '허용되지 않은 Origin. AppsFlyer / Adjust 콘솔/북마클릿에서만 호출 가능합니다.',
+          '허용되지 않은 Origin. AppsFlyer / Adjust / Tenjin 콘솔/북마클릿에서만 호출 가능합니다.',
       },
       { status: 403, headers: corsHeaders(origin) }
     );

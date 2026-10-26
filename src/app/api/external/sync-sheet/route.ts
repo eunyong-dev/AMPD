@@ -23,6 +23,8 @@ const ALLOWED_ORIGIN_PATTERNS: (string | RegExp)[] = [
   'https://dash.adjust.com',
   'https://automate.adjust.com',
   'https://www.adjust.com',
+  // Tenjin
+  'https://dashboard.tenjin.com',
   // 로컬 개발
   /^https?:\/\/localhost(:\d+)?$/,
 ];

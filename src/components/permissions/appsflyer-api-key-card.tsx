@@ -28,6 +28,7 @@ import {
   renderExtensionIcons,
   EXTENSION_FOLDER,
 } from '@/lib/extension/build-extension-zip';
+import { buildTenjinConsoleScript } from '@/lib/extension/tenjin-script';
 
 function generateApiKey(): string {
   // 32자리 hex (짧고 안전)
@@ -1104,6 +1105,12 @@ export function AppsFlyerApiKeyCard() {
 })();`;
   }, [apiKey, baseUrl]);
 
+  // Tenjin 대시보드용 스크립트 — dashboard.tenjin.com 내부 리포트 API 호출
+  const tenjinConsoleScript = useMemo(
+    () => (apiKey && baseUrl ? buildTenjinConsoleScript(baseUrl, apiKey) : ''),
+    [apiKey, baseUrl]
+  );
+
   // 북마클릿 (javascript: URL — 북마크바에 드래그)
   const appsflyerBookmarklet = useMemo(
     () =>
@@ -1122,7 +1129,8 @@ export function AppsFlyerApiKeyCard() {
 
   // 크롬 확장 프로그램 zip — 북마클릿과 같은 스크립트를 담아 브라우저에서 바로 생성
   const handleDownloadExtension = useCallback(async () => {
-    if (!appsflyerConsoleScript || !adjustConsoleScript) return;
+    if (!appsflyerConsoleScript || !adjustConsoleScript || !tenjinConsoleScript)
+      return;
     setDownloadingExt(true);
     try {
       // 아이콘 생성 실패 시 크롬 기본 아이콘으로 (다운로드는 계속)
@@ -1131,6 +1139,7 @@ export function AppsFlyerApiKeyCard() {
         baseUrl,
         appsflyerScript: appsflyerConsoleScript,
         adjustScript: adjustConsoleScript,
+        tenjinScript: tenjinConsoleScript,
         icons,
         builtAt: new Date(),
       });
@@ -1152,7 +1161,7 @@ export function AppsFlyerApiKeyCard() {
     } finally {
       setDownloadingExt(false);
     }
-  }, [appsflyerConsoleScript, adjustConsoleScript, baseUrl]);
+  }, [appsflyerConsoleScript, adjustConsoleScript, tenjinConsoleScript, baseUrl]);
 
   return (
     <Card>
@@ -1162,7 +1171,7 @@ export function AppsFlyerApiKeyCard() {
           MMP 연동 — API 키
         </CardTitle>
         <CardDescription>
-          AppsFlyer / Adjust 콘솔에서 AMPD 의 캠페인 데이터를 불러올 때 사용하는
+          AppsFlyer / Adjust / Tenjin 콘솔에서 AMPD 의 캠페인 데이터를 불러올 때 사용하는
           개인 키입니다. 외부에 공유하지 마세요.
         </CardDescription>
       </CardHeader>
@@ -1227,7 +1236,7 @@ export function AppsFlyerApiKeyCard() {
                   </div>
                   <p className='text-xs text-muted-foreground mt-0.5'>
                     북마크바 없이 툴바 아이콘의{' '}
-                    <strong>AppsFlyer / Adjust 동기화</strong> 버튼으로
+                    <strong>AppsFlyer / Adjust / Tenjin 동기화</strong> 버튼으로
                     실행합니다. 동작은 아래 북마클릿과 같아요.
                   </p>
                 </div>
@@ -1267,7 +1276,11 @@ export function AppsFlyerApiKeyCard() {
                   툴바의 퍼즐 아이콘에서 <strong>AMPD 시트 동기화</strong>를
                   고정(📌)
                 </li>
-                <li>AppsFlyer / Adjust 콘솔 탭에서 아이콘 → 동기화 버튼 클릭</li>
+                <li>
+                  AppsFlyer / Adjust / Tenjin 콘솔 탭에서 아이콘 → 동기화 버튼
+                  클릭 (또는 페이지 왼쪽 아래 <strong>AMPD 시트 동기화</strong>{' '}
+                  버튼)
+                </li>
               </ol>
               <p className='text-xs text-muted-foreground'>
                 zip 안에 내 API 키가 들어 있어요 — 다른 사람과 공유하지 마세요.
@@ -1450,6 +1463,34 @@ export function AppsFlyerApiKeyCard() {
                   </div>
                   <pre className='p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto max-h-40 leading-relaxed'>
                     {adjustConsoleScript}
+                  </pre>
+                </div>
+                <div>
+                  <div className='flex items-center justify-between mb-1'>
+                    <span className='text-xs font-semibold text-muted-foreground'>
+                      Tenjin — F12 콘솔에 붙여넣기
+                    </span>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 px-2 text-xs'
+                      onClick={() => handleCopy(tenjinConsoleScript, 'tj-script')}
+                    >
+                      {copiedItem === 'tj-script' ? (
+                        <>
+                          <Check className='h-3 w-3 mr-1 text-green-600' />
+                          복사됨
+                        </>
+                      ) : (
+                        <>
+                          <Copy className='h-3 w-3 mr-1' />
+                          스크립트 복사
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <pre className='p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto max-h-40 leading-relaxed'>
+                    {tenjinConsoleScript}
                   </pre>
                 </div>
                 <p className='text-xs text-muted-foreground'>
