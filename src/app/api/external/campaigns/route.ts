@@ -19,6 +19,25 @@ const ADJUST_ORIGIN_PATTERNS: (string | RegExp)[] = [
   'https://www.adjust.com',
 ];
 
+// 종료 · 보류 캠페인은 종료일로부터 이만큼 지나면 동기화 대상에서 뺌
+// (종료 직전 설치 유저의 D30 매출이 종료 뒤 30일까지 쌓이므로 그때까지만 조회 — 그 뒤엔 데이터가 안 바뀌는데
+//  매번 MMP 를 다시 조회해 동기화가 느려졌음)
+const CLOSED_SYNC_GRACE_DAYS = 30;
+
+/** 한국시간 기준 오늘에서 N일 전 (YYYY-MM-DD) */
+function kstDaysAgo(days: number): string {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const [y, m, d] = today.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - days);
+  return dt.toISOString().slice(0, 10);
+}
+
 // 로컬 개발은 양쪽 모두 허용 (개발 편의)
 const LOCAL_ORIGIN_PATTERN = /^https?:\/\/localhost(:\d+)?$/;
 
@@ -79,6 +98,7 @@ export async function OPTIONS(request: NextRequest) {
  *
  * Headers: X-API-Key
  * Origin 에 따라 MMP 자동 필터 (AppsFlyer 콘솔 → AppsFlyer 캠페인만, Adjust 콘솔 → Adjust 캠페인만)
+ * 종료(end) · 보류(holding) 이고 종료일이 30일 넘게 지난 캠페인은 제외 (종료일 없는 건 그대로 포함)
  * Returns: [{ name, app_package_identifier, region, start_date, end_date, status, ... }]
  */
 export async function GET(request: NextRequest) {
@@ -179,8 +199,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 3) 응답 정리 — 북마클릿이 쓰기 좋은 형태로
-  const result = (campaigns ?? []).map((c) => {
+  // 3) 종료 · 보류 후 30일 지난 캠페인 제외
+  const cutoff = kstDaysAgo(CLOSED_SYNC_GRACE_DAYS);
+  const syncable = (campaigns ?? []).filter(
+    (c) =>
+      !(
+        (c.status === 'end' || c.status === 'holding') &&
+        c.end_date &&
+        c.end_date < cutoff
+      )
+  );
+
+  // 4) 응답 정리 — 북마클릿이 쓰기 좋은 형태로
+  const result = syncable.map((c) => {
     const game = (c as any).games;
     const account = game?.accounts ?? null;
     return {
