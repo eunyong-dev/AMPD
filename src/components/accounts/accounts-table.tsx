@@ -143,7 +143,7 @@ export function AccountsTable({
             <TableHeader className={TABLE_STYLES.header}>
               <TableRow>
                 <TableHead style={{ width: '200px' }}>광고주</TableHead>
-                <TableHead style={{ width: '120px' }}>국가</TableHead>
+                <TableHead style={{ width: '150px' }}>국가 · 도시</TableHead>
                 <TableHead style={{ width: '160px' }}>담당자</TableHead>
                 <TableHead style={{ width: '140px' }}>게임</TableHead>
                 <TableHead style={{ width: '110px' }}>캠페인</TableHead>
@@ -168,9 +168,17 @@ export function AccountsTable({
                         {account.company}
                       </Link>
                     </TableCell>
-                    <TableCell style={{ width: '120px' }}>
-                      <div className='text-sm text-muted-foreground'>
+                    <TableCell style={{ width: '150px' }}>
+                      <div
+                        className='text-sm text-muted-foreground truncate'
+                        title={
+                          account.city
+                            ? `${getCountryDisplay(account.country)} · ${account.city}`
+                            : undefined
+                        }
+                      >
                         {getCountryDisplay(account.country)}
+                        {account.city && ` · ${account.city}`}
                       </div>
                     </TableCell>
                     <TableCell style={{ width: '160px' }}>

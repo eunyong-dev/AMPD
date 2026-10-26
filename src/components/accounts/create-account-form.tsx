@@ -44,6 +44,7 @@ export function CreateAccountForm({
   const [newAccount, setNewAccount] = useState({
     company: '',
     country: '',
+    city: '',
     assigned_user_id: '',
     bill_to_name: '',
     bill_to_email: '',
@@ -93,6 +94,7 @@ export function CreateAccountForm({
     setNewAccount({
       company: '',
       country: '',
+      city: '',
       assigned_user_id: '',
       bill_to_name: '',
       bill_to_email: '',
@@ -129,6 +131,7 @@ export function CreateAccountForm({
       await onCreateAccount({
         company: newAccount.company.trim(),
         country: newAccount.country,
+        city: newAccount.city.trim() || null,
         assigned_user_id: newAccount.assigned_user_id,
         bill_to_name: newAccount.bill_to_name.trim() || null,
         bill_to_email: newAccount.bill_to_email.trim() || null,
@@ -178,28 +181,40 @@ export function CreateAccountForm({
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='country'>국가</Label>
-              <Select
-                value={newAccount.country}
-                onValueChange={(value) =>
-                  setNewAccount((prev) => ({ ...prev, country: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='국가를 선택해주세요' />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_OPTIONS.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                      className='p-2'
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor='country'>국가 · 도시</Label>
+              <div className='flex gap-2'>
+                <Select
+                  value={newAccount.country}
+                  onValueChange={(value) =>
+                    setNewAccount((prev) => ({ ...prev, country: value }))
+                  }
+                >
+                  <SelectTrigger id='country' className='w-[45%] shrink-0'>
+                    <SelectValue placeholder='국가 선택' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className='p-2'
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  id='city'
+                  aria-label='도시'
+                  placeholder='도시 (선택)'
+                  value={newAccount.city}
+                  onChange={(e) =>
+                    setNewAccount((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
             </div>
           </div>
           <div className='space-y-2'>

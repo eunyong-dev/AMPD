@@ -19,6 +19,8 @@ export interface AccountProfile {
   id: string;
   company: string;
   country: string;
+  /** 본사 도시 (선택) */
+  city?: string | null;
   assigned_user_id: string;
   assigned_user_name: string;
   total_campaigns: number;
@@ -40,6 +42,7 @@ export interface AccountProfile {
 export interface AccountInputData {
   company: string;
   country: string;
+  city?: string | null;
   assigned_user_id: string;
   bill_to_name?: string | null;
   bill_to_email?: string | null;
@@ -106,6 +109,7 @@ export async function addAccount(
     .insert({
       company: accountData.company,
       country: accountData.country,
+      city: accountData.city ?? null,
       assigned_user_id: accountData.assigned_user_id,
       bill_to_name: accountData.bill_to_name ?? null,
       bill_to_email: accountData.bill_to_email ?? null,
@@ -130,6 +134,7 @@ export async function addAccount(
     id: data.id,
     company: data.company,
     country: data.country,
+    city: data.city ?? null,
     assigned_user_id: data.assigned_user_id,
     assigned_user_name: userData.display_name || 'Unknown',
     total_campaigns: data.total_campaigns || 0,
@@ -254,6 +259,7 @@ export async function getAllAccountProfiles(): Promise<AccountProfile[]> {
     id: account.id,
     company: account.company,
     country: account.country,
+    city: account.city ?? null,
     assigned_user_id: account.assigned_user_id,
     assigned_user_name: account.user_profiles?.display_name || 'Unknown',
     total_campaigns: totalCampaignsCountByAccount[account.id] || 0,
@@ -298,6 +304,7 @@ export async function updateAccount(
     .update({
       company: accountData.company,
       country: accountData.country,
+      city: accountData.city ?? null,
       assigned_user_id: accountData.assigned_user_id,
       bill_to_name: accountData.bill_to_name ?? null,
       bill_to_email: accountData.bill_to_email ?? null,
@@ -324,6 +331,7 @@ export async function updateAccount(
     id: data.id,
     company: data.company,
     country: data.country,
+    city: data.city ?? null,
     assigned_user_id: data.assigned_user_id,
     assigned_user_name: userData.display_name || 'Unknown',
     total_campaigns: data.total_campaigns || 0,

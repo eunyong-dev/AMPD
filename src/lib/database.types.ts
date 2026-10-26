@@ -24,6 +24,7 @@ export type Database = {
           bill_to_due_days: number
           bill_to_email: string | null
           bill_to_name: string | null
+          city: string | null
           company: string
           country: string
           created_at: string | null
@@ -42,6 +43,7 @@ export type Database = {
           bill_to_due_days?: number
           bill_to_email?: string | null
           bill_to_name?: string | null
+          city?: string | null
           company: string
           country: string
           created_at?: string | null
@@ -60,6 +62,7 @@ export type Database = {
           bill_to_due_days?: number
           bill_to_email?: string | null
           bill_to_name?: string | null
+          city?: string | null
           company?: string
           country?: string
           created_at?: string | null

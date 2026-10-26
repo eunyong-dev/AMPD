@@ -52,6 +52,7 @@ export function EditAccountForm({
   const [editedAccount, setEditedAccount] = useState({
     company: '',
     country: '',
+    city: '',
     assigned_user_id: '',
     adjust_account_id: '',
     bill_to_name: '',
@@ -94,6 +95,7 @@ export function EditAccountForm({
       setEditedAccount({
         company: account.company || '',
         country: account.country || '',
+        city: account.city ?? '',
         assigned_user_id: account.assigned_user_id || '',
         adjust_account_id:
           account.adjust_account_id != null
@@ -115,6 +117,7 @@ export function EditAccountForm({
     setEditedAccount({
       company: '',
       country: '',
+      city: '',
       assigned_user_id: '',
       adjust_account_id: '',
       bill_to_name: '',
@@ -162,6 +165,7 @@ export function EditAccountForm({
       await onUpdateAccount(account.id, {
         company: editedAccount.company.trim(),
         country: editedAccount.country,
+        city: editedAccount.city.trim() || null,
         assigned_user_id: editedAccount.assigned_user_id,
         adjust_account_id: adjustIdParsed,
         bill_to_name: editedAccount.bill_to_name.trim() || null,
@@ -208,28 +212,40 @@ export function EditAccountForm({
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='edit-country'>국가</Label>
-              <Select
-                value={editedAccount.country}
-                onValueChange={(value) =>
-                  setEditedAccount((prev) => ({ ...prev, country: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='국가를 선택해주세요' />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_OPTIONS.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                      className='p-2'
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor='edit-country'>국가 · 도시</Label>
+              <div className='flex gap-2'>
+                <Select
+                  value={editedAccount.country}
+                  onValueChange={(value) =>
+                    setEditedAccount((prev) => ({ ...prev, country: value }))
+                  }
+                >
+                  <SelectTrigger id='edit-country' className='w-[45%] shrink-0'>
+                    <SelectValue placeholder='국가 선택' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className='p-2'
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  id='edit-city'
+                  aria-label='도시'
+                  placeholder='도시 (선택)'
+                  value={editedAccount.city}
+                  onChange={(e) =>
+                    setEditedAccount((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                  autoComplete='off'
+                />
+              </div>
             </div>
           </div>
           <div className='space-y-2'>
