@@ -16,6 +16,7 @@ export interface Game {
   store_url: string | null;
   package_identifier: string | null;
   logo_url: string | null;
+  genre?: string | null;
   created_at: string | null;
   updated_at: string | null;
   // 조인된 데이터
@@ -30,6 +31,7 @@ export interface GameFormData {
   store_url?: string;
   package_identifier?: string;
   logo_url?: string;
+  genre?: string | null;
 }
 
 // 플랫폼 옵션

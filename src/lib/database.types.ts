@@ -216,6 +216,7 @@ export type Database = {
           account_id: string
           created_at: string | null
           game_name: string
+          genre: string | null
           id: string
           logo_url: string | null
           package_identifier: string | null
@@ -227,6 +228,7 @@ export type Database = {
           account_id: string
           created_at?: string | null
           game_name: string
+          genre?: string | null
           id?: string
           logo_url?: string | null
           package_identifier?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           account_id?: string
           created_at?: string | null
           game_name?: string
+          genre?: string | null
           id?: string
           logo_url?: string | null
           package_identifier?: string | null

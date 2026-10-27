@@ -249,6 +249,11 @@ function GameTableRow({
       <TableCell style={{ width: '120px' }}>
         <div className='text-sm'>{getPlatformDisplay(game.platform)}</div>
       </TableCell>
+      <TableCell style={{ width: '120px' }}>
+        <div className='text-sm text-muted-foreground truncate'>
+          {game.genre || '-'}
+        </div>
+      </TableCell>
       <TableCell style={{ width: '250px' }}>
         <div className='relative'>
           {game.package_identifier ? (
@@ -385,6 +390,7 @@ export function AccountGamesTable({
             <TableRow>
               <TableHead style={{ width: '300px' }}>게임명</TableHead>
               <TableHead style={{ width: '120px' }}>플랫폼</TableHead>
+              <TableHead style={{ width: '120px' }}>장르</TableHead>
               <TableHead style={{ width: '250px' }}>
                 Package/Bundle ID
               </TableHead>

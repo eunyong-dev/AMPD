@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Building2Icon,
   ChevronDownIcon,
+  Gamepad2Icon,
   GlobeIcon,
   SearchIcon,
   XIcon,
@@ -57,6 +58,7 @@ const isSortKey = (v: string | null): v is SortKey =>
   !!v && SORT_OPTIONS.some((o) => o.value === v);
 
 const companyOf = (r: PublicCampaign) => r.account?.company ?? '';
+const genreOf = (r: PublicCampaign) => r.game?.genre ?? '';
 
 // 기본 정렬: 광고주 → 캠페인명
 const byAdvertiser = (a: PublicCampaign, b: PublicCampaign) =>
@@ -107,6 +109,7 @@ export default function PublicCampaignsPage() {
   const [tab, setTab] = useState<StatusTab>(DEFAULT_TAB);
   const [advertisers, setAdvertisers] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
+  const [genres, setGenres] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>('advertiser');
   const [search, setSearch] = useState('');
   const [urlReady, setUrlReady] = useState(false);
@@ -118,6 +121,7 @@ export default function PublicCampaignsPage() {
     if (isStatusTab(s)) setTab(s);
     setAdvertisers(p.getAll('advertiser').filter(Boolean));
     setRegions(p.getAll('region').filter(Boolean));
+    setGenres(p.getAll('genre').filter(Boolean));
     const so = p.get('sort');
     if (isSortKey(so)) setSort(so);
     setSearch(p.get('q') ?? '');
@@ -129,16 +133,19 @@ export default function PublicCampaignsPage() {
     if (!urlReady) return;
     const url = new URL(window.location.href);
     const p = url.searchParams;
-    ['status', 'advertiser', 'region', 'sort', 'q'].forEach((k) => p.delete(k));
+    ['status', 'advertiser', 'region', 'genre', 'sort', 'q'].forEach((k) =>
+      p.delete(k)
+    );
     if (tab !== DEFAULT_TAB) p.set('status', tab);
     advertisers.forEach((a) => p.append('advertiser', a));
     regions.forEach((r) => p.append('region', r));
+    genres.forEach((g) => p.append('genre', g));
     if (sort !== 'advertiser') p.set('sort', sort);
     if (search.trim()) p.set('q', search.trim());
     window.history.replaceState(null, '', url.pathname + url.search);
     // 성과 뷰어의 "← 캠페인 현황" 이 같은 필터로 돌아오도록 기억
     rememberShareListQuery(url.search);
-  }, [urlReady, tab, advertisers, regions, sort, search]);
+  }, [urlReady, tab, advertisers, regions, genres, sort, search]);
 
   useEffect(() => {
     (async () => {
@@ -171,6 +178,11 @@ export default function PublicCampaignsPage() {
       const next = prev.filter((r) => regionSet.has(r));
       return next.length === prev.length ? prev : next;
     });
+    const genreSet = new Set(rows.map(genreOf));
+    setGenres((prev) => {
+      const next = prev.filter((g) => genreSet.has(g));
+      return next.length === prev.length ? prev : next;
+    });
   }, [loading, rows]);
 
   // 필터 결과 + 개수. 각 개수는 "자기 자신을 뺀 나머지 필터" 기준 → 선택하면 그 숫자만큼 나옴
@@ -180,6 +192,8 @@ export default function PublicCampaignsPage() {
       advertisers.length === 0 || advertisers.includes(companyOf(r));
     const byReg = (r: PublicCampaign) =>
       regions.length === 0 || regions.includes(r.region ?? '');
+    const byGenre = (r: PublicCampaign) =>
+      genres.length === 0 || genres.includes(genreOf(r));
     // 검색: 캠페인명·게임명(지역별 포함)·광고주·패키지명
     const q = search.trim().toLowerCase();
     const bySearch = (r: PublicCampaign) =>
@@ -192,7 +206,9 @@ export default function PublicCampaignsPage() {
         companyOf(r),
       ].some((v) => (v ?? '').toLowerCase().includes(q));
 
-    const inFilters = rows.filter((r) => byAdv(r) && byReg(r) && bySearch(r));
+    const inFilters = rows.filter(
+      (r) => byAdv(r) && byReg(r) && byGenre(r) && bySearch(r)
+    );
     const list = inFilters
       .filter(byTab)
       .sort((a, b) =>
@@ -206,15 +222,19 @@ export default function PublicCampaignsPage() {
       total: inFilters.length,
       statusCounts: countBy(inFilters, (r) => r.status ?? ''),
       advertiserCounts: countBy(
-        rows.filter((r) => byTab(r) && byReg(r) && bySearch(r)),
+        rows.filter((r) => byTab(r) && byReg(r) && byGenre(r) && bySearch(r)),
         companyOf
       ),
       regionCounts: countBy(
-        rows.filter((r) => byTab(r) && byAdv(r) && bySearch(r)),
+        rows.filter((r) => byTab(r) && byAdv(r) && byGenre(r) && bySearch(r)),
         (r) => r.region ?? ''
       ),
+      genreCounts: countBy(
+        rows.filter((r) => byTab(r) && byAdv(r) && byReg(r) && bySearch(r)),
+        genreOf
+      ),
     };
-  }, [rows, tab, advertisers, regions, sort, search]);
+  }, [rows, tab, advertisers, regions, genres, sort, search]);
 
   const advertiserOptions = useMemo(
     () =>
@@ -228,6 +248,15 @@ export default function PublicCampaignsPage() {
     () =>
       [...new Set(rows.map((r) => r.region ?? '').filter(Boolean))].sort(
         byRegion
+      ),
+    [rows]
+  );
+
+  // 장르 — 장르가 저장된 게임만 (스토어 카테고리, 알파벳순)
+  const genreOptions = useMemo(
+    () =>
+      [...new Set(rows.map(genreOf).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b)
       ),
     [rows]
   );
@@ -273,10 +302,14 @@ export default function PublicCampaignsPage() {
   );
 
   const filtersActive =
-    advertisers.length > 0 || regions.length > 0 || search.trim() !== '';
+    advertisers.length > 0 ||
+    regions.length > 0 ||
+    genres.length > 0 ||
+    search.trim() !== '';
   const resetFilters = () => {
     setAdvertisers([]);
     setRegions([]);
+    setGenres([]);
     setSearch('');
   };
 
@@ -289,6 +322,12 @@ export default function PublicCampaignsPage() {
       : `광고주 ${advertisers.length}곳`;
   const regionLabel =
     regions.length === 0 ? '전체 지역' : [...regions].sort(byRegion).join(' · ');
+  const genreLabel =
+    genres.length === 0
+      ? '전체 장르'
+      : genres.length <= 2
+      ? [...genres].sort((a, b) => a.localeCompare(b)).join(' · ')
+      : `장르 ${genres.length}개`;
 
   return (
     <div className='min-h-screen bg-background'>
@@ -473,7 +512,63 @@ export default function PublicCampaignsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-
+            {/* 장르 (다중 선택) — 장르별 레퍼런스·성과 빠르게 보기 */}
+            {genreOptions.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='max-w-[200px]'
+                  >
+                    <Gamepad2Icon className='h-4 w-4' />
+                    <span className='truncate'>{genreLabel}</span>
+                    <ChevronDownIcon className='h-4 w-4 opacity-50' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-[200px]'>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setGenres([]);
+                    }}
+                    className='flex items-center gap-2'
+                  >
+                    <Checkbox
+                      checked={genres.length === 0}
+                      tabIndex={-1}
+                      aria-hidden
+                      className={CHECK_CLS}
+                    />
+                    <span>전체 장르</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className='max-h-[320px] overflow-y-auto'>
+                    {genreOptions.map((genre) => (
+                      <DropdownMenuItem
+                        key={genre}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setGenres((prev) => toggleIn(prev, genre));
+                        }}
+                        className='flex items-center gap-2'
+                      >
+                        <Checkbox
+                          checked={genres.includes(genre)}
+                          tabIndex={-1}
+                          aria-hidden
+                          className={CHECK_CLS}
+                        />
+                        <span className='flex-1 text-xs'>{genre}</span>
+                        <span className='text-xs tabular-nums text-muted-foreground'>
+                          {view.genreCounts[genre] ?? 0}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
         </>

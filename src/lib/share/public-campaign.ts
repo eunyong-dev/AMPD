@@ -11,6 +11,8 @@ export interface PublicGame {
   logo_url: string | null;
   store_url: string | null;
   package_identifier: string | null;
+  /** 스토어 카테고리 기준 장르 (예: Puzzle) */
+  genre?: string | null;
 }
 
 export interface PublicCampaign {
@@ -29,7 +31,7 @@ export interface PublicCampaign {
 }
 
 export const PUBLIC_CAMPAIGN_SELECT =
-  'id, name, region, mmp, campaign_type, status, start_date, end_date, regional_game_name, game:games(game_name, logo_url, store_url, package_identifier), account:accounts(company, country)';
+  'id, name, region, mmp, campaign_type, status, start_date, end_date, regional_game_name, game:games(game_name, logo_url, store_url, package_identifier, genre), account:accounts(company, country)';
 
 /** 공개 성과 뷰어(캠페인 단건) — 목록 필드 + Jira / 리포트 시트 링크 */
 export interface PublicCampaignDetail extends PublicCampaign {

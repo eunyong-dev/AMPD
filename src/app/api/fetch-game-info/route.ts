@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { appleGenresToGenre, playCategoryToGenre } from '@/lib/game-genre';
 
 interface GameInfo {
   game_name?: string;
   package_identifier?: string;
   logo_url?: string;
+  /** 스토어 카테고리 기준 장르 (예: Puzzle) */
+  genre?: string;
 }
 
 // 서버 메모리 캐시 — 같은 store URL 반복 스크래핑 방지.
@@ -168,6 +171,12 @@ async function scrapeImpl(url: string, gameInfo: GameInfo): Promise<void> {
                 // Bundle ID 가져오기
                 if (appData.bundleId && !gameInfo.package_identifier) {
                   gameInfo.package_identifier = appData.bundleId;
+                }
+
+                // 장르 가져오기
+                if (!gameInfo.genre) {
+                  const genre = appleGenresToGenre(appData.genres);
+                  if (genre) gameInfo.genre = genre;
                 }
 
                 // 로고 URL 가져오기
@@ -391,9 +400,20 @@ async function scrapeImpl(url: string, gameInfo: GameInfo): Promise<void> {
                 ? jsonLd.image[0]
                 : jsonLd.image;
             }
+            const genre = playCategoryToGenre(jsonLd.applicationCategory);
+            if (genre) gameInfo.genre = genre;
           } catch (e) {
             // JSON 파싱 실패 시 계속 진행
           }
+        }
+
+        // 장르 — JSON-LD 에 없으면 카테고리 링크(/store/apps/category/GAME_XXX)에서
+        if (!gameInfo.genre) {
+          const categoryMatch = html.match(
+            /store\/apps\/category\/(GAME_[A-Z_]+)/
+          );
+          const genre = playCategoryToGenre(categoryMatch?.[1]);
+          if (genre) gameInfo.genre = genre;
         }
 
         // 게임명 추출 - 여러 패턴 시도 (JSON-LD에서 가져오지 못한 경우)

@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import type { GameFormData } from '@/hooks/use-game-management';
 import { PLATFORM_OPTIONS } from '@/hooks/use-game-management';
+import { GenreSelect } from './genre-select';
 
 // 상수 정의
 const DEBOUNCE_DELAY = 1000; // URL 입력 debounce 시간
@@ -257,6 +258,7 @@ export function CreateGameForm({
     store_url: '',
     package_identifier: '',
     logo_url: '',
+    genre: '',
     app_store_url: '',
     google_play_url: '',
     bundle_id: '',
@@ -296,6 +298,9 @@ export function CreateGameForm({
       }
       if (gameInfo.logo_url) {
         updates.logo_url = gameInfo.logo_url;
+      }
+      if (gameInfo.genre) {
+        updates.genre = gameInfo.genre;
       }
 
       // URL 타입에 따라 적절한 필드에 저장
@@ -442,6 +447,7 @@ export function CreateGameForm({
       store_url: '',
       package_identifier: '',
       logo_url: '',
+      genre: '',
       app_store_url: '',
       google_play_url: '',
       bundle_id: '',
@@ -512,10 +518,11 @@ export function CreateGameForm({
       let packageIdentifier =
         newGame.bundle_id || newGame.package_name || undefined;
       let logoUrl = newGame.logo_url || undefined;
+      let genre = newGame.genre || null;
 
       // logo_url이나 package_identifier가 비어있는데 store URL이 있으면
       // submit 시점에 한 번 더 fetch — 사용자가 fetch 완료 전 클릭한 경우 대비
-      if (storeUrl && (!logoUrl || !packageIdentifier)) {
+      if (storeUrl && (!logoUrl || !packageIdentifier || !genre)) {
         try {
           const res = await fetch('/api/fetch-game-info', {
             method: 'POST',
@@ -526,6 +533,7 @@ export function CreateGameForm({
             const json = await res.json();
             const info = json?.data ?? {};
             if (!logoUrl && info.logo_url) logoUrl = info.logo_url;
+            if (!genre && info.genre) genre = info.genre;
             if (!packageIdentifier && info.package_identifier) {
               packageIdentifier = info.package_identifier;
             }
@@ -545,6 +553,7 @@ export function CreateGameForm({
         store_url: storeUrl || undefined,
         package_identifier: packageIdentifier || undefined,
         logo_url: logoUrl,
+        genre,
       };
 
       await onCreateGame(gameData);
@@ -752,6 +761,23 @@ export function CreateGameForm({
 
           {/* 게임 정보 필드 */}
           {renderGameInfoFields()}
+
+          {/* 장르 — 스토어 URL 에서 자동으로 채워짐 */}
+          {newGame.platform && (
+            <div className='space-y-2'>
+              <Label htmlFor='game_genre'>
+                장르{' '}
+                <span className='text-xs text-muted-foreground font-normal'>
+                  (스토어에서 자동 입력)
+                </span>
+              </Label>
+              <GenreSelect
+                id='game_genre'
+                value={newGame.genre || ''}
+                onChange={(genre) => setNewGame((prev) => ({ ...prev, genre }))}
+              />
+            </div>
+          )}
 
         </div>
         <DialogFooter>

@@ -106,6 +106,7 @@ export function GamesTable({
             <TableHead style={{ width: '200px' }}>게임명</TableHead>
             <TableHead style={{ width: '120px' }}>광고주</TableHead>
             <TableHead style={{ width: '100px' }}>플랫폼</TableHead>
+            <TableHead style={{ width: '110px' }}>장르</TableHead>
             <TableHead style={{ width: '120px' }}>스토어 링크</TableHead>
             <TableHead></TableHead>
           </TableRow>
@@ -143,6 +144,11 @@ export function GamesTable({
                 <TableCell style={{ width: '100px' }}>
                   <div className='text-sm'>
                     {getPlatformDisplay(game.platform)}
+                  </div>
+                </TableCell>
+                <TableCell style={{ width: '110px' }}>
+                  <div className='text-sm text-muted-foreground truncate'>
+                    {game.genre || '-'}
                   </div>
                 </TableCell>
                 <TableCell style={{ width: '120px' }}>

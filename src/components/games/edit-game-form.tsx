@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import type { Game, GameFormData } from '@/hooks/use-game-management';
 import { PLATFORM_OPTIONS } from '@/hooks/use-game-management';
+import { GenreSelect } from './genre-select';
 
 interface EditGameFormProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ interface FormState {
   store_url: string;
   package_identifier: string;
   logo_url: string;
+  genre: string;
 }
 
 const emptyForm = (): FormState => ({
@@ -59,6 +61,7 @@ const emptyForm = (): FormState => ({
   store_url: '',
   package_identifier: '',
   logo_url: '',
+  genre: '',
 });
 
 export function EditGameForm({
@@ -79,6 +82,7 @@ export function EditGameForm({
         store_url: game.store_url || '',
         package_identifier: game.package_identifier || '',
         logo_url: game.logo_url || '',
+        genre: game.genre || '',
       });
     }
   }, [isOpen, game]);
@@ -110,6 +114,7 @@ export function EditGameForm({
         store_url: form.store_url.trim() || undefined,
         package_identifier: form.package_identifier.trim() || undefined,
         logo_url: form.logo_url.trim() || undefined,
+        genre: form.genre || null,
       };
 
       await onUpdateGame(game.id, payload);
@@ -197,6 +202,21 @@ export function EditGameForm({
                 setForm((prev) => ({ ...prev, store_url: e.target.value }))
               }
               autoComplete='off'
+            />
+          </div>
+
+          {/* 장르 */}
+          <div className='space-y-2'>
+            <Label htmlFor='edit-game-genre'>
+              장르{' '}
+              <span className='text-xs text-muted-foreground font-normal'>
+                (선택)
+              </span>
+            </Label>
+            <GenreSelect
+              id='edit-game-genre'
+              value={form.genre}
+              onChange={(genre) => setForm((prev) => ({ ...prev, genre }))}
             />
           </div>
 
