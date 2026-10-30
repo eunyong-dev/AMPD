@@ -256,7 +256,9 @@ export function CampaignSwitcher({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // modal — 성과 모달(Dialog) 안에서 열면 Dialog 의 스크롤 잠금이 body 로 포털된 목록의 휠까지 막음.
+    // Popover 도 modal 로 열면 가장 마지막 잠금(= 이 목록)만 활성이라 목록 스크롤이 됨
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <button
           type='button'
