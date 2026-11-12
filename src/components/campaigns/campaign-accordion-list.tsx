@@ -35,8 +35,6 @@ import type { UserProfile } from '@/lib/permissions';
  * 펼친 상태: 캠페인 줄 (캠페인·게임 / 리전 / MMP / 상태 / 기간 · N일째 / 시트 · JIRA)
  */
 
-// 직접 운영하지 않는 애드네트워크 — 목록 아래 "애드네트워크" 묶음으로 따로
-const AD_NETWORK_COMPANIES = new Set(['NetMarvel', 'Mobisummer']);
 
 const MARKET_BADGE: Record<string, { label: string; cls: string }> = {
   CN: {
@@ -89,6 +87,8 @@ export type AccordionCampaign = Pick<
   game_package_identifier?: string | null;
   account_company?: string | null;
   account_country?: string | null;
+  /** 'ad_network' 이면 목록 아래 "애드네트워크" 묶음으로 (광고주 관리의 광고주 유형) */
+  account_type?: string | null;
   assigned_user_id?: string | null;
 };
 type Campaign = AccordionCampaign;
@@ -110,6 +110,7 @@ export function dayCount(start: string | null) {
 interface Group {
   company: string;
   country: string | null;
+  isAdNetwork: boolean;
   campaigns: Campaign[];
   games: { key: string; logo: string | null; name: string }[];
   regions: string[];
@@ -124,6 +125,7 @@ function buildGroups(campaigns: Campaign[]): Group[] {
       g = {
         company,
         country: c.account_country ?? null,
+        isAdNetwork: c.account_type === 'ad_network',
         campaigns: [],
         games: [],
         regions: [],
@@ -528,8 +530,9 @@ export function CampaignAccordionList<T extends AccordionCampaign>({
   const { advertisers, adNetworks } = useMemo(() => {
     const groups = buildGroups(campaigns);
     return {
-      advertisers: groups.filter((g) => !AD_NETWORK_COMPANIES.has(g.company)),
-      adNetworks: groups.filter((g) => AD_NETWORK_COMPANIES.has(g.company)),
+      // 직접 운영하지 않는 애드네트워크(광고주 유형 = 애드네트워크)는 목록 아래 "애드네트워크" 묶음으로 따로
+      advertisers: groups.filter((g) => !g.isAdNetwork),
+      adNetworks: groups.filter((g) => g.isAdNetwork),
     };
   }, [campaigns]);
 

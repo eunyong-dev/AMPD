@@ -297,6 +297,7 @@ export default function PublicCampaignsPage() {
         game_package_identifier: r.game?.package_identifier ?? null,
         account_company: companyOf(r),
         account_country: r.account?.country ?? null,
+        account_type: r.account?.account_type ?? null,
       })),
     [view.list]
   );
